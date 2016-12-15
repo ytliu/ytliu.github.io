@@ -1,0 +1,1631 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>KVM support in Libvmi - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2014/03/27/kvm-support-in-libvmi">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">KVM Support in Libvmi</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-27T16:50:00+08:00" pubdate data-updated="true">Mar 27<span>th</span>, 2014</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Several months ago I&#8217;ve post 2 blogs to introduce <a href="http://ytliu.info/blog/2013/08/04/libvmi-setup/">how to setup libvmi</a> and <a href="http://ytliu.info/blog/2013/08/14/write-introspection-tools-using-libvmi/">how to write your own tools using libvmi</a>. These two posts are based on Xen virtualization environment. Today I&#8217;m trying to use Libvmi for KVM virtual machine introspection, which need more effort to do such task.</p>
+
+<p>In the rest of this blog, I will briefly introduce why this effort need to be done and how to do that.</p>
+
+<!-- more -->
+
+
+<hr />
+
+<p>Before we start, let&#8217;s firstly see how document in libvmi github page saying about <em>KVM Support</em>:</p>
+
+<blockquote><p>If you would like LibVMI to work on KVM VM&#8217;s, you must do some additional setup. This is because KVM doesn&#8217;t have much built-in capability for introspection.</p>
+
+<p>You only need one memory access technique. LibVMI will first look for the QEMU-KVM patch and use that if it is installed. Otherwise it will fall back to using GDB.</p></blockquote>
+
+<p>And now Libvmi provide 3 ways to support KVM introspection:</p>
+
+<ul>
+<li>Enable GDB access to your KVM VM, which is the slowest approach;</li>
+<li>Patch QEMU-KVM with the provided patch, which is much faster;</li>
+<li>Use Shm-snapshot Support to introspect on a memory snapshot, which is the fatest one.</li>
+</ul>
+
+
+<p>In this blog, I&#8217;ll not consider the GDB method since it will introduce much overhead, and only discuss about the second QEMU-KVM patch way. While the third Shm-snapshot will be introduced in the future.</p>
+
+<p>So as far as I&#8217;m concerned, why Libvmi require applying a qemu patch to introspect KVM virtual machine is for following reasons:</p>
+
+<ul>
+<li>Libvmi use libvirt framework API to manage and get data from guest virtual machine;</li>
+<li>However, unlike libxenctrl used in Xen, libvirt for KVM does not provide any API to map Guest Physical Address (GPA) to Host Virtual Address (HVA);</li>
+<li>While in qemu, there is a function called <code>cpu_physical_memory_map</code> in <code>qemu/exec.c</code> file which can map guest GPA to HVA.</li>
+</ul>
+
+
+<p>So what the patch actually do is use Qemu Machine Protocal (QMP) mechanism for libvmi to pass the GPA, and call the internal function <code>cpu_physical_memory_map</code> located in <code>qemu/exec.c</code> in Qemu, and finally get the mapped HVA back.</p>
+
+<hr />
+
+<p>Actually the patch are used for some specific qemu versions, so I think I should just tell why it works, and how to make it work in general.</p>
+
+<h4>Create a connection inside Qemu for Libvmi to communicate</h4>
+
+<p>The entry function is <code>do_physical_memory_access()</code>, we can put it anywhere, for example, Libvmi patch put it in <code>qemu/monitor.c</code> file:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">int</span> <span class="nf">do_physical_memory_access</span><span class="p">(</span><span class="n">Monitor</span> <span class="o">*</span><span class="n">mon</span><span class="p">,</span> <span class="k">const</span> <span class="n">QDict</span> <span class="o">*</span><span class="n">qdict</span><span class="p">,</span> <span class="n">QObject</span> <span class="o">**</span><span class="n">ret_data</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span> <span class="o">=</span> <span class="n">qdict_get_str</span><span class="p">(</span><span class="n">qdict</span><span class="p">,</span> <span class="s">&quot;path&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">memory_access_start</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function will have a input parameter <code>path</code>，with which to invoke <code>memory_access_start()</code> function:</p>
+
+<p>(Note: The following code are all located in <code>qemu/memory-access.c</code>)</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span>
+</span><span class='line'><span class="nf">memory_access_start</span> <span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">pthread_t</span> <span class="kr">thread</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sigset_t</span> <span class="n">set</span><span class="p">,</span> <span class="n">oldset</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1">// create a copy of path that we can safely use</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">pathcopy</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">strlen</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">memcpy</span><span class="p">(</span><span class="n">pathcopy</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1">// start the thread</span>
+</span><span class='line'>  <span class="n">sigfillset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">set</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">pthread_sigmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">set</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldset</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="kr">thread</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">memory_access_thread</span><span class="p">,</span> <span class="n">pathcopy</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">pthread_sigmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function will create a new thread, and run the <code>memory_access_thread()</code> function:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="o">*</span>
+</span><span class='line'><span class="nf">memory_access_thread</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">sockaddr_un</span> <span class="n">address</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">socket_fd</span><span class="p">,</span> <span class="n">connection_fd</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">socklen_t</span> <span class="n">address_length</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">socket_fd</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">PF_UNIX</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">socket_fd</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: socket failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>  <span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">address</span><span class="p">.</span><span class="n">sun_family</span> <span class="o">=</span> <span class="n">AF_UNIX</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">address_length</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">address</span><span class="p">.</span><span class="n">sun_family</span><span class="p">)</span> <span class="o">+</span> <span class="n">sprintf</span><span class="p">(</span><span class="n">address</span><span class="p">.</span><span class="n">sun_path</span><span class="p">,</span> <span class="s">&quot;%s&quot;</span><span class="p">,</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">path</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">bind</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">address</span><span class="p">,</span> <span class="n">address_length</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'>  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: bind failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">listen</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'>  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: listen failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">connection_fd</span> <span class="o">=</span> <span class="n">accept</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">address</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">address_length</span><span class="p">);</span>
+</span><span class='line'><span class="n">connection_handler</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">close</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">);</span>
+</span><span class='line'><span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="nl">error_exit:</span>
+</span><span class='line'><span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function will create a socket, combine it with the <code>/tmp/path</code> named file, bind, listen for connection, and once any other process connect to such socket, it will invoke the <code>connection_handler()</code> function:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">void</span>
+</span><span class='line'><span class="nf">connection_handler</span> <span class="p">(</span><span class="kt">int</span> <span class="n">connection_fd</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">nbytes</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">request</span> <span class="n">req</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">){</span>
+</span><span class='line'>    <span class="c1">// client request should match the struct request format</span>
+</span><span class='line'>    <span class="n">nbytes</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">req</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">request</span><span class="p">));</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">request</span><span class="p">)){</span>
+</span><span class='line'>      <span class="c1">// error</span>
+</span><span class='line'>      <span class="k">continue</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">type</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'>      <span class="c1">// request to quit, goodbye</span>
+</span><span class='line'>      <span class="k">break</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">type</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
+</span><span class='line'>      <span class="c1">// request to read</span>
+</span><span class='line'>      <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>      <span class="n">nbytes</span> <span class="o">=</span> <span class="n">connection_read_memory</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">address</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'>      <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">){</span>
+</span><span class='line'>        <span class="c1">// read failure, return failure message</span>
+</span><span class='line'>        <span class="n">buf</span><span class="p">[</span><span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// set last byte to 0 for failure</span>
+</span><span class='line'>        <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>      <span class="k">else</span><span class="p">{</span>
+</span><span class='line'>        <span class="c1">// read success, return bytes</span>
+</span><span class='line'>        <span class="n">buf</span><span class="p">[</span><span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// set last byte to 1 for success</span>
+</span><span class='line'>        <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">nbytes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>      <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">type</span> <span class="o">==</span> <span class="mi">2</span><span class="p">){</span>
+</span><span class='line'>      <span class="c1">// request to write</span>
+</span><span class='line'>      <span class="kt">void</span> <span class="o">*</span><span class="n">write_buf</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'>      <span class="n">nbytes</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">write_buf</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'>      <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">){</span>
+</span><span class='line'>        <span class="c1">// failed reading the message to write</span>
+</span><span class='line'>        <span class="n">send_fail_ack</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>      <span class="k">else</span><span class="p">{</span>
+</span><span class='line'>        <span class="c1">// do the write</span>
+</span><span class='line'>        <span class="n">nbytes</span> <span class="o">=</span> <span class="n">connection_write_memory</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">address</span><span class="p">,</span> <span class="n">write_buf</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">==</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">){</span>
+</span><span class='line'>          <span class="n">send_success_ack</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="k">else</span><span class="p">{</span>
+</span><span class='line'>          <span class="n">send_fail_ack</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>      <span class="n">free</span><span class="p">(</span><span class="n">write_buf</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">else</span><span class="p">{</span>
+</span><span class='line'>      <span class="c1">// unknown command</span>
+</span><span class='line'>      <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: ignoring unknown command (%d)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">type</span><span class="p">);</span>
+</span><span class='line'>      <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>      <span class="n">buf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>      <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>      <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">close</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function will parse the request from the connection_fd, the types of request are divided to 3:</p>
+
+<ul>
+<li>0: quit</li>
+<li>1: read</li>
+<li>2: write</li>
+</ul>
+
+
+<p>Once it receive read request, it will invoke the <code>connection_read_memory()</code> function:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">uint64_t</span>
+</span><span class='line'><span class="nf">connection_read_memory</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">user_paddr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="n">user_len</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">hwaddr</span> <span class="n">paddr</span> <span class="o">=</span> <span class="p">(</span><span class="n">hwaddr</span><span class="p">)</span> <span class="n">user_paddr</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">hwaddr</span> <span class="n">len</span> <span class="o">=</span> <span class="p">(</span><span class="n">hwaddr</span><span class="p">)</span> <span class="n">user_len</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">void</span> <span class="o">*</span><span class="n">guestmem</span> <span class="o">=</span> <span class="n">cpu_physical_memory_map</span><span class="p">(</span><span class="n">paddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">guestmem</span><span class="p">){</span>
+</span><span class='line'>        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">memcpy</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">guestmem</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">cpu_physical_memory_unmap</span><span class="p">(</span><span class="n">guestmem</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">len</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Once it receive write request, it will invoke the <code>connection_write_memory()</code> function:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">uint64_t</span>
+</span><span class='line'><span class="nf">connection_write_memory</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">user_paddr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="n">user_len</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">hwaddr</span> <span class="n">paddr</span> <span class="o">=</span> <span class="p">(</span><span class="n">hwaddr</span><span class="p">)</span> <span class="n">user_paddr</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">hwaddr</span> <span class="n">len</span> <span class="o">=</span> <span class="p">(</span><span class="n">hwaddr</span><span class="p">)</span> <span class="n">user_len</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">void</span> <span class="o">*</span><span class="n">guestmem</span> <span class="o">=</span> <span class="n">cpu_physical_memory_map</span><span class="p">(</span><span class="n">paddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">guestmem</span><span class="p">){</span>
+</span><span class='line'>        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">memcpy</span><span class="p">(</span><span class="n">guestmem</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">cpu_physical_memory_unmap</span><span class="p">(</span><span class="n">guestmem</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">len</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, what we need to do is to invoke the very beginning function <code>do_physical_memory_access()</code>. So here comes the QMP:</p>
+
+<h4>Patch QMP to provide a entry to invoke <code>do_physical_memory_access()</code> method</h4>
+
+<p>How QMP works will be introduced in a new blog in the future. Here I just need to tell what need to add:</p>
+
+<p>in <code>qemu/qmp-command.hx</code> file, we add following code:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>{
+</span><span class='line'>  .name       = &quot;pmemaccess&quot;,
+</span><span class='line'>  .args_type  = &quot;path:s&quot;,
+</span><span class='line'>  .params     = &quot;path&quot;,
+</span><span class='line'>  .help       = &quot;mount guest physical memory image at &#39;path&#39;&quot;,
+</span><span class='line'>  .user_print = monitor_user_noop,
+</span><span class='line'>  .mhandler.cmd_new = do_physical_memory_access,
+</span><span class='line'>},
+</span><span class='line'>
+</span><span class='line'>SQMP
+</span><span class='line'>pmemaccess
+</span><span class='line'>----------
+</span><span class='line'>
+</span><span class='line'>Mount guest physical memory image at &#39;path&#39;.
+</span><span class='line'>
+</span><span class='line'>Arguments:
+</span><span class='line'>
+</span><span class='line'>- &quot;path&quot;: mount point path (json-string)
+</span><span class='line'>
+</span><span class='line'>Example:
+</span><span class='line'>
+</span><span class='line'>-&gt; { &quot;execute&quot;: &quot;pmemaccess&quot;,
+</span><span class='line'>             &quot;arguments&quot;: { &quot;path&quot;: &quot;/tmp/guestname&quot; } }
+</span><span class='line'><span class="nt">&lt;-</span> <span class="err">{</span> <span class="err">&quot;return&quot;:</span> <span class="err">{}</span> <span class="err">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">EQMP</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that the code we need here is:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>{
+</span><span class='line'>  .name       = &quot;pmemaccess&quot;,
+</span><span class='line'>  .args_type  = &quot;path:s&quot;,
+</span><span class='line'>  .params     = &quot;path&quot;,
+</span><span class='line'>  .help       = &quot;mount guest physical memory image at &#39;path&#39;&quot;,
+</span><span class='line'>  .user_print = monitor_user_noop,
+</span><span class='line'>  .mhandler.cmd_new = do_physical_memory_access,
+</span><span class='line'>},
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>the other code between <code>SQMP</code> and <code>EQMP</code> are just added to the documentation. But it is required!</p>
+
+<p>After adding this command to Qemu QMP, we can invoke <code>do_physical_memory_access()</code> outside of Qemu using such format shown in Example section:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>-&gt; { &quot;execute&quot;: &quot;pmemaccess&quot;,
+</span><span class='line'>             &quot;arguments&quot;: { &quot;path&quot;: &quot;/tmp/guestname&quot; } }
+</span><span class='line'><span class="nt">&lt;-</span> <span class="err">{</span> <span class="err">&quot;return&quot;:</span> <span class="err">{}</span> <span class="err">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>For example, in Libvmi, you can find how it invokes this in <code>libvmi/driver/kvm.c</code> file:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="c1">//</span>
+</span><span class='line'><span class="c1">// QMP Command Interactions</span>
+</span><span class='line'><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span>
+</span><span class='line'><span class="nf">exec_qmp_cmd</span><span class="p">(</span>
+</span><span class='line'>    <span class="n">kvm_instance_t</span> <span class="o">*</span><span class="n">kvm</span><span class="p">,</span>
+</span><span class='line'>    <span class="kt">char</span> <span class="o">*</span><span class="n">query</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">......</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">snprintf</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">cmd_length</span><span class="p">,</span> <span class="s">&quot;virsh qemu-monitor-command %s %s&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span>
+</span><span class='line'>   <span class="n">query</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">......</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">p</span> <span class="o">=</span> <span class="n">popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">......</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span>
+</span><span class='line'><span class="nf">exec_memory_access</span><span class="p">(</span>
+</span><span class='line'>  <span class="n">kvm_instance_t</span> <span class="o">*</span><span class="n">kvm</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">tmpfile</span> <span class="o">=</span> <span class="n">tempnam</span><span class="p">(</span><span class="s">&quot;/tmp&quot;</span><span class="p">,</span> <span class="s">&quot;vmi&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">query</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">safe_malloc</span><span class="p">(</span><span class="mi">256</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">sprintf</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
+</span><span class='line'>  <span class="s">&quot;&#39;{</span><span class="se">\&quot;</span><span class="s">execute</span><span class="se">\&quot;</span><span class="s">: </span><span class="se">\&quot;</span><span class="s">pmemaccess</span><span class="se">\&quot;</span><span class="s">, </span><span class="se">\&quot;</span><span class="s">arguments</span><span class="se">\&quot;</span><span class="s">: {</span><span class="se">\&quot;</span><span class="s">path</span><span class="se">\&quot;</span><span class="s">: </span><span class="se">\&quot;</span><span class="s">%s</span><span class="se">\&quot;</span><span class="s">}}&#39;&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="n">tmpfile</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">......</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">output</span> <span class="o">=</span> <span class="n">exec_qmp_cmd</span><span class="p">(</span><span class="n">kvm</span><span class="p">,</span> <span class="n">query</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">......</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And when it needs to read a page, it needs to map from GPA to HVA, then the libvmi will follow the control from:</p>
+
+<p>  vmi_read_va -> (get GPA from vmi_translate_uv2p) -> kvm_read_page -> memory_cache_insert ->
+  create_new_entry -> get_memory_data -> get_memory_callback -> kvm_get_memory_patch</p>
+
+<p>For the last function, it can be found in file <code>libvmi/driver/kvm.c</code>:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="o">*</span>
+</span><span class='line'><span class="nf">kvm_get_memory_patch</span><span class="p">(</span>
+</span><span class='line'>    <span class="n">vmi_instance_t</span> <span class="n">vmi</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">addr_t</span> <span class="n">paddr</span><span class="p">,</span>
+</span><span class='line'>    <span class="kt">uint32_t</span> <span class="n">length</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span> <span class="o">=</span> <span class="n">safe_malloc</span><span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">request</span> <span class="n">req</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">req</span><span class="p">.</span><span class="n">type</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>   <span class="c1">// read request</span>
+</span><span class='line'>  <span class="n">req</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="p">(</span><span class="kt">uint64_t</span><span class="p">)</span> <span class="n">paddr</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">req</span><span class="p">.</span><span class="n">length</span> <span class="o">=</span> <span class="p">(</span><span class="kt">uint64_t</span><span class="p">)</span> <span class="n">length</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">nbytes</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">write</span><span class="p">(</span><span class="n">kvm_get_instance</span><span class="p">(</span><span class="n">vmi</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">socket_fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">req</span><span class="p">,</span>
+</span><span class='line'>    <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">request</span><span class="p">));</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">request</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>  <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>    <span class="c1">// get the data from kvm</span>
+</span><span class='line'>    <span class="n">nbytes</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">read</span><span class="p">(</span><span class="n">kvm_get_instance</span><span class="p">(</span><span class="n">vmi</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">socket_fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// check that kvm thinks everything is ok by looking at the last byte</span>
+</span><span class='line'>    <span class="c1">// of the buffer, 0 is failure and 1 is success</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">buf</span><span class="p">[</span><span class="n">length</span><span class="p">])</span> <span class="p">{</span>
+</span><span class='line'>      <span class="c1">// success, return pointer to buf</span>
+</span><span class='line'>      <span class="k">return</span> <span class="n">buf</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1">// default failure</span>
+</span><span class='line'>  <span class="nl">error_exit:</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So it uses the socket_fd to communicate with the connection openned in Qemu to invoke the <code>cpu_physical_read_memory()</code>. So the same with write.</p>
+
+<hr />
+
+<p>Above are the principle how Qemu-patch work in Libvmi for KVM support, you can find the whole patch <a href="https://github.com/bdpayne/libvmi/tree/master/tools/qemu-kvm-patch">here</a>, now it only support 0.14 and 1.2 versions. If you know how it works, you can modify the patch and apply your own Qemu version. For example, following is my patch for the Qemu in stable-1.6 branch, e82ee0845c3240541e79b9b521779b3f8743f1b4 commit:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+<span class='line-number'>154</span>
+<span class='line-number'>155</span>
+<span class='line-number'>156</span>
+<span class='line-number'>157</span>
+<span class='line-number'>158</span>
+<span class='line-number'>159</span>
+<span class='line-number'>160</span>
+<span class='line-number'>161</span>
+<span class='line-number'>162</span>
+<span class='line-number'>163</span>
+<span class='line-number'>164</span>
+<span class='line-number'>165</span>
+<span class='line-number'>166</span>
+<span class='line-number'>167</span>
+<span class='line-number'>168</span>
+<span class='line-number'>169</span>
+<span class='line-number'>170</span>
+<span class='line-number'>171</span>
+<span class='line-number'>172</span>
+<span class='line-number'>173</span>
+<span class='line-number'>174</span>
+<span class='line-number'>175</span>
+<span class='line-number'>176</span>
+<span class='line-number'>177</span>
+<span class='line-number'>178</span>
+<span class='line-number'>179</span>
+<span class='line-number'>180</span>
+<span class='line-number'>181</span>
+<span class='line-number'>182</span>
+<span class='line-number'>183</span>
+<span class='line-number'>184</span>
+<span class='line-number'>185</span>
+<span class='line-number'>186</span>
+<span class='line-number'>187</span>
+<span class='line-number'>188</span>
+<span class='line-number'>189</span>
+<span class='line-number'>190</span>
+<span class='line-number'>191</span>
+<span class='line-number'>192</span>
+<span class='line-number'>193</span>
+<span class='line-number'>194</span>
+<span class='line-number'>195</span>
+<span class='line-number'>196</span>
+<span class='line-number'>197</span>
+<span class='line-number'>198</span>
+<span class='line-number'>199</span>
+<span class='line-number'>200</span>
+<span class='line-number'>201</span>
+<span class='line-number'>202</span>
+<span class='line-number'>203</span>
+<span class='line-number'>204</span>
+<span class='line-number'>205</span>
+<span class='line-number'>206</span>
+<span class='line-number'>207</span>
+<span class='line-number'>208</span>
+<span class='line-number'>209</span>
+<span class='line-number'>210</span>
+<span class='line-number'>211</span>
+<span class='line-number'>212</span>
+<span class='line-number'>213</span>
+<span class='line-number'>214</span>
+<span class='line-number'>215</span>
+<span class='line-number'>216</span>
+<span class='line-number'>217</span>
+<span class='line-number'>218</span>
+<span class='line-number'>219</span>
+<span class='line-number'>220</span>
+<span class='line-number'>221</span>
+<span class='line-number'>222</span>
+<span class='line-number'>223</span>
+<span class='line-number'>224</span>
+<span class='line-number'>225</span>
+<span class='line-number'>226</span>
+<span class='line-number'>227</span>
+<span class='line-number'>228</span>
+<span class='line-number'>229</span>
+<span class='line-number'>230</span>
+<span class='line-number'>231</span>
+<span class='line-number'>232</span>
+<span class='line-number'>233</span>
+<span class='line-number'>234</span>
+<span class='line-number'>235</span>
+<span class='line-number'>236</span>
+<span class='line-number'>237</span>
+<span class='line-number'>238</span>
+<span class='line-number'>239</span>
+<span class='line-number'>240</span>
+<span class='line-number'>241</span>
+<span class='line-number'>242</span>
+<span class='line-number'>243</span>
+<span class='line-number'>244</span>
+<span class='line-number'>245</span>
+<span class='line-number'>246</span>
+<span class='line-number'>247</span>
+<span class='line-number'>248</span>
+<span class='line-number'>249</span>
+<span class='line-number'>250</span>
+<span class='line-number'>251</span>
+<span class='line-number'>252</span>
+<span class='line-number'>253</span>
+<span class='line-number'>254</span>
+<span class='line-number'>255</span>
+<span class='line-number'>256</span>
+<span class='line-number'>257</span>
+<span class='line-number'>258</span>
+<span class='line-number'>259</span>
+<span class='line-number'>260</span>
+<span class='line-number'>261</span>
+<span class='line-number'>262</span>
+<span class='line-number'>263</span>
+<span class='line-number'>264</span>
+<span class='line-number'>265</span>
+<span class='line-number'>266</span>
+<span class='line-number'>267</span>
+<span class='line-number'>268</span>
+<span class='line-number'>269</span>
+<span class='line-number'>270</span>
+<span class='line-number'>271</span>
+<span class='line-number'>272</span>
+<span class='line-number'>273</span>
+<span class='line-number'>274</span>
+<span class='line-number'>275</span>
+<span class='line-number'>276</span>
+<span class='line-number'>277</span>
+<span class='line-number'>278</span>
+<span class='line-number'>279</span>
+<span class='line-number'>280</span>
+<span class='line-number'>281</span>
+<span class='line-number'>282</span>
+<span class='line-number'>283</span>
+<span class='line-number'>284</span>
+<span class='line-number'>285</span>
+<span class='line-number'>286</span>
+<span class='line-number'>287</span>
+<span class='line-number'>288</span>
+<span class='line-number'>289</span>
+<span class='line-number'>290</span>
+<span class='line-number'>291</span>
+<span class='line-number'>292</span>
+<span class='line-number'>293</span>
+<span class='line-number'>294</span>
+<span class='line-number'>295</span>
+<span class='line-number'>296</span>
+<span class='line-number'>297</span>
+<span class='line-number'>298</span>
+<span class='line-number'>299</span>
+<span class='line-number'>300</span>
+<span class='line-number'>301</span>
+<span class='line-number'>302</span>
+<span class='line-number'>303</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'> <span class="n">diff</span> <span class="o">--</span><span class="n">git</span> <span class="n">a</span><span class="o">/</span><span class="n">Makefile</span><span class="p">.</span><span class="n">target</span> <span class="n">b</span><span class="o">/</span><span class="n">Makefile</span><span class="p">.</span><span class="n">target</span>
+</span><span class='line'><span class="n">index</span> <span class="mi">9</span><span class="n">a49852</span><span class="p">..</span><span class="n">be93dd0</span> <span class="mi">100644</span>
+</span><span class='line'><span class="o">---</span> <span class="n">a</span><span class="o">/</span><span class="n">Makefile</span><span class="p">.</span><span class="n">target</span>
+</span><span class='line'><span class="o">+++</span> <span class="n">b</span><span class="o">/</span><span class="n">Makefile</span><span class="p">.</span><span class="n">target</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">113</span><span class="p">,</span><span class="mi">7</span> <span class="o">+</span><span class="mi">113</span><span class="p">,</span><span class="mi">7</span> <span class="err">@@</span> <span class="n">endif</span> <span class="err">#</span><span class="n">CONFIG_BSD_USER</span>
+</span><span class='line'> <span class="err">#########################################################</span>
+</span><span class='line'> <span class="err">#</span> <span class="n">System</span> <span class="n">emulator</span> <span class="n">target</span>
+</span><span class='line'> <span class="n">ifdef</span> <span class="n">CONFIG_SOFTMMU</span>
+</span><span class='line'><span class="o">-</span><span class="n">obj</span><span class="o">-</span><span class="n">y</span> <span class="o">+=</span> <span class="n">arch_init</span><span class="p">.</span><span class="n">o</span> <span class="n">cpus</span><span class="p">.</span><span class="n">o</span> <span class="n">monitor</span><span class="p">.</span><span class="n">o</span> <span class="n">gdbstub</span><span class="p">.</span><span class="n">o</span> <span class="n">balloon</span><span class="p">.</span><span class="n">o</span> <span class="n">ioport</span><span class="p">.</span><span class="n">o</span>
+</span><span class='line'><span class="o">+</span><span class="n">obj</span><span class="o">-</span><span class="n">y</span> <span class="o">+=</span> <span class="n">arch_init</span><span class="p">.</span><span class="n">o</span> <span class="n">cpus</span><span class="p">.</span><span class="n">o</span> <span class="n">monitor</span><span class="p">.</span><span class="n">o</span> <span class="n">gdbstub</span><span class="p">.</span><span class="n">o</span> <span class="n">balloon</span><span class="p">.</span><span class="n">o</span> <span class="n">ioport</span><span class="p">.</span><span class="n">o</span> <span class="n">memory</span><span class="o">-</span><span class="n">access</span><span class="p">.</span><span class="n">o</span>
+</span><span class='line'> <span class="n">obj</span><span class="o">-</span><span class="n">y</span> <span class="o">+=</span> <span class="n">qtest</span><span class="p">.</span><span class="n">o</span>
+</span><span class='line'> <span class="n">obj</span><span class="o">-</span><span class="n">y</span> <span class="o">+=</span> <span class="n">hw</span><span class="o">/</span>
+</span><span class='line'> <span class="n">obj</span><span class="o">-</span><span class="err">$</span><span class="p">(</span><span class="n">CONFIG_FDT</span><span class="p">)</span> <span class="o">+=</span> <span class="n">device_tree</span><span class="p">.</span><span class="n">o</span>
+</span><span class='line'><span class="n">diff</span> <span class="o">--</span><span class="n">git</span> <span class="n">a</span><span class="o">/</span><span class="n">memory</span><span class="o">-</span><span class="n">access</span><span class="p">.</span><span class="n">c</span> <span class="n">b</span><span class="o">/</span><span class="n">memory</span><span class="o">-</span><span class="n">access</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'><span class="n">new</span> <span class="n">file</span> <span class="n">mode</span> <span class="mi">100644</span>
+</span><span class='line'><span class="n">index</span> <span class="mf">0000000..2</span><span class="n">c81c48</span>
+</span><span class='line'><span class="o">---</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+</span><span class='line'><span class="o">+++</span> <span class="n">b</span><span class="o">/</span><span class="n">memory</span><span class="o">-</span><span class="n">access</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span> <span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">205</span> <span class="err">@@</span>
+</span><span class='line'><span class="o">+</span><span class="cm">/*</span>
+</span><span class='line'><span class="cm">+ * Access guest physical memory via a domain socket.</span>
+</span><span class='line'><span class="cm">+ *</span>
+</span><span class='line'><span class="cm">+ * Copyright (C) 2011 Sandia National Laboratories</span>
+</span><span class='line'><span class="cm">+ * Author: Bryan D. Payne (bdpayne@acm.org)</span>
+</span><span class='line'><span class="cm">+ */</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="s">&quot;memory-access.h&quot;</span>
+</span><span class='line'><span class="o">+</span><span class="c1">//#include &quot;cpu-all.h&quot;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="s">&quot;qemu-common.h&quot;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="s">&quot;exec/cpu-common.h&quot;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="s">&quot;config.h&quot;</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">stdlib</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">stdio</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">string</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">pthread</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">sys</span><span class="o">/</span><span class="n">types</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">sys</span><span class="o">/</span><span class="n">socket</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">sys</span><span class="o">/</span><span class="n">un</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">unistd</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">signal</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&lt;</span><span class="n">stdint</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="k">struct</span> <span class="n">request</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">uint8_t</span> <span class="n">type</span><span class="p">;</span>      <span class="c1">// 0 quit, 1 read, 2 write, ... rest reserved</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">uint64_t</span> <span class="n">address</span><span class="p">;</span>  <span class="c1">// address to read from OR write to</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">uint64_t</span> <span class="n">length</span><span class="p">;</span>   <span class="c1">// number of bytes to read OR write</span>
+</span><span class='line'><span class="o">+</span><span class="p">};</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="k">typedef</span> <span class="kt">uint64_t</span> <span class="n">target_phys_addr_t</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">static</span> <span class="kt">uint64_t</span>
+</span><span class='line'><span class="o">+</span><span class="n">connection_read_memory</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">user_paddr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="n">user_len</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">target_phys_addr_t</span> <span class="n">paddr</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_phys_addr_t</span><span class="p">)</span> <span class="n">user_paddr</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">target_phys_addr_t</span> <span class="n">len</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_phys_addr_t</span><span class="p">)</span> <span class="n">user_len</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">void</span> <span class="o">*</span><span class="n">guestmem</span> <span class="o">=</span> <span class="n">cpu_physical_memory_map</span><span class="p">(</span><span class="n">paddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">guestmem</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">memcpy</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">guestmem</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">cpu_physical_memory_unmap</span><span class="p">(</span><span class="n">guestmem</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">return</span> <span class="n">len</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">static</span> <span class="kt">uint64_t</span>
+</span><span class='line'><span class="o">+</span><span class="n">connection_write_memory</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">user_paddr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="n">user_len</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">target_phys_addr_t</span> <span class="n">paddr</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_phys_addr_t</span><span class="p">)</span> <span class="n">user_paddr</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">target_phys_addr_t</span> <span class="n">len</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_phys_addr_t</span><span class="p">)</span> <span class="n">user_len</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">void</span> <span class="o">*</span><span class="n">guestmem</span> <span class="o">=</span> <span class="n">cpu_physical_memory_map</span><span class="p">(</span><span class="n">paddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">guestmem</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">memcpy</span><span class="p">(</span><span class="n">guestmem</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">cpu_physical_memory_unmap</span><span class="p">(</span><span class="n">guestmem</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">return</span> <span class="n">len</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">static</span> <span class="kt">void</span>
+</span><span class='line'><span class="o">+</span><span class="n">send_success_ack</span> <span class="p">(</span><span class="kt">int</span> <span class="n">connection_fd</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">uint8_t</span> <span class="n">success</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">int</span> <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">success</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">if</span> <span class="p">(</span><span class="mi">1</span> <span class="o">!=</span> <span class="n">nbytes</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: failed to send success ack</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">static</span> <span class="kt">void</span>
+</span><span class='line'><span class="o">+</span><span class="n">send_fail_ack</span> <span class="p">(</span><span class="kt">int</span> <span class="n">connection_fd</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">uint8_t</span> <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">int</span> <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fail</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">if</span> <span class="p">(</span><span class="mi">1</span> <span class="o">!=</span> <span class="n">nbytes</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: failed to send fail ack</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">static</span> <span class="kt">void</span>
+</span><span class='line'><span class="o">+</span><span class="n">connection_handler</span> <span class="p">(</span><span class="kt">int</span> <span class="n">connection_fd</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">int</span> <span class="n">nbytes</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">struct</span> <span class="n">request</span> <span class="n">req</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="c1">// client request should match the struct request format</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">nbytes</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">req</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">request</span><span class="p">));</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;req is %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">type</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">request</span><span class="p">)){</span>
+</span><span class='line'><span class="o">+</span>      <span class="c1">// error</span>
+</span><span class='line'><span class="o">+</span>      <span class="k">continue</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>    <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">type</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>      <span class="c1">// request to quit, goodbye</span>
+</span><span class='line'><span class="o">+</span>      <span class="k">break</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>    <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">type</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>      <span class="c1">// request to read</span>
+</span><span class='line'><span class="o">+</span>      <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">nbytes</span> <span class="o">=</span> <span class="n">connection_read_memory</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">address</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>        <span class="c1">// read failure, return failure message</span>
+</span><span class='line'><span class="o">+</span>        <span class="n">buf</span><span class="p">[</span><span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// set last byte to 0 for failure</span>
+</span><span class='line'><span class="o">+</span>        <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>      <span class="k">else</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>        <span class="c1">// read success, return bytes</span>
+</span><span class='line'><span class="o">+</span>        <span class="n">buf</span><span class="p">[</span><span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// set last byte to 1 for success</span>
+</span><span class='line'><span class="o">+</span>        <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">nbytes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">type</span> <span class="o">==</span> <span class="mi">2</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>      <span class="c1">// request to write</span>
+</span><span class='line'><span class="o">+</span>      <span class="kt">void</span> <span class="o">*</span><span class="n">write_buf</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">nbytes</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">write_buf</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">!=</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>        <span class="c1">// failed reading the message to write</span>
+</span><span class='line'><span class="o">+</span>        <span class="n">send_fail_ack</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>      <span class="k">else</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>        <span class="c1">// do the write</span>
+</span><span class='line'><span class="o">+</span>        <span class="n">nbytes</span> <span class="o">=</span> <span class="n">connection_write_memory</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">address</span><span class="p">,</span> <span class="n">write_buf</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>        <span class="k">if</span> <span class="p">(</span><span class="n">nbytes</span> <span class="o">==</span> <span class="n">req</span><span class="p">.</span><span class="n">length</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>          <span class="n">send_success_ack</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>        <span class="k">else</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>          <span class="n">send_fail_ack</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>      <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">free</span><span class="p">(</span><span class="n">write_buf</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">else</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>      <span class="c1">// unknown command</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: ignoring unknown command (%d)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">req</span><span class="p">.</span><span class="n">type</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">buf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">nbytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>      <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">close</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">static</span> <span class="kt">void</span> <span class="o">*</span>
+</span><span class='line'><span class="o">+</span><span class="n">memory_access_thread</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">struct</span> <span class="n">sockaddr_un</span> <span class="n">address</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">int</span> <span class="n">socket_fd</span><span class="p">,</span> <span class="n">connection_fd</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">socklen_t</span> <span class="n">address_length</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;in memory_access_thread : %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">socket_fd</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">PF_UNIX</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">if</span> <span class="p">(</span><span class="n">socket_fd</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: socket failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">address</span><span class="p">.</span><span class="n">sun_family</span> <span class="o">=</span> <span class="n">AF_UNIX</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">address_length</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">address</span><span class="p">.</span><span class="n">sun_family</span><span class="p">)</span> <span class="o">+</span> <span class="n">sprintf</span><span class="p">(</span><span class="n">address</span><span class="p">.</span><span class="n">sun_path</span><span class="p">,</span> <span class="s">&quot;%s&quot;</span><span class="p">,</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">if</span> <span class="p">(</span><span class="n">bind</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">address</span><span class="p">,</span> <span class="n">address_length</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: bind failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;in memory_access_thread : %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">socket_fd</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">if</span> <span class="p">(</span><span class="n">listen</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">){</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;QemuMemoryAccess: listen failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">goto</span> <span class="n">error_exit</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">connection_fd</span> <span class="o">=</span> <span class="n">accept</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">address</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">address_length</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">connection_handler</span><span class="p">(</span><span class="n">connection_fd</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">close</span><span class="p">(</span><span class="n">socket_fd</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="n">error_exit</span><span class="o">:</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">int</span>
+</span><span class='line'><span class="o">+</span><span class="n">memory_access_start</span> <span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">pthread_t</span> <span class="kr">thread</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">sigset_t</span> <span class="n">set</span><span class="p">,</span> <span class="n">oldset</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="c1">// create a copy of path that we can safely use</span>
+</span><span class='line'><span class="o">+</span>  <span class="kt">char</span> <span class="o">*</span><span class="n">pathcopy</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">strlen</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">memcpy</span><span class="p">(</span><span class="n">pathcopy</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="c1">// start the thread</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">sigfillset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">set</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">pthread_sigmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">set</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldset</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">ret</span> <span class="o">=</span> <span class="n">pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="kr">thread</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">memory_access_thread</span><span class="p">,</span> <span class="n">pathcopy</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>  <span class="n">pthread_sigmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>  <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="n">diff</span> <span class="o">--</span><span class="n">git</span> <span class="n">a</span><span class="o">/</span><span class="n">memory</span><span class="o">-</span><span class="n">access</span><span class="p">.</span><span class="n">h</span> <span class="n">b</span><span class="o">/</span><span class="n">memory</span><span class="o">-</span><span class="n">access</span><span class="p">.</span><span class="n">h</span>
+</span><span class='line'><span class="n">new</span> <span class="n">file</span> <span class="n">mode</span> <span class="mi">100644</span>
+</span><span class='line'><span class="n">index</span> <span class="mf">0000000.</span><span class="p">.</span><span class="n">e538134</span>
+</span><span class='line'><span class="o">---</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+</span><span class='line'><span class="o">+++</span> <span class="n">b</span><span class="o">/</span><span class="n">memory</span><span class="o">-</span><span class="n">access</span><span class="p">.</span><span class="n">h</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span> <span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">8</span> <span class="err">@@</span>
+</span><span class='line'><span class="o">+</span><span class="cm">/*</span>
+</span><span class='line'><span class="cm">+ * Mount guest physical memory using FUSE.</span>
+</span><span class='line'><span class="cm">+ *</span>
+</span><span class='line'><span class="cm">+ * Copyright (C) 2011 Sandia National Laboratories</span>
+</span><span class='line'><span class="cm">+ * Author: Bryan D. Payne (bdpayne@acm.org)</span>
+</span><span class='line'><span class="cm">+ */</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="kt">int</span> <span class="n">memory_access_start</span> <span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="n">diff</span> <span class="o">--</span><span class="n">git</span> <span class="n">a</span><span class="o">/</span><span class="n">monitor</span><span class="p">.</span><span class="n">c</span> <span class="n">b</span><span class="o">/</span><span class="n">monitor</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'><span class="n">index</span> <span class="mi">99</span><span class="n">bfcd9</span><span class="p">.</span><span class="mf">.7</span><span class="n">dd4ac2</span> <span class="mi">100644</span>
+</span><span class='line'><span class="o">---</span> <span class="n">a</span><span class="o">/</span><span class="n">monitor</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'><span class="o">+++</span> <span class="n">b</span><span class="o">/</span><span class="n">monitor</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">67</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">67</span><span class="p">,</span><span class="mi">7</span> <span class="err">@@</span>
+</span><span class='line'> <span class="err">#</span><span class="n">include</span> <span class="s">&quot;qmp-commands.h&quot;</span>
+</span><span class='line'> <span class="err">#</span><span class="n">include</span> <span class="s">&quot;hmp.h&quot;</span>
+</span><span class='line'> <span class="err">#</span><span class="n">include</span> <span class="s">&quot;qemu/thread.h&quot;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="s">&quot;memory-access.h&quot;</span>
+</span><span class='line'>
+</span><span class='line'> <span class="cm">/* for pic/irq_info */</span>
+</span><span class='line'> <span class="err">#</span><span class="k">if</span> <span class="n">defined</span><span class="p">(</span><span class="n">TARGET_SPARC</span><span class="p">)</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">1252</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">1253</span><span class="p">,</span><span class="mi">14</span> <span class="err">@@</span> <span class="k">static</span> <span class="kt">void</span> <span class="n">do_print</span><span class="p">(</span><span class="n">Monitor</span> <span class="o">*</span><span class="n">mon</span><span class="p">,</span> <span class="k">const</span> <span class="n">QDict</span> <span class="o">*</span><span class="n">qdict</span><span class="p">)</span>
+</span><span class='line'>     <span class="n">monitor_printf</span><span class="p">(</span><span class="n">mon</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">+</span><span class="k">static</span> <span class="kt">int</span> <span class="n">do_physical_memory_access</span><span class="p">(</span><span class="n">Monitor</span> <span class="o">*</span><span class="n">mon</span><span class="p">,</span> <span class="k">const</span> <span class="n">QDict</span> <span class="o">*</span><span class="n">qdict</span><span class="p">,</span> <span class="n">QObject</span> <span class="o">**</span><span class="n">ret_data</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="p">{</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span> <span class="o">=</span> <span class="n">qdict_get_str</span><span class="p">(</span><span class="n">qdict</span><span class="p">,</span> <span class="s">&quot;path&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;in do_physical_memory_access : %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="n">memory_access_start</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span><span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'> <span class="k">static</span> <span class="kt">void</span> <span class="n">do_sum</span><span class="p">(</span><span class="n">Monitor</span> <span class="o">*</span><span class="n">mon</span><span class="p">,</span> <span class="k">const</span> <span class="n">QDict</span> <span class="o">*</span><span class="n">qdict</span><span class="p">)</span>
+</span><span class='line'> <span class="p">{</span>
+</span><span class='line'>     <span class="kt">uint32_t</span> <span class="n">addr</span><span class="p">;</span>
+</span><span class='line'><span class="n">diff</span> <span class="o">--</span><span class="n">git</span> <span class="n">a</span><span class="o">/</span><span class="n">qmp</span><span class="o">-</span><span class="n">commands</span><span class="p">.</span><span class="n">hx</span> <span class="n">b</span><span class="o">/</span><span class="n">qmp</span><span class="o">-</span><span class="n">commands</span><span class="p">.</span><span class="n">hx</span>
+</span><span class='line'><span class="n">index</span> <span class="n">cf47e3f</span><span class="p">.</span><span class="mf">.41</span><span class="n">b3e1b</span> <span class="mi">100644</span>
+</span><span class='line'><span class="o">---</span> <span class="n">a</span><span class="o">/</span><span class="n">qmp</span><span class="o">-</span><span class="n">commands</span><span class="p">.</span><span class="n">hx</span>
+</span><span class='line'><span class="o">+++</span> <span class="n">b</span><span class="o">/</span><span class="n">qmp</span><span class="o">-</span><span class="n">commands</span><span class="p">.</span><span class="n">hx</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">610</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">610</span><span class="p">,</span><span class="mi">33</span> <span class="err">@@</span> <span class="n">Example</span><span class="o">:</span>
+</span><span class='line'> <span class="n">EQMP</span>
+</span><span class='line'>
+</span><span class='line'>     <span class="p">{</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">.</span><span class="n">name</span>       <span class="o">=</span> <span class="s">&quot;pmemaccess&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">.</span><span class="n">args_type</span>  <span class="o">=</span> <span class="s">&quot;path:s&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">.</span><span class="n">params</span>     <span class="o">=</span> <span class="s">&quot;path&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">.</span><span class="n">help</span>       <span class="o">=</span> <span class="s">&quot;mount guest physical memory image at &#39;path&#39;&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">.</span><span class="n">user_print</span> <span class="o">=</span> <span class="n">monitor_user_noop</span><span class="p">,</span>
+</span><span class='line'><span class="o">+</span>        <span class="p">.</span><span class="n">mhandler</span><span class="p">.</span><span class="n">cmd_new</span> <span class="o">=</span> <span class="n">do_physical_memory_access</span><span class="p">,</span>
+</span><span class='line'><span class="o">+</span>    <span class="p">},</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="n">SQMP</span>
+</span><span class='line'><span class="o">+</span><span class="n">pmemaccess</span>
+</span><span class='line'><span class="o">+----------</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="n">Mount</span> <span class="n">guest</span> <span class="n">physical</span> <span class="n">memory</span> <span class="n">image</span> <span class="n">at</span> <span class="err">&#39;</span><span class="n">path</span><span class="err">&#39;</span><span class="p">.</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="n">Arguments</span><span class="o">:</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+-</span> <span class="s">&quot;path&quot;</span><span class="o">:</span> <span class="n">mount</span> <span class="n">point</span> <span class="n">path</span> <span class="p">(</span><span class="n">json</span><span class="o">-</span><span class="n">string</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="n">Example</span><span class="o">:</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+-&gt;</span> <span class="p">{</span> <span class="s">&quot;execute&quot;</span><span class="o">:</span> <span class="s">&quot;pmemaccess&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="o">+</span>             <span class="s">&quot;arguments&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s">&quot;path&quot;</span><span class="o">:</span> <span class="s">&quot;/tmp/guestname&quot;</span> <span class="p">}</span> <span class="p">}</span>
+</span><span class='line'><span class="o">+&lt;-</span> <span class="p">{</span> <span class="s">&quot;return&quot;</span><span class="o">:</span> <span class="p">{}</span> <span class="p">}</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="n">EQMP</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span>    <span class="p">{</span>
+</span><span class='line'>         <span class="p">.</span><span class="n">name</span>       <span class="o">=</span> <span class="s">&quot;migrate&quot;</span><span class="p">,</span>
+</span><span class='line'>         <span class="p">.</span><span class="n">args_type</span>  <span class="o">=</span> <span class="s">&quot;detach:-d,blk:-b,inc:-i,uri:s&quot;</span><span class="p">,</span>
+</span><span class='line'>         <span class="p">.</span><span class="n">mhandler</span><span class="p">.</span><span class="n">cmd_new</span> <span class="o">=</span> <span class="n">qmp_marshal_input_migrate</span><span class="p">,</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After we apply the Qemuu patch, we can re-compile the Qemu:</p>
+
+<pre><code>$ cd qemu
+$ ./configure
+$ make -jj4
+$ sudo make install
+</code></pre>
+
+<p>In addition, as said in the Libvmi READM, you need to make sure your libvirt version is 0.8.7 or newer, and you should sure that the libvirt installation supports QMP commands, which can be done by install libyajl-dev (take my Debian as an example):</p>
+
+<pre><code>$ sudo aptitude install libyajl-dev
+$ cd libvirt
+$ ./configure
+</code></pre>
+
+<p>And ensure that the configure script reports that it found yajl. Then you should compile the libvirt</p>
+
+<pre><code>$ make -j4
+$ sudo make install
+</code></pre>
+
+<p>After that, you can setup libvmi as before.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-27T16:50:00+08:00" pubdate data-updated="true">Mar 27<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/kvm/'>KVM</a>, <a class='category' href='/blog/categories/security/'>Security</a>, <a class='category' href='/blog/categories/tool/'>Tool</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/02/22/wo-de-mei-di-chu-nu-xing/" title="Previous Post: 我的美帝处女行">&laquo; 我的美帝处女行</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/04/01/has-many-through-relationship-in-ruby-on-rails/" title="Next Post: Has many through relationship in Ruby on Rails">Has many through relationship in Ruby on Rails &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2014/03/27/kvm-support-in-libvmi/';
+        var disqus_url = 'http://ytliu.github.io/blog/2014/03/27/kvm-support-in-libvmi/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,637 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>TTY的那些事儿 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="tty pts">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/09/28/ttyde-na-xie-shi-er">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">TTY的那些事儿</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-28T21:35:00+08:00" pubdate data-updated="true">Sep 28<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>前几天帮小妹配VMWare的串口，主要是为了之后如果要写内核debug起来比较方便。其实自己之前在Xen上做<a href="http://ipads.se.sjtu.edu.cn/lib/exe/fetch.php?media=publications:hc.pdf">HyperCoffer</a>的时候就配过串口了，不过当时是用两台主机通过串口互联搞定的。这次直接利用VMWare的串口写文件，其实原理是差不多的。但是关键问题是：原理到底是什么???</p>
+
+<p>其实在之前调试串口的时候我就很好奇那些<code>/dev</code>目录下面的tty0 - tty6, ttyS0, ttyS1都是些什么东西？还有配置串口的时候在grub里面加的参数是如何得出来的？包括这次在内的两次试验，我都只是通过上网查教材，不停地修改参数、尝试最后才得到适合我的机器的串口参数。</p>
+
+<p>比如在这次调试VMWare串口的时候，我通过<code>VM &gt;&gt; Settings &gt;&gt; add a serial port &gt;&gt; use output file</code>来使得kernel的信息打印到一个外部文件中，然后在VM的grub里面(<code>/etc/default/grub</code>)增加三行：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">GRUB_CMDLINE_LINUX</span><span class="o">=</span><span class="err">&#39;</span><span class="n">console</span><span class="o">=</span><span class="n">tty0</span> <span class="n">console</span><span class="o">=</span><span class="n">ttyS1</span><span class="p">,</span><span class="mi">19200</span><span class="n">n8</span><span class="err">&#39;</span>
+</span><span class='line'><span class="n">GRUB_TERMINAL</span><span class="o">=</span><span class="n">serial</span>
+</span><span class='line'><span class="n">GRUB_SERIAL_COMMAND</span><span class="o">=</span><span class="s">&quot;serial --speed=19200 --unit=1 --word=8 --parity=no --stop=1&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后运行：</p>
+
+<pre><code>$ sudo update-grub
+</code></pre>
+
+<p>然后成功。</p>
+
+<p>但是问题在于这些配置都是什么意思呢？那个ttyS1和tty0是什么东西？19200据说是ttyS1的speed，但是它是怎么得到的？&#8230;所有的这些问题我都没有确切的答案，而我唯一做的，就是在网上找了各种资料、教程、配置参数来试着调试，直到找到这种配置发现“诶，居然可以了哦！”，然后，就没有然后了。。。</p>
+
+<p>我觉得我以前一直都处于这种状态，对表面现象的盲目追求，对底层原理的一知半解。这些导致的就是自以为的“健忘”，以及不能对所学到的知识和技能的融会贯通。这次把论文赶完了，终于可以休息一下，想起这件事，就在网上找到一篇文章<a href="http://www.linusakesson.net/programming/tty/index.php">《The TTY demystified》</a>。认真学习了下，发现真的受益匪浅。一来是作为对知识的梳理，另外一个也是希望拿出来和大家分享一下。以下主要就是对这篇博文的整理归纳翻译，以及一些从其他资料中学到的点点滴滴：</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h4>TTY的历史</h4>
+
+<p>TTY应该说是TeleTYpe的缩写，teletype中文叫做“电传打字机”，最初被用于传输一些商业电报。当计算机技术发展起来之后，teletype被用于了其输入输出设备。对于多种teletype模型的存在，操作系统内核对一些底层的细节进行了封装，比如word length（字长）, baud rate（波特率）, flow control（流控制）, parity（奇偶校验）, 以及一些基本行编辑（line editing）的控制码（control code）。而对于一些比如Fancy cursor movements（光标移动）, colour output（颜色输出）等高级特性，则在1970s末期由一些物理的video terminal（可视终端）实现了，比如VT-100。</p>
+
+<p>然而现在，除了在博物馆，我们基本上已经见不到这些物理teletype或者可视终端了，现在计算机上的终端基本上都是模拟出来的可视终端（emulated video terminals）。</p>
+
+<h4>TTY原理和流程</h4>
+
+<p>先来看一个普通的TTY的流程图：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-1.png" title="TTY 1" alt="TTY1" /></p>
+
+<p>这个流程很直观，用户通过terminal输入，通过电线连到UART (Universal Asynchronous Receiver and Transmitter，通用异步收发器)，然后由它的driver来处理一些包括奇偶校验，流控制在内的数据传输。之后会有两个步骤：</p>
+
+<p><em>Line discipline</em>: 提供了一个editing buffer和一些基本的编辑命令（如backspace, erase word, clear line, reprint等）。当然这些在line discipline中设置的指令可以在应用程序中被disable。这里有两种mode：前面一种默认的叫cooked (or canonical) mode，它规定了一些默认的对backspace等指令的行为；而一些和用户交互的应用（如编辑器，shell这些依赖于光标和readline的应用）则会把其设置成raw mode，然后由自己来处理这些行编辑命令。Line discipline还有一些控制echo等的选项，这些会在之后更详细地描述。另外，对于每一种串行设备只有一种相应的line discipline（默认的叫N_TTY），其它还有一些用于处理网络包（ppp, IrDA, serial mice）的line discipline，这里就不介绍了。</p>
+
+<p><em>TTY driver</em>: 主要用于处理比如kill、suspend进程，以及限制输入只能被定向到foreground进程等，其被实现在<code>drivers/char/tty_io.c</code>中。另外和line discipline相似的，TTY driver是一种被动模式，只会通过其它进程或者中断处理函数来调用。</p>
+
+<p>于是我们平常所说的TTY设备其实主要就是由UART driver, line discipline和TTY driver这三部分组成的。用户可以通过login来成为某个tty的owner，然后通过对<code>/dev</code>下tty文件的读写来操作相应的TTY设备。</p>
+
+<p>接下来看看一个典型的桌面系统（Linux）的TTY是怎么样的：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-2.png" title="TTY 2" alt="TTY2" /></p>
+
+<p>和前面一张图相比，TTY driver和line discipline还是一样的, 但是UART和物理终端没了，取而代之的则是一个由软件模拟的可视终端，由keyboard输入，从VGA输出。另外如果我们把模拟终端移到用户层（比如xterm），则会变成下面这张图：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-3.png" title="TTY 3" alt="TTY3" /></p>
+
+<p>这里引进了一个虚拟终端（pseudo terminal or pty）的概念。为了解释清楚这些，我们先退一步，来看看这些都是如何在当前操作系统的进程模型下工作的。</p>
+
+<h4>TTY与进程模型</h4>
+
+<p><img src="http://ytliu.info/images/2013-09-28-4.png" title="Processes" alt="Processes Model" /></p>
+
+<p>我们知道，一个进程可能会有5种状态：</p>
+
+<pre><code>R   Running or runnable (on run queue)
+D   Uninterruptible sleep (waiting for some event)
+S   Interruptible sleep (waiting for some event or signal)
+T   Stopped, either by a job control signal or because it is being traced by a debugger.
+Z   Zombie process, terminated but not yet reaped by its parent.
+</code></pre>
+
+<p>我们通过运行<code>ps l</code>：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-5.png" title="ps l" alt="ps l" /></p>
+
+<p>可以通过<code>STAT</code>来查看当前的状态。其中<code>s</code>表示这是一个<strong>session leader</strong>（一般是一个shell），<code>+</code>表示这是一个foreground进程。另外还可以看到每个进程都对应了一个tty（<code>TTY</code>那列），这里显示的都是pts（后面会提到）。</p>
+
+<p>一般driver中的TTY是通过signal来和process进行异步的通信的，我们可以通过运行<code>kill -l</code>来查看系统中有哪些signal：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-6.png" title="kill -l" alt="kill -l" /></p>
+
+<p>而下面主要列出了这几个有关的signals：SIGHUP, SIGINT, SIGQUIT, SIGPIPE, SIGCHLD, SIGSTOP, SIGCONT, SIGTSTP, SIGTTIN, SIGTTOU and SIGWINCH.</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-7.png" title="signal 1" alt="signal 1" /></p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-8.png" title="signal 2" alt="signal 2" /></p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-9.png" title="signal 3" alt="signal 3" /></p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-10.png" title="signal 4" alt="signal 4" /></p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-11.png" title="signal 5" alt="signal 5" /></p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-12.png" title="signal 6" alt="signal 6" /></p>
+
+<p>我们来看一个例子：</p>
+
+<p>假设你在vim上编辑一个文件，光标停在屏幕的中间某个位置，而vim这时正在运行着一些操作（比如查找等）。这个时候你按下一个<code>Ctrl-z</code>，由于vim的line discipline有一条规则来拦截这个<code>Ctrl-z</code>，你不需要等待vim运行完它的查找操作再从TTY中读取<code>Ctrl-z</code>这个字符（ASCII 26），line discipline会直接发一个<code>SIGTSTP</code>到foreground进程组（包含了vim这个进程）。由于vim本身注册了<code>SIGTSTP</code>的处理函数，于是内核就会开始运行这个处理函数，它可能会把光标移到屏幕的最后，往TTY设备中写一些相关的控制信息，再向自己的进程组发送一个<code>SIGSTOP</code>，这个时候vim进程就被stop了。session leader（可能是/bin/bash)通过<code>SIGCHLD</code>收到vim进程被suspend的信息，向TTY设备读取当前的一些配置文件（之后恢复foreground进程用的），然后通过<code>ioctl</code>使自己成为该TTY的foreground进程，在屏幕上打印一些提示信息，比如</p>
+
+<pre><code>[1] + suspended vim xx
+</code></pre>
+
+<p>告诉用户这个vim进程被suspend了。</p>
+
+<p>这个时候，如果你运行<code>ps</code>，你会看到vim进程是stopped的状态（“T&#8221;）。如果我们通过<code>bg</code>或者<code>kill SIGCONT pid</code>来唤醒它，vim会开始执行它的<code>SIGCONT</code>处理函数，该处理函数可能会需要通过写TTY设备重新画GUI界面，但是由于vim这个时候是一个background的进程，TTY设备不允许一个background进程的输出，相反，它会发送一个<code>SIGTTOU</code>给vim，再次stop它，再通过<code>SIGCHLD</code>把执行权交给session leader，打印提示信息:</p>
+
+<pre><code>[1] + continued vim xx
+[1] + suspended (tty output) vim xx
+</code></pre>
+
+<p>而如果我们用<code>fg</code>命令，shell就会首先恢复之前保存的配置文件，告诉TTY driver从现在开始要把vim作为foreground进程来看待，最后通过发送<code>SIGCONT</code>来重新开始运行vim。</p>
+
+<h4>TTY设备的配置</h4>
+
+<p>可以通过命令<code>tty</code>来查看你当前的shell对应于那个tty：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-13.png" title="shell tty" alt="shell tty" /></p>
+
+<p>另外，我们也可以通过命令行工具<code>stty</code>来操作TTY设备：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-14.png" title="stty -a" alt="stty -a" /></p>
+
+<p><code>-a</code>告诉<code>stty</code>打印所有当前shell对应的TTY的所有设置，当然也可以通过<code>-F</code>来打印其它TTY的设置（参看<code>stty</code>文档）。在这些设置中有一些是和UART相关的参数（比如speed），一些是和line discipline相关的（比如第二行的输出），还有一些是用于job control。我们来一一解释：</p>
+
+<pre><code>speed 9600 baud; rows 58; columns 204; line = 0;
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="left">Attribute     </th>
+<th align="left"> Related part    </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">speed         </td>
+<td align="left"> UART            </td>
+<td align="left"> The baud rate. Ignored for pseudo terminals.</td>
+</tr>
+<tr>
+<td align="left">rows,columns  </td>
+<td align="left"> TTY driver      </td>
+<td align="left"> Somebody&#8217;s idea of the size, in characters, of the terminal attached to this TTY device. </td>
+</tr>
+<tr>
+<td align="left">line          </td>
+<td align="left"> Line discipline </td>
+<td align="left"> The line discipline attached to the TTY device. 0 is N_TTY. Listed in /proc/tty/ldiscs. </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>比如我们可以尝试下：开一个xterm（通过<code>tty</code>得到其TTY设备为<code>/dev/pts/2</code>），运行<code>stty -a</code>得到它对应的row（59）和columns（207），打开一个vim，vim会根据TTY设备当前的rows和columns设置来填充窗口。然后我们在另外一个shell中输入：</p>
+
+<pre><code>stty -F /dev/pts/2 rows 30
+</code></pre>
+
+<p>它会更新内核内存中相应TTY（<code>/dev/pts/2</code>）的数据结构，然后发送一个<code>SIGWINCH</code>给vim，使得其重画界面。然后你再去看原来那个vim的窗口，发现它的row变成了原来的一半！</p>
+
+<p><code>stty -a</code>的第二行列出了一些特殊字符：</p>
+
+<pre><code>intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = M-^?; eol2 = M-^?; swtch = &lt;undef&gt;; start = ^Q; stop = &lt;undef&gt;; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; flush = ^O; min = 1; time = 0;
+</code></pre>
+
+<p>我们再来做一个实验：</p>
+
+<p>打开一个新的xterm，输入：</p>
+
+<pre><code>stty intr o
+</code></pre>
+
+<p>我们用<code>o</code>，代替了<code>Ctrl-c</code>，来向foreground发送<code>SIGINT</code>，于是之后你按<code>Ctrl-c</code>将不会中断foreground进程，而如果你开一个<code>cat</code>，输入&#8221;hello&#8221;，则会在按下&#8217;o&#8217;的时候发现<code>cat</code>被中断了！</p>
+
+<p>最后<code>stty -a</code>列出了一系列的&#8221;switch&#8221;，它们的排序是没有特定顺序的，一些是UART相关的，一些是会影响line discipline的，等等。<code>-</code>表示这个switch是被关闭的。这里简单介绍几个：</p>
+
+<p><code>icanon</code>表示使用canonical（line-based）模式，如果你把它关掉：</p>
+
+<pre><code>stty -icanon; cat
+</code></pre>
+
+<p>那么你现在输入一些字符（比如backspace）将会不再和之前那样work了。</p>
+
+<p><code>echo</code>表示开启echo模式，如果你把它给关了：</p>
+
+<pre><code>stty -echo; cat
+</code></pre>
+
+<p>你如果再输入，由于echo模式没了，屏幕上将不会同步打印出你输入的字符了。不过由于我们现在处于cooked（canonical）模式，和line editing相关的东西还是有用的，一旦你敲了<code>enter</code>键，line discipline会把编辑好的buffer传递给cat，再整行打印出来。</p>
+
+<p><code>tostop</code>可以控制background的job是否被允许向终端写：</p>
+
+<pre><code>stty tostop; (sleep 5; echo hello, world) &amp;
+</code></pre>
+
+<p>5秒之后, 该job会尝试着向TTY进行写，由于tostop被设置了，所以不允许background向TTY进行写，像前面提到的那样，shell输出：</p>
+
+<pre><code>[1] + continued (; sleep 5; echo hello, world; )
+[1] + suspended (tty output) (; sleep 5; echo hello, world)
+</code></pre>
+
+<p>而如果我们运行：</p>
+
+<pre><code>stty -tostop; (sleep 5; echo hello, world) &amp;
+</code></pre>
+
+<p>5秒后将会打印出”hello world“，并输出：</p>
+
+<pre><code>[1] + done (; sleep 5; echo hello, world; )
+</code></pre>
+
+<hr />
+
+<p>前面讲了一些关于TTY的历史，原理，配置等，接下来我们来说下tty，pty，pts，ttys，console等的区别，主要参考和摘录了<a href="http://blog.chinaunix.net/uid-20543672-id-3225777.html">Tekkaman Ninja</a>的博文：</p>
+
+<p>现在的个人计算机一般只有一个控制台，没有终端。当然愿意的话，可以在串口上连一两台物理终端。但是Linux按POSIX标准把个人计算机当成小型机来用,在控制台上通过<code>getty</code>软件虚拟了六个字符哑终端（或者叫虚拟控制台终端tty1-tty6，数量可以在<code>/etc/inittab</code>里自己调整）和一个图型终端，在虚拟图形终端中又可以通过软件(如screen，tmux)再虚拟无限多个伪终端（pts/0等）。但这全是虚拟的,虽然用起来一样,但实际上没有物理实体。所以在个人计算机上,只有一个实际的控制台,没有终端,所有终端都是在控制台上用软件模拟的。</p>
+
+<h4>系统控制台 —— /dev/console</h4>
+
+<p><code>/dev/console</code>是系统控制台，是与操作系统交互的设备。系统所产生的信息会发送到该设备上。平时我们看到的PC只有一个屏幕和键盘，它其实就是控制台。目前只有在单用户模式下，才允许用户登录控制台<code>/dev/console</code>。（可以在单用户模式下输入<code>tty</code>命令进行确认）。</p>
+
+<p>console有缓冲的概念，为内核提供打印输出。内核把要打印的内容装入缓冲区，然后由console来决定打印到哪里（比如是tty0还是ttySn等）。</p>
+
+<p>某些情况下console和tty0是一致的，就是当前所使用的是虚拟终端，所以有些资料中称<code>/dev/console</code>是到<code>/dev/tty0</code>的符号链接，但是这样说现在看来是不对的：根据内核文档，在2.1.71之前，<code>/dev/console</code>根据不同系统设定，符号链接到<code>/dev/tty0</code>或者其他tty上，在2.1.71版本之后则完全由内核代码内部控制它的映射。</p>
+
+<h4>当前控制台 —— /dev/tty</h4>
+
+<p>这是应用程序中的概念，如果当前进程有控制终端，那么<code>/dev/tty</code>就是当前进程控制台的设备文件。对于你登录的shell，<code>/dev/tty</code>就是你使用的控制台，设备号是（5,0）。不过它并不指任何物理意义上的控制台，<code>/dev/tty</code>会映射到当前设备（使用命令“tty”可以查看它具体对应哪个实际物理控制台设备）。输出到<code>/dev/tty</code>的内容只会显示在当前工作终端上（无论是登录在ttyn中还是pty中）。你如果在控制台界面下(即字符界面下）那么<code>dev/tty</code>就是映射到dev/tty1-6之间的一个（取决于你当前的控制台号），但是如果你现在是在图形界面（Xwindows），那么你会发现现在的<code>/dev/tty</code>映射到的是<code>/dev/pts</code>的伪终端上。</p>
+
+<p>你可以输入命令<code>tty</code>，将显示当前映射终端如：<code>/dev/tty1</code>或者/<code>dev/pts/0</code>等。也可以使用命令<code>ps l</code>来查看其他进程与哪个控制终端相连。</p>
+
+<h4>虚拟控制台 —— /dev/ttyn</h4>
+
+<p>/dev/ttyn是进程虚拟控制台，他们共享同一个真实的物理控制台。</p>
+
+<p>如果在进程里打开一个这样的文件且该文件不是其他进程的控制台时，那该文件就是这个进程的控制台。进程printf数据会输出到这里。在PC上，用户可以使用alt+Fn切换控制台，看起来感觉存在多个屏幕，这种虚拟控制台对应tty1~n。</p>
+
+<p>还有一个比较特殊的<code>/dev/tty0</code>，他代表当前虚拟控制台，是当前所使用虚拟控制台的一个别名。因此不管当前正在使用哪个虚拟控制台（注意：这里是虚拟控制台，不包括伪终端），系统信息都会发送到/dev/tty0上。只有系统或超级用户root可以向/dev/tty0进行写操作。tty0是系统自动打开的，但不用于用户登录。</p>
+
+<h4>伪终端 —— pty（pseudo-tty）</h4>
+
+<p>伪终端(Pseudo Terminal)是终端的发展，为满足现在需求（比如网络登陆、xwindow窗口的管理）。它是成对出现的逻辑终端设备（即master和slave设备，对master的操作会反映到slave上）。它多用于模拟终端程序，是远程登陆(telnet、ssh、xterm等)后创建的控制台设备。</p>
+
+<p>历史上，有两套伪终端软件接口：</p>
+
+<ul>
+<li>BSD接口：较简单，master为/dev/pty[p-za-e][0-9a-f]；slave为/dev/tty[p-za-e][0-9a-f]，它们都是配对的出现的。例如/dev/ptyp3和/dev/ttyp3。但由于在编程时要找到一个合适的终端需要逐个尝试，所以逐渐被放弃。</li>
+<li>Unix 98接口：使用一个/dev/ptmx作为master设备，在每次打开操作时会得到一个master设备fd，并在/dev/pts/目录下得到一个slave设备（如<code>/dev/pts/3</code>），这样就避免了逐个尝试的麻烦。由于可能有好几千个用户登陆，所以/dev/pts/*是动态生成的。第一个用户登陆，设备文件为<code>/dev/pts/0</code>，第二个为<code>/dev/pts/1</code>，以此类推。它们并不与实际物理设备直接相关。现在大多数系统是通过此接口实现pty。</li>
+</ul>
+
+
+<p>我们在X Window下打开的终端或使用<code>telnet</code>或<code>ssh</code>等方式登录Linux主机，此时均通过pty设备。例如，如果某人在网上使用telnet程序连接到你的计算机上，则telnet程序就可能会打开<code>/dev/ptmx</code>设备获取一个fd。此时一个<code>getty</code>程序就应该运行在对应的<code>/dev/pts/*</code>上。当telnet从远端获取了一个字符时，该字符就会通过<code>ptmx</code>、<code>pts/*</code>传递给 getty程序，而getty程序就会通过<code>pts/*</code>、<code>ptmx</code>和telnet程序往网络上返回“login:”字符串信息。这样，登录程序与telnet程序就通过伪终端进行通信。</p>
+
+<pre><code>telnet&lt;---&gt;/dev/ptmx(master)&lt;---&gt;pts/*(slave)&lt;---&gt;getty
+</code></pre>
+
+<p>如果一个程序把<code>pts/*</code>看作是一个串行端口设备，则它对该端口的读/写操作会反映在该逻辑终端设备对的另一个<code>/dev/ptmx</code>上，而<code>/dev/ptmx</code>则是另一个程序用于读写操作的逻辑设备。这样，两个程序就可以通过这种逻辑设备进行互相交流，这很象是逻辑设备对之间的管道操作。对于<code>pts/*</code>，任何设计成使用一个串行端口设备的程序都可以使用该逻辑设备。但对于使用/dev/ptmx的程序，则需要专门设计来使用<code>/dev/ptmx</code>逻辑设备。</p>
+
+<h4>串口终端 —— /dev/ttySn</h4>
+
+<p>串行端口终端是使用计算机串行端口连接的终端设备。计算机把每个串行端口都看作是一个字符设备。有段时间串行端口设备通常被称为终端设备，那时它的最大用途就是用来连接终端，所以这些串行端口所对应的设备名称是<code>/dev/tts/0</code>（或<code>/dev/ttyS0</code>）、<code>/dev/tts/1</code>（或<code>/dev/ttyS1</code>）等，设备号分别是（4,0）、（4,1）等（对应于win系统下的COM1、COM2等）。若要向一个端口发送数据，可以在命令行上把标准输出重定向到这些特殊文件名上即可。</p>
+
+<p>例如，在命令行提示符下键入<code>echo hello &gt; /dev/ttyS1</code>会把“hello”发送到连接在ttyS1（COM2）端口的设备上。</p>
+
+<h4>总结</h4>
+
+<p>最后<a href="http://blog.chinaunix.net/uid-20543672-id-3225777.html">Tekkaman Ninja</a>的博文中有一张图这里借用下，感觉很赞！非常清晰地解释了这几个终端之间的关系：</p>
+
+<p><img src="http://ytliu.info/images/2013-09-28-15.jpg" title="tty overall" alt="tty overall" /></p>
+
+<hr />
+
+<p>最后我们回到最早的那个配置文件<code>/etc/default/grub</code>：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">GRUB_CMDLINE_LINUX</span><span class="o">=</span><span class="err">&#39;</span><span class="n">console</span><span class="o">=</span><span class="n">tty0</span> <span class="n">console</span><span class="o">=</span><span class="n">ttyS1</span><span class="p">,</span><span class="mi">19200</span><span class="n">n8</span><span class="err">&#39;</span>
+</span><span class='line'><span class="n">GRUB_TERMINAL</span><span class="o">=</span><span class="n">serial</span>
+</span><span class='line'><span class="n">GRUB_SERIAL_COMMAND</span><span class="o">=</span><span class="s">&quot;serial --speed=19200 --unit=1 --word=8 --parity=no --stop=1&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到这里就是将<code>/dev/console</code>定向到了tty0和ttyS1（至于如何知道是ttyS1还是ttyS0的，可以通过<code>dmesg | grep tty</code>来得到，或者用setserial来获取串口的信息）。另外串口的speed可以通过我们之前说的<code>stty -a -F /dev/ttyS1</code>来获得，其它的一些参数都是和UART driver相关的，这里就不详细解释了。</p>
+
+<p>以上这些就是我这两天学到的和TTY相关的知识，真的很感谢<a href="http://www.linusakesson.net/">Linus Åkesson</a>和<a href="http://blog.chinaunix.net/uid/20543672.html">Tekkaman Ninja</a>的整理、归纳和分享。</p>
+
+<hr />
+
+<p>P.S. 之前写了几篇英文博客，感觉不是很好。主要是因为在那些博文中很大一部分是直接引用别人的（自己写的话还不如直接用别人的能让人看得懂）；究其原因的话主要还是因为自己的英文太弱吧！</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-28T21:35:00+08:00" pubdate data-updated="true">Sep 28<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/linux/'>Linux</a>, <a class='category' href='/blog/categories/system/'>System</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/09/12/share-mouse-and-keyboard-using-synergy/" title="Previous Post: Share mouse and keyboard using Synergy">&laquo; Share mouse and keyboard using Synergy</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/10/04/netfilterxue-xi-bi-ji-%28si-%29/" title="Next Post: Netfilter学习笔记（四）">Netfilter学习笔记（四） &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/09/28/ttyde-na-xie-shi-er/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/09/28/ttyde-na-xie-shi-er/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

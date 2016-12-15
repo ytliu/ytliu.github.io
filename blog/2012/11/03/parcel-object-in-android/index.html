@@ -1,0 +1,869 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Parcel object in android - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2012/11/03/parcel-object-in-android">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Parcel Object in Android</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-11-03T21:42:00+08:00" pubdate data-updated="true">Nov 3<span>rd</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>还记得之前被Android Framework里面的那个Parcel类搞得很摸不清头脑，这次为了完成一个任务把它彻底理了一遍，终于弄清楚了很多。</p>
+
+<p>要做的事是这样子的：我有一个经过Parcel封装过的数据data，我需要通过socket把它发送到远程的一个进程中去进行处理，再返回一个Parcel对象reply。</p>
+
+<p>首先在做这个之前我们先来看下Parcel在android中的用法和实现：</p>
+
+<h5>用法</h5>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="nf">sayHello</span><span class="o">(</span><span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="n">message</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">RemoteException</span>
+</span><span class='line'><span class="o">{</span>
+</span><span class='line'>    <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span> <span class="n">_data</span> <span class="o">=</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span><span class="o">.</span><span class="na">obtain</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span> <span class="n">_reply</span> <span class="o">=</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span><span class="o">.</span><span class="na">obtain</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="n">_result</span><span class="o">;</span>
+</span><span class='line'>    <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">_data</span><span class="o">.</span><span class="na">writeInterfaceToken</span><span class="o">(</span><span class="n">DESCRIPTOR</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">_data</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">message</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">mRemote</span><span class="o">.</span><span class="na">transact</span><span class="o">(</span><span class="n">Stub</span><span class="o">.</span><span class="na">TRANSACTION_sayHello</span><span class="o">,</span> <span class="n">_data</span><span class="o">,</span> <span class="n">_reply</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">_reply</span><span class="o">.</span><span class="na">readException</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">_result</span> <span class="o">=</span> <span class="n">_reply</span><span class="o">.</span><span class="na">readString</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<!-- more -->
+
+
+<p>这是一段用的最多的code，我们在android中的BinderProxy对象中调用一个sayHello()方法，它会首先封装一个Parcel对象，并将其作为参数调用transact()函数，通过android的Binder机制传到另一个进程的BBinder的onTransact()函数中：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">boolean</span> <span class="n">onTransact</span><span class="o">(</span><span class="kt">int</span> <span class="n">code</span><span class="o">,</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span> <span class="n">data</span><span class="o">,</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span> <span class="n">reply</span><span class="o">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">RemoteException</span>
+</span><span class='line'><span class="o">{</span>
+</span><span class='line'>    <span class="k">switch</span> <span class="o">(</span><span class="n">code</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>  <span class="k">case</span> <span class="nl">INTERFACE_TRANSACTION:</span>
+</span><span class='line'>      <span class="o">{</span>
+</span><span class='line'>      <span class="n">reply</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">DESCRIPTOR</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="k">case</span> <span class="nl">TRANSACTION_sayHello:</span>
+</span><span class='line'>      <span class="o">{</span>
+</span><span class='line'>      <span class="n">data</span><span class="o">.</span><span class="na">enforceInterface</span><span class="o">(</span><span class="n">DESCRIPTOR</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="n">_arg0</span><span class="o">;</span>
+</span><span class='line'>      <span class="n">_arg0</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="na">readString</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="n">_result</span> <span class="o">=</span> <span class="k">this</span><span class="o">.</span><span class="na">sayHello</span><span class="o">(</span><span class="n">_arg0</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">reply</span><span class="o">.</span><span class="na">writeNoException</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">reply</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">_result</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="kd">super</span><span class="o">.</span><span class="na">onTransact</span><span class="o">(</span><span class="n">code</span><span class="o">,</span> <span class="n">data</span><span class="o">,</span> <span class="n">reply</span><span class="o">,</span> <span class="n">flags</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>而这两个进程数据的传递是在driver里面通过内存拷贝进行的。</p>
+
+<p>那么如果我希望不通过binder driver而直接将Parcel对象data通过socket传到另一个进程那么该怎么办呢？大家都知道在Java里面要传递一个数据，该数据必须得是Serializable的。那么Parcel类是这样的吗？</p>
+
+<p>需要先来看看Parcel的实现:</p>
+
+<h5>实现</h5>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">Parcel</span> <span class="o">{</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">int</span> <span class="nf">dataSize</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">int</span> <span class="nf">dataPosition</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">byte</span><span class="o">[]</span> <span class="nf">marshall</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">void</span> <span class="nf">unmarshall</span><span class="o">(</span><span class="kt">byte</span><span class="o">[]</span> <span class="n">data</span><span class="o">,</span> <span class="kt">int</span> <span class="n">offest</span><span class="o">,</span> <span class="kt">int</span> <span class="n">length</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">void</span> <span class="nf">writeInterfaceToken</span><span class="o">(</span><span class="n">String</span> <span class="n">interfaceName</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">void</span> <span class="nf">enforceInterface</span><span class="o">(</span><span class="n">String</span> <span class="n">interfaceName</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">void</span> <span class="nf">writeString</span><span class="o">(</span><span class="n">String</span> <span class="n">val</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="n">String</span> <span class="nf">readString</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>首先可以看到Parcel并没有implements Serializable，同时它的方法都是JNI方法，可以在frameworks/base/core/jni/android_util_Binder.cpp里面找到，这里以writeString()为例：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">android_os_Parcel_writeString</span><span class="p">(</span><span class="n">JNIEnv</span><span class="o">*</span> <span class="n">env</span><span class="p">,</span> <span class="n">jobject</span> <span class="n">clazz</span><span class="p">,</span> <span class="n">jstring</span> <span class="n">val</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">Parcel</span><span class="o">*</span> <span class="n">parcel</span> <span class="o">=</span> <span class="n">parcelForJavaObject</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">clazz</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">parcel</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">status_t</span> <span class="n">err</span> <span class="o">=</span> <span class="n">NO_MEMORY</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">const</span> <span class="n">jchar</span><span class="o">*</span> <span class="n">str</span> <span class="o">=</span> <span class="n">env</span><span class="o">-&gt;</span><span class="n">GetStringCritical</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>            <span class="k">if</span> <span class="p">(</span><span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>                <span class="n">err</span> <span class="o">=</span> <span class="n">parcel</span><span class="o">-&gt;</span><span class="n">writeString16</span><span class="p">(</span><span class="n">str</span><span class="p">,</span> <span class="n">env</span><span class="o">-&gt;</span><span class="n">GetStringLength</span><span class="p">(</span><span class="n">val</span><span class="p">));</span>
+</span><span class='line'>                <span class="n">env</span><span class="o">-&gt;</span><span class="n">ReleaseStringCritical</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">str</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">err</span> <span class="o">=</span> <span class="n">parcel</span><span class="o">-&gt;</span><span class="n">writeString16</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">err</span> <span class="o">!=</span> <span class="n">NO_ERROR</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">signalExceptionForError</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">clazz</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>里面调用了Parcel的writeString16()这个方法，而这个Parcel是一个C类，实现在frameworks/base/libs/binder/Parcel.cpp里面：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="n">status_t</span> <span class="n">Parcel</span><span class="o">::</span><span class="n">writeString16</span><span class="p">(</span><span class="k">const</span> <span class="n">char16_t</span><span class="o">*</span> <span class="n">str</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">str</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">return</span> <span class="n">writeInt32</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">status_t</span> <span class="n">err</span> <span class="o">=</span> <span class="n">writeInt32</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">err</span> <span class="o">==</span> <span class="n">NO_ERROR</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">len</span> <span class="o">*=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">char16_t</span><span class="p">);</span>
+</span><span class='line'>        <span class="kt">uint8_t</span><span class="o">*</span> <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">uint8_t</span><span class="o">*</span><span class="p">)</span><span class="n">writeInplace</span><span class="p">(</span><span class="n">len</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">char16_t</span><span class="p">));</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">memcpy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">str</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>            <span class="o">*</span><span class="n">reinterpret_cast</span><span class="o">&lt;</span><span class="n">char16_t</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">data</span><span class="o">+</span><span class="n">len</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">NO_ERROR</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="n">err</span> <span class="o">=</span> <span class="n">mError</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">status_t</span> <span class="n">Parcel</span><span class="o">::</span><span class="n">writeInt32</span><span class="p">(</span><span class="kt">int32_t</span> <span class="n">val</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">writeAligned</span><span class="p">(</span><span class="n">val</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">template</span><span class="o">&lt;</span><span class="n">class</span> <span class="n">T</span><span class="o">&gt;</span>
+</span><span class='line'><span class="n">status_t</span> <span class="n">Parcel</span><span class="o">::</span><span class="n">writeAligned</span><span class="p">(</span><span class="n">T</span> <span class="n">val</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">COMPILE_TIME_ASSERT_FUNCTION_SCOPE</span><span class="p">(</span><span class="n">PAD_SIZE</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">T</span><span class="p">))</span> <span class="o">==</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">T</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">mDataPos</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">mDataCapacity</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'><span class="nl">restart_write:</span>
+</span><span class='line'>        <span class="o">*</span><span class="n">reinterpret_cast</span><span class="o">&lt;</span><span class="n">T</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">mData</span><span class="o">+</span><span class="n">mDataPos</span><span class="p">)</span> <span class="o">=</span> <span class="n">val</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">finishWrite</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">val</span><span class="p">));</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">status_t</span> <span class="n">err</span> <span class="o">=</span> <span class="n">growData</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">val</span><span class="p">));</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">err</span> <span class="o">==</span> <span class="n">NO_ERROR</span><span class="p">)</span> <span class="k">goto</span> <span class="n">restart_write</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span><span class="o">*</span> <span class="n">Parcel</span><span class="o">::</span><span class="n">writeInplace</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">len</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">const</span> <span class="kt">size_t</span> <span class="n">padded</span> <span class="o">=</span> <span class="n">PAD_SIZE</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// sanity check for integer overflow</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">mDataPos</span><span class="o">+</span><span class="n">padded</span> <span class="o">&lt;</span> <span class="n">mDataPos</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">mDataPos</span><span class="o">+</span><span class="n">padded</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">mDataCapacity</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'><span class="nl">restart_write:</span>
+</span><span class='line'>        <span class="c1">//printf(&quot;Writing %ld bytes, padded to %ld\n&quot;, len, padded);</span>
+</span><span class='line'>        <span class="kt">uint8_t</span><span class="o">*</span> <span class="k">const</span> <span class="n">data</span> <span class="o">=</span> <span class="n">mData</span><span class="o">+</span><span class="n">mDataPos</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Need to pad at end?</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">padded</span> <span class="o">!=</span> <span class="n">len</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'><span class="cp">#if BYTE_ORDER == BIG_ENDIAN</span>
+</span><span class='line'>            <span class="k">static</span> <span class="k">const</span> <span class="kt">uint32_t</span> <span class="n">mask</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class='line'>                <span class="mh">0x00000000</span><span class="p">,</span> <span class="mh">0xffffff00</span><span class="p">,</span> <span class="mh">0xffff0000</span><span class="p">,</span> <span class="mh">0xff000000</span>
+</span><span class='line'>            <span class="p">};</span>
+</span><span class='line'><span class="cp">#endif</span>
+</span><span class='line'><span class="cp">#if BYTE_ORDER == LITTLE_ENDIAN</span>
+</span><span class='line'>            <span class="k">static</span> <span class="k">const</span> <span class="kt">uint32_t</span> <span class="n">mask</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class='line'>                <span class="mh">0x00000000</span><span class="p">,</span> <span class="mh">0x00ffffff</span><span class="p">,</span> <span class="mh">0x0000ffff</span><span class="p">,</span> <span class="mh">0x000000ff</span>
+</span><span class='line'>            <span class="p">};</span>
+</span><span class='line'><span class="cp">#endif</span>
+</span><span class='line'>            <span class="c1">//printf(&quot;Applying pad mask: %p to %p\n&quot;, (void*)mask[padded-len],</span>
+</span><span class='line'>            <span class="c1">//    *reinterpret_cast&lt;void**&gt;(data+padded-4));</span>
+</span><span class='line'>            <span class="o">*</span><span class="n">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">data</span><span class="o">+</span><span class="n">padded</span><span class="o">-</span><span class="mi">4</span><span class="p">)</span> <span class="o">&amp;=</span> <span class="n">mask</span><span class="p">[</span><span class="n">padded</span><span class="o">-</span><span class="n">len</span><span class="p">];</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">finishWrite</span><span class="p">(</span><span class="n">padded</span><span class="p">);</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">data</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">status_t</span> <span class="n">err</span> <span class="o">=</span> <span class="n">growData</span><span class="p">(</span><span class="n">padded</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">err</span> <span class="o">==</span> <span class="n">NO_ERROR</span><span class="p">)</span> <span class="k">goto</span> <span class="n">restart_write</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其实整个Parcel的实现是这样的，每一个Parcel对象有一个指针mData，指向一块内存的起始地址，一个指针mDataPos，指向到目前未知已经读到的数据的大小。在写一个String的时候，首先将字符串的大小通过writeInt32()写到某个合适的内存地址中：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">mDataPos</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">mDataCapacity</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'><span class="nl">restart_write:</span>
+</span><span class='line'>        <span class="o">*</span><span class="n">reinterpret_cast</span><span class="o">&lt;</span><span class="n">T</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">mData</span><span class="o">+</span><span class="n">mDataPos</span><span class="p">)</span> <span class="o">=</span> <span class="n">val</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">finishWrite</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">val</span><span class="p">));</span>
+</span><span class='line'>    <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后通过writeInplace将字符串按照合适的Align方式写到之后的内存地址中：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>    <span class="kt">uint8_t</span><span class="o">*</span> <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">uint8_t</span><span class="o">*</span><span class="p">)</span><span class="n">writeInplace</span><span class="p">(</span><span class="n">len</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">char16_t</span><span class="p">));</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">memcpy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">str</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>  <span class="o">*</span><span class="n">reinterpret_cast</span><span class="o">&lt;</span><span class="n">char16_t</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">data</span><span class="o">+</span><span class="n">len</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">NO_ERROR</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后更新相对应的mDataSize和mDataPos值。</p>
+
+<hr />
+
+<h6>Parcel对象的序列化</h6>
+
+<p>也就是说我们在java层是没有办法不通过其提供的接口获得一个Parcel对象内存中的数据的，也就是说如果我们需要将Parcel对象通过socket传输，就只有两种方式：</p>
+
+<ul>
+<li>在jni层进行socket传输；</li>
+<li>手动对其进行序列化，并将序列化的数据通过socket传输过去。</li>
+</ul>
+
+
+<p>其实细心的人可以发现我刚刚在列举Parcel的一系列jni方法的时候还列举了两个方法：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">Parcel</span> <span class="o">{</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">byte</span><span class="o">[]</span> <span class="nf">marshall</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">final</span> <span class="kd">native</span> <span class="kt">void</span> <span class="nf">unmarshall</span><span class="o">(</span><span class="kt">byte</span><span class="o">[]</span> <span class="n">data</span><span class="o">,</span> <span class="kt">int</span> <span class="n">offest</span><span class="o">,</span> <span class="kt">int</span> <span class="n">length</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这两个方法在jni里面是这样实现的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="n">jbyteArray</span> <span class="nf">android_os_Parcel_marshall</span><span class="p">(</span><span class="n">JNIEnv</span><span class="o">*</span> <span class="n">env</span><span class="p">,</span> <span class="n">jobject</span> <span class="n">clazz</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">Parcel</span><span class="o">*</span> <span class="n">parcel</span> <span class="o">=</span> <span class="n">parcelForJavaObject</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">clazz</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">parcel</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>       <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// do not marshall if there are binder objects in the parcel</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">parcel</span><span class="o">-&gt;</span><span class="n">objectsCount</span><span class="p">())</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">jniThrowException</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="s">&quot;java/lang/RuntimeException&quot;</span><span class="p">,</span> <span class="s">&quot;Tried to marshall a Parcel that contained Binder objects.&quot;</span><span class="p">);</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">jbyteArray</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">env</span><span class="o">-&gt;</span><span class="n">NewByteArray</span><span class="p">(</span><span class="n">parcel</span><span class="o">-&gt;</span><span class="n">dataSize</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">jbyte</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">jbyte</span><span class="o">*</span><span class="p">)</span><span class="n">env</span><span class="o">-&gt;</span><span class="n">GetPrimitiveArrayCritical</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">array</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">memcpy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">parcel</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">(),</span> <span class="n">parcel</span><span class="o">-&gt;</span><span class="n">dataSize</span><span class="p">());</span>
+</span><span class='line'>            <span class="n">env</span><span class="o">-&gt;</span><span class="n">ReleasePrimitiveArrayCritical</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">android_os_Parcel_unmarshall</span><span class="p">(</span><span class="n">JNIEnv</span><span class="o">*</span> <span class="n">env</span><span class="p">,</span> <span class="n">jobject</span> <span class="n">clazz</span><span class="p">,</span> <span class="n">jbyteArray</span> <span class="n">data</span><span class="p">,</span> <span class="n">jint</span> <span class="n">offset</span><span class="p">,</span> <span class="n">jint</span> <span class="n">length</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">Parcel</span><span class="o">*</span> <span class="n">parcel</span> <span class="o">=</span> <span class="n">parcelForJavaObject</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">clazz</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">parcel</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">||</span> <span class="n">length</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>       <span class="k">return</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">jbyte</span><span class="o">*</span> <span class="n">array</span> <span class="o">=</span> <span class="p">(</span><span class="n">jbyte</span><span class="o">*</span><span class="p">)</span><span class="n">env</span><span class="o">-&gt;</span><span class="n">GetPrimitiveArrayCritical</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">array</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">parcel</span><span class="o">-&gt;</span><span class="n">setDataSize</span><span class="p">(</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">parcel</span><span class="o">-&gt;</span><span class="n">setDataPosition</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="kt">void</span><span class="o">*</span> <span class="n">raw</span> <span class="o">=</span> <span class="n">parcel</span><span class="o">-&gt;</span><span class="n">writeInplace</span><span class="p">(</span><span class="n">length</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">memcpy</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="p">(</span><span class="n">array</span> <span class="o">+</span> <span class="n">offset</span><span class="p">),</span> <span class="n">length</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">env</span><span class="o">-&gt;</span><span class="n">ReleasePrimitiveArrayCritical</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>marshall和unmarshall正是两个Parcel提供的将其自身进行序列化和反序列化的方法，marshall()将其本身转换成一个byte[]数据序列，即将mData指向内存中的值通过内存拷贝的形式传到一个byte[]变量中去并返回，而unmarshall()则是将byte[]变量中的数据拷贝到Parcel对象的mData指向内存中。</p>
+
+<p>也就是说，我们可以通过marshall方法将data序列化成byte[]变量dataBytes，通过socket的write传递到远端，在远端通过unmarshall方法将其转换回来。</p>
+
+<p>另外通过实现，发现还有一个需要注意的地方，在远端通过unmarshall对象转换回来的时候，还需要调用data.setDataPosition(0)将mDataPos设成初始未知，否则之后无法读取正常的数据。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-11-03T21:42:00+08:00" pubdate data-updated="true">Nov 3<span>rd</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>Android</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/10/27/goagent-setup-note/" title="Previous Post: GoAgent setup note">&laquo; GoAgent setup note</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/11/11/getsystemservice-in-android/" title="Next Post: getSystemService() in android">getSystemService() in android &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2012/11/03/parcel-object-in-android/';
+        var disqus_url = 'http://ytliu.github.io/blog/2012/11/03/parcel-object-in-android/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

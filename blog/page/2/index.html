@@ -1,0 +1,737 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/page/2">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/11/15/hooking-and-hijacking-android-native-code/">Hooking and Hijacking Android Native Code</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-11-15T15:04:00+08:00" pubdate data-updated="true">Nov 15<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/11/15/hooking-and-hijacking-android-native-code/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>首先声明这是一篇中文博客。</p>
+
+<p>先强烈推荐下<a href="http://appsrv.cse.cuhk.edu.hk/~mzheng/">Zheng Min</a>大神的<a href="http://drops.wooyun.org/author/%E8%92%B8%E7%B1%B3">安卓动态调试七种武器系列文章</a>，里面已经有两篇介绍我这次所要介绍的hooking的内容了，而且应该会比我这篇的内容更丰富。然而，任性的我还是要写这篇博客，原因除了自己太久没写博客了有点不好意思之外，更重要的是希望在写的过程中来理解这个技术。</p>
+
+<p>当然了，这篇博文主要还是代码分析，采用的是<a href="http://www.mulliner.org/collin/">Collin Mulliner</a>的这个项目<a href="https://github.com/crmulliner/adbi">adbi</a>。当然他自己也有一个专门的<a href="http://www.mulliner.org/android/feed/binaryinstrumentationandroid_mulliner_summercon12.pdf">slide</a>来介绍里面用到的技术。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/11/15/hooking-and-hijacking-android-native-code/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/18/notes-in-ccs-2015/">Notes in CCS 2015 (Denver)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-18T14:41:00+08:00" pubdate data-updated="true">Oct 18<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/10/18/notes-in-ccs-2015/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This week I&#8217;ve been to Denver, Colorado, to attend the CCS 2015 and present our work SeCage, which is a hypervisor-enforced approach for intra-domain isolation.</p>
+
+<p>The main conference lasts for 3 days (10.13 ~ 10.15). There are 3 parallel tracks for 36 sessions, for specific reasons, I have only attended 6 sessions.</p>
+
+<p>Following are some of the notes about what I&#8217;ve heard from these sessions.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/10/18/notes-in-ccs-2015/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/03/chu-shi-wifi-pineapple/">初识Wifi Pineapple</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-09-03T15:45:00+08:00" pubdate data-updated="true">Sep 3<span>rd</span>, 2015</time>
+        
+         | <a href="/blog/2015/09/03/chu-shi-wifi-pineapple/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>前段时间乃正回国的时候叫他帮我带回来一个“大菠萝”——Wifi Pineapple！不过时隔了好久到现在才有时间和心情开始玩它：</p>
+
+<p><img src="http://ytliu.info/images/2015-09-03-1.png" title="wifi pineapple" alt="wifi pineapple" /></p>
+
+<p>这是干嘛的呢？用专业术语来说，它是一个专门用来做无线安全渗透测试的小机器，这个小机器内置了一个重度修改的OpenWRT网络操作系统，其拥有者可以让它成为一个对外提供无线网络信号的系统，然后通过一系列配置来对连接上它的客户端进行渗透测试。如果换个说法，这就是一个可以伪装成无线信号点的攻击利器，当你在一些公共场合（如学校、咖啡店）的时候如果不小心（有意或者无意）连上了这个无线信号，那不好意思，你上网的所有隐私都会被攻击者获取。</p>
+
+<p>很直观的来说，如果你将这个大菠萝连上电源，启动之后（绿灯和蓝灯亮起）：</p>
+
+<p><img src="http://ytliu.info/images/2015-09-03-2.png" title="wifi pineapple boot" alt="wifi boot" /></p>
+
+<p>就可以在你其它设备（如手机、电脑）的无线信号中搜索出一个新的信号：</p>
+
+<p><img src="http://ytliu.info/images/2015-09-03-7.png" title="new wifi result" alt="wifi search" /></p>
+
+<p>如果你连接上这个信号，则你所有的流量就会走大菠萝这个系统，从而攻击者就可以通过一些中间人攻击的方法获取你所有隐私，或者植入恶意软件之类的了。</p>
+
+<p>具体的可以看<a href="http://wiki.wifipineapple.com/#!pineapple.md">这里</a>，<a href="http://www.freebuf.com/tools/9265.html">这里</a>，以及<a href="http://www.freebuf.com/articles/wireless/30874.html">这里</a>。这里就不详述了。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/09/03/chu-shi-wifi-pineapple/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/30/xende-qi-dong-zhi-nei-cun-xiang-guan-shi-xian/">Xen的启动之内存相关实现</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-07-30T21:36:00+08:00" pubdate data-updated="true">Jul 30<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/07/30/xende-qi-dong-zhi-nei-cun-xiang-guan-shi-xian/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="http://ytliu.info/blog/2015/07/28/xende-nei-cun-bu-ju/">上篇博客</a>介绍了Xen的整体内存分布情况，这篇博文主要从Xen的启动入手，介绍Xen在启动的时候是如何初始化它的内存，包括如何分配内存区域，如何初始化页表，以及如何在不同阶段初始化不同的内存分配器等等。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/30/xende-qi-dong-zhi-nei-cun-xiang-guan-shi-xian/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/28/xende-nei-cun-bu-ju/">Xen的内存布局</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-07-28T21:06:00+08:00" pubdate data-updated="true">Jul 28<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/07/28/xende-nei-cun-bu-ju/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>我会在接下来几篇博客里面介绍Xen的memory。这些都是我在看了各种资料，并且研究了Xen的代码之后的个人总结。之所以写这个系列，是感觉现在网络上没有什么比较具体介绍Xen内存的资料，<a href="http://bbs.chinacloud.cn/attachment.aspx?attachmentid=397">这里</a>有一个，但是是比较老的版本，而且主要介绍的是32位的系统。而我现在看的是Xen最新的版本（4.6），然后介绍的主要是64位的系统，希望能把自己花时间学到的东西分享出去。如果有什么错误的，或者解释的不清楚的地方，也希望各位指出来，共同讨论。</p>
+
+<p>我应该会从五个方面来介绍Xen的内存：</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2015/07/28/xende-nei-cun-bu-ju/">Xen的内存布局总体概览</a></li>
+<li><a href="http://ytliu.info/blog/2015/07/30/xende-qi-dong-zhi-nei-cun-xiang-guan-shi-xian/">Xen启动的内存相关实现</a></li>
+<li>Domain-0启动的内存相关实现</li>
+<li>Domain-U启动的内存相关实现</li>
+<li>虚拟机运行时内存相关实现</li>
+</ul>
+
+
+<p>现在我也还在研究中，所以这些应该会随着我自己学习的深入慢慢的进行整理。</p>
+
+<p>好啦，不说废话了，直接进入这篇博客的主题：Xen内存布局的总体概览。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/28/xende-nei-cun-bu-ju/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/10/xsm-flaskxue-xi-bi-ji/">XSM-FLASK学习笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-06-10T10:40:00+08:00" pubdate data-updated="true">Jun 10<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/06/10/xsm-flaskxue-xi-bi-ji/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>XSM-FLASK全称为：<strong>X</strong>en <strong>S</strong>ecurity <strong>M</strong>odules - <strong>FL</strong>ux <strong>A</strong>dvanced <strong>S</strong>ecurity <strong>K</strong>ernel。这篇博文对其进行一个简单的介绍，资料主要翻译自<a href="http://wiki.xen.org/wiki/Xen_Security_Modules_:_XSM-FLASK">这里</a>。</p>
+
+<p>XSM是Xen提供的一个安全框架，允许管理者对整个系统进行细粒度的控制，换句话说，即运行管理者定义一套规则来管理虚拟机之间，虚拟机与Xen之间的交互，以及对系统资源（memory，device）的访问。</p>
+
+<p>FLASK是XSM中的一个模块实现，当然，之后可能还有其他的模块，那就是后话了。下面是一些例子，列举了XSM-FLASK可以做的几件事：</p>
+
+<ul>
+<li>禁止两台虚拟机之间通过event channel和grant table进行通信；</li>
+<li>将一些需要特权级别的操作安全地grant给某些非特权级虚拟机；</li>
+<li>控制哪些虚拟机能使用device passthrough；</li>
+<li>限制或者审计特权虚拟机中进行的某些特定操作；</li>
+<li>限制特权虚拟机对其他虚拟机的任意内存映射；</li>
+<li>将hypervisor中的不同模块（比如qemu和xenstore）进行隔离，防止它们之间互相影响。</li>
+</ul>
+
+
+<p>以上是一些基本说明，下面会具体介绍如何使用FLASK，以及FLASK中规则的一些语法定义。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/10/xsm-flaskxue-xi-bi-ji/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/08/chinasysxiao-ji-2015-dot-6/">ChinaSys小记（2015.6）</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-06-08T21:14:00+08:00" pubdate data-updated="true">Jun 8<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/06/08/chinasysxiao-ji-2015-dot-6/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今年上半年的ChinaSys选择了在厦门举办，真是深得我心。顺便见了父母一趟，吃了好多海鲜，和亲人喝了几杯白酒，和几个闷骚程序员去鼓浪屿弱弱地游玩了一趟，还走了走厦门大学，白城沙滩，总的来说还是非常惬意的。不过两天会议下来，我越发觉得程序员与程序员之间的交流还是很局限的，特别是当我发现大部分人和talk都和我方向并不相同的时候，我就不知道聊天的时候该聊些什么。所以在两天会议的过程中其实并没有太多的和外界的交流，这也是我这次参加ChinaSys比较遗憾的一点。</p>
+
+<p>废话说到这里，开始进入正题。根据主办方的介绍，这次ChinaSys注册105人次，放眼望去大部分都还是老面孔，来自清华，北大，计算所，上交，复旦，中科大，华科，北理工等高校，以及MSRA，百度等公司。从会议的整个过程来看，国内各大高校和公司的研究水平都很高，在各个的领域都有比较深入的探究，但是由于本人水平的原因，很多关键点并没有get到，所以笔记也就显得比较混乱，这次ChinaSys回来让我最大的感受就是要多了解一些各个领域的知识，对整个计算机发展的各个方向有一个大方向的了解，知道相应的问题，挑战，主要技术等，这样在每次参加这些会议的时候收获的就不只是这些皮毛的东西了。</p>
+
+<p>接下来是我的笔记，基本没有太细节的点，因为很多也是别人正在做的工作，不能透露太多，当然更重要的原因其实是那些细节我自己并不了解。这次会议上用的是markdown直接记的一些印象比较深刻的点，这里也就直接整理一下记录在博客里面，留作纪念。另外这次会议没有很明确的分session，记录顺序就完全按演讲的时间顺序，另外非常不好意思的是由于某些客观原因，有好多个talk我都没有听到，所以也就不再这里记录了。这次ChinaSys共有28个talk，1个华科的金海教授keynote，以及一个讨论“如何在国内做出世界级研究”的panel。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/08/chinasysxiao-ji-2015-dot-6/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/19/xia-tian-dao-liao/">夏天到了</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-05-19T19:48:00+08:00" pubdate data-updated="true">May 19<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/05/19/xia-tian-dao-liao/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>其实夏天早就到了，只不过是莫名其妙地选了一个标题罢了。</p>
+
+<p>从2月4号一直到现在，已经有3个半月没有写过东西了，上周日赶完CCS，虽然被海波嫌弃论文写得太差，但毕竟是自己进实验室以来第一次依靠自己从idea到实现到写成论文所完成的一个项目，而且从最后的结果来看还算是比较满意的一个工作，投完论文的那一刹那有一种无法言喻的轻松感袭来。那天晚上请小弟小妹吃饭，喝了几瓶酒，聊了一晚上天，感觉很久都没有那么放松了。这两天似乎有点懒散，刻意让自己好好放松了下，想想明天还是得开始正常地工作了，就写个杂记，记录下这段时间的心情吧。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/05/19/xia-tian-dao-liao/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/04/running-driver-domain-on-xen/">Running Driver Domain on Xen</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-04T22:27:00+08:00" pubdate data-updated="true">Feb 4<span>th</span>, 2015</time>
+        
+         | <a href="/blog/2015/02/04/running-driver-domain-on-xen/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>又是一篇和Xen相关的教程，主要介绍如何在Xen里面启动一个网卡的<code>driver domain</code>（也被称为<code>stub domain</code>），也就是说，该虚拟机专门用来为其它虚拟机提供网络服务（而不是把所有这些服务都交给<code>Domain 0</code>来做）。</p>
+
+<p>说句题外话，为什么最近这么多教程类型的博客，原因在于我发现每次我把这些东西记在博客里面的话，自己都会记得很深，但是记在Evernote里面经常就会忘记掉，况且记在博客里面还有可能为别人提供帮助，所以何乐而不为呢？</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/02/04/running-driver-domain-on-xen/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/">Running Xen on Xen：Xen的嵌套虚拟化技术</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-02T18:41:00+08:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2015</time>
+        
+         | <a href="/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这篇博文是一个简单的教程，介绍如何在Xen的虚拟机中运行另外一个虚拟机，说白了，就是Xen的嵌套虚拟化技术。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/3/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader&#8217;s blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao&#8217; weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

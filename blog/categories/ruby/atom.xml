@@ -1,0 +1,630 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ruby | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/ruby/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[My first Alfred 2 Workflow by Ruby]]></title>
+    <link href="http://ytliu.github.io/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby/"/>
+    <updated>2014-04-14T14:54:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby</id>
+    <content type="html"><![CDATA[<p>These two days I'm studying how to effiently use Alfred 2. Yesterday I bought its <a href="https://buy.alfredapp.com/">Powerpack Single License</a> (17 Euro), so that I can import or create my own Workflow!</p>
+
+<p>I should say it is really fun to do such things, it makes me believing that I can take more control over my own Mac Air.</p>
+
+<p>In this post I will show how to write a simple workflow using ruby. The code can be downloaded from my <a href="https://github.com/ytliu/alfred2-ascii-translator">github page</a>, it is a very simple program that can translate between each character and its corresponding ASCII code, just like this:</p>
+
+<p>You can translate from an array of decimal ASCII code to their characters:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-1.png" title="My Alfred 2 workflow - ascii translator 1" alt="ascii effect 1" /></p>
+
+<p>Or from hexadecimal ASCII code to their characters:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-2.png" title="My Alfred 2 workflow - ascii translator 2" alt="ascii effect 2" /></p>
+
+<p>Or from characters to their corresponding ASCII codes:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-3.png" title="My Alfred 2 workflow - ascii translator 3" alt="ascii effect 3" /></p>
+
+<p>So now let's begin!</p>
+
+<!-- more -->
+
+
+<p>Firstly I should say why I use ruby is just because I like it! Thanks for <a href="https://github.com/zhaocai">zhaocai</a> who have implemented the <a href="http://zhaocai.github.io/alfred2-ruby-template/">alfred2-ruby-template</a>, which makes creating Alfred2 Workflow using ruby much more simpler.</p>
+
+<p>At first, you should download the <a href="https://github.com/zhaocai/alfred2-ruby-template">template</a> from github, and rename it whatever you like:</p>
+
+<pre><code>$ git clone https://github.com/zhaocai/alfred2-ruby-template.git
+$ mv alfred2-ruby-template alfred2-ascii-translator
+$ cd alfred2-ascii-translator
+</code></pre>
+
+<p>update the <code>domain</code>, <code>id</code>, <code>path</code> attribute in <code>config.yml</code> file:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>config.yml </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;h1&gt;bundle_id = &quot;domain.id&quot;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">path</span> <span class="n">is</span> <span class="n">the</span> <span class="n">relative</span> <span class="n">path</span> <span class="n">to</span> <span class="n">the</span> <span class="n">workflow</span> <span class="k">in</span> <span class="n">the</span> <span class="n">project</span> <span class="n">root</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;hr /</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="ss">path</span><span class="p">:</span> <span class="n">ascii</span>
+</span><span class='line'><span class="ss">domain</span><span class="p">:</span> <span class="n">me</span><span class="o">.</span><span class="n">ytliu</span>
+</span><span class='line'><span class="nb">id</span><span class="p">:</span> <span class="n">alfred2</span><span class="o">-</span><span class="n">ascii</span><span class="o">-</span><span class="n">translator</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;h1&gt;If you are using Alfred&#39;s advanced Dropbox sync, indicate the path shown in&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="no">Alfred</span> <span class="no">Preferences</span> <span class="o">&gt;</span> <span class="no">Advanced</span> <span class="o">&gt;</span> <span class="ss">Syncing</span><span class="p">:</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;dropbox: ~/</span><span class="no">Dropbox</span><span class="o">/</span><span class="no">Alfred</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>the last option: <code>dropbox</code> is when you use Alfred's advance Dropbox sync, as explained above, you can find in <code>Alfred Preferences &gt; Advanced &gt; Syncing</code></p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-4.png" title="Alfred Dropbox Sync Option" alt="alfred dropbox sync" /></p>
+
+<p>After that, we can change the main folder to what we want it to be (actually here you can remain as before: <code>workflow</code>, but make sure the <code>path</code> attribute in <code>config.yml</code> should be consistent with it).</p>
+
+<pre><code>$ mv workflow ascii
+</code></pre>
+
+<p>Now we should setup our ruby environment.</p>
+
+<p>Firstly, we can create a new gemset (I've been stuck in the gemset problem for a long time, where there're many versions of gem packages and make me confused. So here just create a new one, and make it clean).</p>
+
+<pre><code>$ rvm gemset create alfred_ruby_set
+$ rvm use 2.0.0@alfred_ruby_set
+</code></pre>
+
+<p>Note here the ruby version I'm using is 2.0.0, I think other version can also be ok.</p>
+
+<p>At the very beginning of installing all other gems, we should install the <code>plist</code> and <code>bundler</code> gem:</p>
+
+<pre><code>$ gem install plist
+$ gem install bundler
+</code></pre>
+
+<p>Then install other gems using <code>bundle:install</code>:</p>
+
+<pre><code>$ rake bundle:install
+</code></pre>
+
+<p>Normally it will install all the gems you need. The gems are list in the <code>Gemfile</code> file (e.g., here it is the <code>ascii/Gemfile</code>).</p>
+
+<pre><code>$ cat ascii/Gemfile
+</code></pre>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>ascii/Gemfile </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">source</span> <span class="s2">&quot;https://rubygems.org&quot;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;gem &quot;plist&quot;</span>
+</span><span class='line'><span class="sr">gem &quot;alfred-workflow&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Now we can install the template workflow, we just type:</p>
+
+<pre><code>$ rake install
+</code></pre>
+
+<p>or if you are using Dropbox sync as mentioned before, you can type:</p>
+
+<pre><code>$ rake dbxinstall
+</code></pre>
+
+<p>this will create a soft link in the right place, for my case, it just execute:</p>
+
+<pre><code>ln -sf /Users/luisleo/Software/AlfredWorkflow/alfred2-ascii-translator/workflow /Users/luisleo/Dropbox/Alfred/Alfred.alfredpreferences/workflows/me.ytliu.alfred2-ascii-translator`
+</code></pre>
+
+<p>Then when you open the <code>Alfred Preference &gt; Workflow</code>, you can see a new workflow added:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-5.png" title="Alfred Workflow List" alt="alfred workflow list" /></p>
+
+<p>Here you can double click it to change some of the information like name, description and so on:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-6.png" title="Alfred Workflow 1" alt="alfred workflow 1" /></p>
+
+<p>You can also double click the panel with "test feedback", to see the keywords which can trigger the workflow:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-7.png" title="Alfred Workflow 2" alt="alfred workflow 2" /></p>
+
+<p>You can also change the icon of your workflow. For my example, I just change it to what I need:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-8.png" title="Alfred Workflow" alt="my alfred workflow" /></p>
+
+<p>You can see that in the Script, the content is <code>/usr/bin/ruby ./main.rb {query}</code>, which means when triger this action, it will execute this script. Now let's see what happens in the <code>main.rb</code> located in <code>ascii</code> folder:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;h1&gt;!/us</span><span class="n">r</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">ruby</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;h1&gt;encoding: utf-8&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="nb">require</span> <span class="s2">&quot;./bundle/bundler/setup&quot;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;alfred&quot;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;Alfred.with_friendly_error do |alfred|</span>
+</span><span class='line'><span class="sr">  fb = alfred.feedback&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="c1"># add an arbitrary feedback</span>
+</span><span class='line'>  <span class="n">fb</span><span class="o">.</span><span class="n">add_item</span><span class="p">({</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;:uid      =&amp;gt; &quot;&quot;                     ,</span>
+</span><span class='line'><span class="sr">:title    =&amp;gt; &quot;Just a Test&quot;          ,</span>
+</span><span class='line'><span class="sr">:subtitle =&amp;gt; &quot;feedback item&quot;        ,</span>
+</span><span class='line'><span class="sr">:arg      =&amp;gt; &quot;A test feedback Item&quot; ,</span>
+</span><span class='line'><span class="sr">:valid    =&amp;gt; &quot;yes&quot;                  ,</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  })&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">0</span><span class="o">].</span><span class="n">eql?</span> <span class="s2">&quot;failed&quot;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;alfred.with_rescue_feedback = true</span>
+</span><span class='line'><span class="sr">raise Alfred::NoBundleIDError, &quot;Wrong Bundle ID Test!&quot;</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="nb">puts</span> <span class="n">fb</span><span class="o">.</span><span class="n">to_xml</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>From this code, you can see that all code are put in the block:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Alfred</span><span class="o">.</span><span class="n">with_friendly_error</span> <span class="k">do</span> <span class="o">|</span><span class="n">alfred</span><span class="o">|&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;end</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>The input parameters can be retrieved from <code>ARGV</code>. If we want to output something, we can use the <code>fb.add_item</code> API:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;h1&gt;add an arbitrary feedback&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="n">fb</span><span class="o">.</span><span class="n">add_item</span><span class="p">({</span>
+</span><span class='line'>  <span class="ss">:uid</span>      <span class="o">=&gt;</span> <span class="s2">&quot;&quot;</span>                     <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:title</span>    <span class="o">=&gt;</span> <span class="s2">&quot;Just a Test&quot;</span>          <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:subtitle</span> <span class="o">=&gt;</span> <span class="s2">&quot;feedback item&quot;</span>        <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:arg</span>      <span class="o">=&gt;</span> <span class="s2">&quot;A test feedback Item&quot;</span> <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:valid</span>    <span class="o">=&gt;</span> <span class="s2">&quot;yes&quot;</span>                  <span class="p">,</span>
+</span><span class='line'><span class="p">})</span>
+</span><span class='line'><span class="nb">puts</span> <span class="n">fb</span><span class="o">.</span><span class="n">to_xml</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>So when you open Alfred, input <code>test feedback</code>, you can see like this:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-9.png" title="test feedback example" alt="test feedback example" /></p>
+
+<p>That's quite simple.</p>
+
+<p>So here come to my ASCII Translator:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;h1&gt;!/us</span><span class="n">r</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">ruby</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;h1&gt;encoding: utf-8&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="nb">require</span> <span class="s1">&#39;rubygems&#39;</span> <span class="k">unless</span> <span class="n">defined?</span> <span class="no">Gem</span> <span class="c1"># rubygems is only needed in 1.8</span>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;./bundle/bundler/setup&quot;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;alfred&quot;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;def show_chars(fb, result)</span>
+</span><span class='line'><span class="sr">  fb.add_item({&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="ss">:uid</span>      <span class="o">=&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="ss">:title</span>    <span class="o">=&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="ss">:subtitle</span> <span class="o">=&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="ss">:arg</span>      <span class="o">=&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="ss">:valid</span>    <span class="o">=&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="p">})</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;special_ascii = [&#39;NUL&#39;, &#39;SOH&#39;, &#39;STX&#39;, &#39;ETX&#39;, &#39;EOT&#39;, &#39;ENQ&#39;, &#39;ACK&#39;, &#39;BEL&#39;, &#39;BS&#39;, &#39;TAB&#39;, &#39;LF&#39;, &#39;VT&#39;, &#39;FF&#39;, &#39;CR&#39;, &#39;SO&#39;, &#39;SI&#39;, &#39;DLE&#39;, &#39;DC1&#39;, &#39;DC2&#39;, &#39;DC3&#39;, &#39;DC4&#39;, &#39;NAK&#39;, &#39;SYN&#39;, &#39;ETB&#39;, &#39;CAN&#39;, &#39;EM&#39;, &#39;SUB&#39;, &#39;ESC&#39;, &#39;FS&#39;, &#39;GS&#39;, &#39;RS&#39;, &#39;US&#39;]</span>
+</span><span class='line'><span class="sr">special_ascii_7f = &#39;del&#39;&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="no">Alfred</span><span class="o">.</span><span class="n">with_friendly_error</span> <span class="k">do</span> <span class="o">|</span><span class="n">alfred</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">alfred</span><span class="o">.</span><span class="n">with_rescue_feedback</span> <span class="o">=</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="n">fb</span> <span class="o">=</span> <span class="n">alfred</span><span class="o">.</span><span class="n">feedback</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  type = ARGV[0]&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">type</span> <span class="o">=~</span> <span class="sr">/[d|h|c]/</span><span class="p">)</span> <span class="o">==</span> <span class="kp">nil</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;raise Alfred::InvalidFormat, &quot;Usage: ascii [d|h|c] args&quot;</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;query = ARGV[1..-1].map(&amp;amp;:to_i)</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  elsif type == &#39;h&#39;&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">query</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">1</span><span class="o">.</span><span class="n">.</span><span class="o">-</span><span class="mi">1</span><span class="o">].</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="ss">:hex</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">else</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;query = ARGV[1..-1].join(&quot; &quot;)</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">result</span> <span class="o">=</span> <span class="nb">Array</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;c&#39;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;result = query.bytes.map { |c| &quot;0x</span><span class="si">#{</span><span class="n">c</span><span class="o">.</span><span class="n">to_s</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="sr">&quot; }</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  else&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">query</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">q</span><span class="o">|</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">q</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mh">0x20</span>
+</span><span class='line'>    <span class="n">result</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">special_ascii</span><span class="o">[</span><span class="n">q</span><span class="o">]</span>
+</span><span class='line'>  <span class="k">elsif</span> <span class="n">q</span> <span class="o">==</span> <span class="mh">0x7f</span>
+</span><span class='line'>    <span class="n">result</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">special_ascii_7f</span>
+</span><span class='line'>  <span class="k">elsif</span> <span class="n">q</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mh">0x7f</span>
+</span><span class='line'>    <span class="n">result</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">q</span><span class="o">.</span><span class="n">chr</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">result</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="s1">&#39;undefined&#39;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  for i in (0..result.size/</span><span class="mi">10</span><span class="p">)</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;show_chars(fb, result[i*10..[result.size-1, i*10+9].min].join(&quot; &quot;).strip)</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end</span>
+</span><span class='line'><span class="sr">  puts fb.to_xml</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>If you can read ruby, you can surely read my code. Here I just don't explain, you can see the README in <a href="https://github.com/ytliu/alfred2-ascii-translator">github page</a>, to have a idea of how to use it.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Notes about Ruby]]></title>
+    <link href="http://ytliu.github.io/blog/2012/04/01/notes-about-ruby/"/>
+    <updated>2012-04-01T19:58:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2012/04/01/notes-about-ruby</id>
+    <content type="html"><![CDATA[<p>已经决定要学ruby和rails了，就从最实际的开始吧~</p>
+
+<p>CSE要求TA每次recitation完了以后给小朋友们发邮件告知成绩，就尝试用ruby写了个脚本，其实这件事最简单的应该是直接用shell脚本来做的，既然在学ruby嘛~就逮着机会用咯~而且还和小Z学到很多东西呢。</p>
+
+<p>其实要做的事情很简单，就把学生的成绩按照<em>"学号 分数"</em>一行行写在文件里，分数是按照<em>"1.5/0.5/0.5"</em>的顺序排放的，最后要通过一行行读文件，然后用gmail发给相应学生的学号邮箱里面，标题为REC SCORE，内容是</p>
+
+<pre><code>2.5 （summary/qa/discussion = 1.5/0.5/0.5）
+</code></pre>
+
+<p>其它也没什么好多说的，先贴代码吧：</p>
+
+<!-- more -->
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;gmail&#39;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;def sendgmail(filename, username, password)</span>
+</span><span class='line'><span class="sr">  p &quot;in sendgmail&quot;</span>
+</span><span class='line'><span class="sr">  Gmail.new(username, password) do |gmail|&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">lines</span> <span class="o">=</span> <span class="no">IO</span><span class="o">.</span><span class="n">readlines</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</span><span class='line'><span class="n">lines</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">line</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">to_mail</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="si">}</span><span class="s2">@fudan.edu.cn&quot;</span>
+</span><span class='line'>  <span class="n">score</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span>
+</span><span class='line'>  <span class="n">tscore</span> <span class="o">=</span> <span class="nb">format</span><span class="p">(</span><span class="s2">&quot;%.2f&quot;</span><span class="p">,</span> <span class="n">score</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="ss">:to_f</span><span class="p">)</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">a</span><span class="p">,</span> <span class="n">e</span><span class="o">|</span> <span class="n">a</span> <span class="o">+</span> <span class="n">e</span> <span class="p">})</span>
+</span><span class='line'>  <span class="n">content</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">tscore</span><span class="si">}</span><span class="s2"> (summary/qa/discussion = </span><span class="si">#{</span><span class="n">score</span><span class="si">}</span><span class="s2">)&quot;</span>
+</span><span class='line'>  <span class="nb">p</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">to_mail</span><span class="si">}</span><span class="s2"> </span><span class="si">#{</span><span class="n">content</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">gmail</span><span class="o">.</span><span class="n">deliver</span> <span class="k">do</span>
+</span><span class='line'><span class="n">to</span> <span class="n">to_mail</span>
+</span><span class='line'><span class="n">subject</span> <span class="s1">&#39;REC2 Score&#39;</span>
+</span><span class='line'><span class="n">text_part</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">body</span> <span class="n">content</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;username = &#39;mctrain016@gmail.com&#39;</span>
+</span><span class='line'><span class="sr">password = ARGV[0]&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">sendgmail</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;sendgmail(&#39;rec2_score&#39;, username, password)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里主要是用了一个gem库<em>ruby-gmail</em>，要先</p>
+
+<pre><code>gem install ruby-gmail
+gem install mime
+</code></pre>
+
+<p>里面封装好了用ruby发gmail的方法，这个没有什么好说的，唯一想说的是小Z教我的map和reduce的用法：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;  tscore = format(&quot;%.2f&quot;, score.split(&#39;/</span><span class="err">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="ss">:to_f</span><span class="p">)</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">a</span><span class="p">,</span> <span class="n">e</span><span class="o">|</span> <span class="n">a</span> <span class="o">+</span> <span class="n">e</span> <span class="p">})</span>
+</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里<em>.map</em>是对Array里面的所有元素都做一遍to_f操作变成一个新的Array，<em>.inject(0)</em>则是在为之后的reduce赋一个初始值0，之后每一次reduce都进行一次<em>a + e</em>的操作，将a作为输出，然后再将<em>a, e</em>作为输入。举一个例子：</p>
+
+<p><img src="http://ytliu.info/images/2012-04-01-1.png" title="reduce example" alt="example-1" /></p>
+
+<p>希望之后还有什么需要的都可以用ruby来尝试下，然后再慢慢地学习ruby on rails，不会忘记我的梦想滴~</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[我看北爱&amp;我学ruby]]></title>
+    <link href="http://ytliu.github.io/blog/2012/03/09/wo-kan-bei-ai-and-wo-xue-ruby/"/>
+    <updated>2012-03-09T21:30:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2012/03/09/wo-kan-bei-ai-and-wo-xue-ruby</id>
+    <content type="html"><![CDATA[<p><strong>我看北爱</strong></p>
+
+<p>这两周花了晚上睡前的时间加上几次地铁上的时间把传说中的《北京爱情故事》看完了，蛮有感触的。没想到看到最后几集的时候竟然躺在床上任由眼泪从脸颊流下咽入口内，就像很多人所说的，这真的是一部展现无比残酷现实的爱情故事片，尽管我对其中很多思想做法不置可否，觉得或许很多太绝对，太不现实或者根本就不符合我的价值观。可能是受了前段时间很激动地看过的《十七岁不哭》里面简宁的影响吧，我对吴狄还是蛮喜欢的，虽然他有时候感觉太"迂腐"，对小伍太不公平，对小曦太过没来由地好，但当他最后和吴魏争论，和伍媚掏尽心窝的那些话使得我越来越喜欢他。在三个男主角中，吴狄是最中庸也是最让人揪心的一个，但他对朋友的付出，对责任心的诠释，还有对情感的从不背叛，让我认识了一个真正活着这个世上的或许被许多人埋怨为幼稚却内心无比强大的人。我想说，在十七岁不哭中简宁所向往的从容，向往的"无论这个世界如何喧闹都活的从容"曾经无限地感染过我；而在北爱中他对情感对亲情、爱情、友情的无条件的忠诚也让我在这部现实而残酷的剧中感受到一种不一样的宁静。</p>
+
+<p>或许是性格上的相似吧，我也从不希望自己能有多么地成功，能挣那么多的财产，如果要我像石小孟那样拿沈冰来交换所谓"成功"，我怎么也做不到！不要说我只是还没有经历这种场面，更不要说我从没有体会过什么叫贫穷，什么叫身世不济，我不知道为什么石小孟一定要坚持北漂被砸的头破血流，如果是我，我一定选择放弃，选择回家。当沈冰问小猛"大不了我们就回老家去吧"而小猛给出坚决的态度的时候我就感觉这是一个悲剧的开始。在我看来人生最重要的是要知道该什么时候放弃什么东西，知道自己最想要的是什么。很喜欢沈冰的那句话：能被买走的东西，迟早会失去的；买不走的，它永远是属于你的。或许小猛只是这千千万万个人中的一个典型，或许他是可怜的，值得我们同情的，或许一个正常的人处在他的状况说不定也会像他一样选择。或许他没有错，不管怎么样，不管他有多么有说服力的理由，有一点是肯定的，他没有沈冰爱他那样地爱沈冰！为什么每个男人都要以为女人一定要你无论用什么代价都要给她物质上的满足呢？两个人简简单单地相爱真的有那么难吗？或许我太年轻太幼稚太没见过世面吧，可是就算我达到所谓的"成熟"了，就算我经历过无数这样子的分分合合，我依然希望自己能像吴狄那样坚持自己内心最深处的判断，没了情感的寄托，有再多的钱财又有什么用呢？</p>
+
+<!-- more -->
+
+
+<p>再说说疯子吧，疯子这个人我还是蛮喜欢的，敢作敢当，敢爱敢恨，明白自己最爱什么，一句话，够大气！</p>
+
+<p>关于沈冰、林夏、小曦和伍媚，我赞佩于伍媚的智慧和能干，但那太过于强势的女人或许真的不会是吴狄的菜吧。说实话，刚开始我听不喜欢杨紫曦的，但是怎么说呢，当一个女人在提到她的身世提到她的可怜之处时，或许她一切的错都可以原谅吧~我很喜欢林夏，喜欢她的专情，她的大气，她的善解人意和宽容，我喜欢她和疯子之间的斗嘴，但是她真的好可怜，好可怜，好可怜...然后我最喜欢的就是沈冰了，我也说不出为什么，这么一个纯洁、善解人意的姑娘又有谁会不喜欢呢~</p>
+
+<p>最后的结尾不知道想要表达什么，为什么要让结局这样，总之我还是蛮喜欢这部剧的，喜欢里面刻画的每一个鲜活的角色，陈思成确实挺牛逼的。</p>
+
+<hr />
+
+<p><strong>我学ruby</strong></p>
+
+<p>这周还有一件事就是开始上SaaS这门课，RoR是我的主要目的，ruby真的是一门很牛逼的语言，之前一直在犹豫是要学python呢还是学ruby呢？还曾经将要决定学python呢，毕竟国内应该还是python流行些，不过既然有一个这么好的机会又有什么理由浪费呢，先从ruby开始吧。</p>
+
+<p>昨天看《Ruby Programming Language》的时候看到一个ruby里面很牛逼的东西叫<em>tainting object</em>:</p>
+
+<pre><code>    在程序读入输入数据的时候会自动为数据taint，在数据的传输过程中被感染的数据也会被taint上，如果环境变量
+    $SAFE大于1，则ruby则会限制一些built-in的方法使它们不能使用被taint的数据。当然开发人员也可以手动taint
+    一些变量，比如*s.taint*，则之后任何和*s*有关的变量都会被标记为tainted，以此来跟踪一些可能有危险的数据，
+    增强系统的安全性。
+</code></pre>
+
+<p>当然，ruby还有很多特性，希望这个学期过后能更深入地掌握这门语言！之后碰到一些比较有趣的东西也会记录在这里。</p>
+
+<hr />
+
+<p>话说这周正事似乎没做一件，真的不知道应该怎么想idea，不懂现在该做些什么。想去真实地了解些攻击，不枉说自己是做安全的，不然感觉说的都很勉强。昨天看到一个<a href="http://www.xfocus.net/" title="xfocus">网站</a>感觉很不错，我想为自己订一个计划：这个月能早睡，每天白天7点半起床到实验室学习。我不知道结果会怎么样，我只是想尝试一下，不要让自己后悔吧。</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Opennebula | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/opennebula/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[opennebula setup note]]></title>
+    <link href="http://ytliu.github.io/blog/2012/09/28/opennebula-setup-note/"/>
+    <updated>2012-09-28T14:30:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2012/09/28/opennebula-setup-note</id>
+    <content type="html"><![CDATA[<p>这几天搞opennebula这个项目，一个很大的感受就是对于environement setup一定要有详细的笔记，不然过了一段时间就什么也想不起来了，遇到和以前一样的问题也不懂该如何解决。实在浪费时间，于是就把它记下来。</p>
+
+<h2>基本命令</h2>
+
+<p>首先是opennebula里面的一些基本命令，这里以kvm为例：</p>
+
+<h3>Cloud Infrastructure Setup</h3>
+
+<p>On Cluster:</p>
+
+<pre><code>$ onecluster create cluster01
+</code></pre>
+
+<p>On Host (kvm):</p>
+
+<pre><code>$ onehost create host01 --im im_kvm --vm vmm_kvm --net dummy 
+$ onecluster addhost cluster01 host01
+</code></pre>
+
+<!-- more -->
+
+
+<p>System Datastore (for running VM, not needed in front end):</p>
+
+<pre><code>mount a NFS directory to /var/lib/one/datastores/0 for each host, if you would like to perform live migration.
+</code></pre>
+
+<p>Filesystem Datastore (for regular storage), sample config file: 'ds.conf'</p>
+
+<pre><code>$ onedatastore create ds.conf 
+$ onecluster adddatastore cluster01 ds01 
+$ onedatastore update 100
+</code></pre>
+
+<p>add SAFE_DIRS="/var/lib/one/datastores/", mount actual datastore to /var/lib/one/datastores/<datastore_id></p>
+
+<h3>Set up Virtual Resource</h3>
+
+<p>Virtual Machine Image</p>
+
+<pre><code>$ oneimage create img_debian.conf --datastore ds01
+</code></pre>
+
+<p>Virtual Network</p>
+
+<pre><code>$ onevnet create net_lease.conf
+</code></pre>
+
+<p>Virtual Machine Template</p>
+
+<pre><code>$ onetemplate create vm_debian.conf 
+$ onetemplate instantiate vm_debian --name debian1
+</code></pre>
+
+<p>Virtual Machine</p>
+
+<pre><code>$ onevm deploy debian1 brick4 
+$ onevm suspend debian1 
+$ onevm resume debian1 
+$ onevm resubmit debian1 
+$ onevm stop debian1 
+$ onevm delete debian1
+</code></pre>
+
+<h3>qemu/kvm</h3>
+
+<p>create image:</p>
+
+<pre><code>$ /usr/local/kvm/bin/qemu-img create -f qcow2 &amp;lt;img_name&amp;gt; 10G
+</code></pre>
+
+<p>create image from base:</p>
+
+<pre><code>$ /usr/local/kvm/bin/qemu-img create -f qcow2 -b &amp;lt;base_img_name&amp;gt; &amp;lt;img_name&amp;gt;
+</code></pre>
+
+<p>install os:</p>
+
+<pre><code>$ sudo /usr/local/kvm/bin/qemu-system-x86_64 -k en-us -hda vdisk.img -cdrom /path/to/boot-media.iso 
+</code></pre>
+
+<p>run image:</p>
+
+<pre><code>$ /usr/local/kvm/bin/qemu-system-x86_64 -k en-us -hda vdisk.img -m 512
+</code></pre>
+
+<h2>权限问题</h2>
+
+<h3>ssh 权限</h3>
+
+<p>需要把front的oneadmin用户的.ssh/id_rsa.pub拷贝到host的oneadmin用户的.ssh/authorized_keys里面</p>
+
+<p>需要把host的oneadmin用户的.ssh/id_rsa.pub拷贝到front的oneadmin用户的.ssh/authorized_keys里面（optional）</p>
+
+<h3>账户设置</h3>
+
+<p>两边oneadmin账户的uid，gid一定要相同！</p>
+
+<p>On front:</p>
+
+<pre><code>$ id oneadmin
+uid=1002(oneadmin) gid=1002(oneadmin) groups=1002(oneadmin)
+</code></pre>
+
+<p>On host:</p>
+
+<pre><code>$ addgroup --gid 1002 oneadmin
+$ useradd --uid 1002 -g oneadmin -d /var/lib/one oneadmin
+</code></pre>
+
+<p>另外在host端的oneadmin还需要有/var/lib/one目录下所有东西的所有权，同时，oneadmin还需要加入<strong>group kvm</strong>（否则无法启动kvm）</p>
+
+<pre><code>$ usermod -a -G kvm oneadmin
+</code></pre>
+
+<p>另外，由于/usr/bin/kvm的权限是root:root，所以这个也可能引发错误，或者将其权限改为oneadmin，或者为oneadmin添加一个root用户组:</p>
+
+<pre><code>$ usermod -a -G root oneadmin
+</code></pre>
+
+<h3>libvirt</h3>
+
+<p>！！！！搞了我好久，一直莫名其妙地出一个错误：</p>
+
+<pre><code>internal error process exited while connecting to monitor: kvm: -drive file=/var/lib/one//datastores/0,if=none,id=drive-ide0-0-0,format=raw: 
+could not open disk image /var/lib/one//datastores/0: Permission denied
+</code></pre>
+
+<p>我直接用kvm打开那个镜像都没问题，然后看到一个帖子http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673427，再加上http://opennebula.org/documentation:archives:rel3.4:kvmg看到这样一句：</p>
+
+<pre><code>Qemu should be configured to not change file ownership. Modify /etc/libvirt/qemu.conf to include dynamic_ownership = 0. To be able 
+to use the images copied by OpenNebula, change also the user and group under which the libvirtd is run to “oneadmin”.
+</code></pre>
+
+<p>然后去<strong>/etc/libvirt/qemu.conf</strong>把user改成oneadmin,group改成cloud（顺便说下oneadmin也加了一个cloud的group),瞬间就起起来了！</p>
+
+<p>然后，我把oneimage换了一下，把</p>
+
+<pre><code>NAME          = "debian_new"
+PATH          = /var/lib/one/datastores/ubuntu.11-10.x86-64.20111013.qcow2
+加了三行：
+TYPE          = OS
+PERSISTENT    = YES
+DRIVER        = qcow2
+</code></pre>
+
+<p>然后就起来了。。。其实我也不知道为什么，可能.qcow2结尾的镜像就是要qcow2的driver才能起起来吧</p>
+
+<hr />
+
+<p>之后配host2的时候还会碰到一个问题就是/var/run/libvirt/libvirt-sock和/var/tmp/one目录下的permission denied，对于前者，给oneadmin再加一个libvirtd的group，对于后者，把/var/tmp/one chown一下就好了</p>
+
+<h2>NFS</h2>
+
+<h3>On front</h3>
+
+<pre><code>$ vi /etc/hosts
+203.95.3.3 host1
+203.95.3.4 host2
+
+$ vi /etc/exports
+/var/lib/one/datastores/0       host1(rw,no_root_squash)   #0是system datastore的编号，是opennebula自带的
+/var/lib/one/datastores/104     host1(rw,no_root_squash)   #104是file system datastore的编号，由onedatastore自动创建的
+</code></pre>
+
+<h3>On host</h3>
+
+<pre><code>$ cd
+$ mkdir datasdores
+$ mkdir datastores/0
+$ mkdir datastores/104
+$ sudo mount 203.95.3.5:/var/lib/one/datastores/104 /var/lib/one/datastores/104
+$ sudo mount 203.95.3.5:/var/lib/one/datastores/0 /var/lib/one/datastores/0
+</code></pre>
+]]></content>
+  </entry>
+  
+</feed>

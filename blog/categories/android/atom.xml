@@ -1,0 +1,2122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Android | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/android/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Enable CONFIG_MODULE in Cyanogenmod Kernel]]></title>
+    <link href="http://ytliu.github.io/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/"/>
+    <updated>2015-12-14T21:12:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel</id>
+    <content type="html"><![CDATA[<p>I met a problem when trying to insert kernel module in the moto-g Android phone. My moto-g phone is built with Cyanogenmod falcon ROM, but by default, this ROM does not support installing modules.</p>
+
+<p><img src="http://ytliu.info/images/2015-12-14-1.png" title="proc modules fail" alt="proc modules fail" /></p>
+
+<p>Thus I've to enable it in the kernel config, re-compile and install the kernel. In this post I will give a short note about how to do it.</p>
+
+<!-- more -->
+
+
+<p>In this blog, I will take <code>falcon</code> as the example, since my device is moto-g.</p>
+
+<p>Some materials:</p>
+
+<p><a href="https://wiki.cyanogenmod.org/w/Build_for_falcon">How To Build CyanogenMod Android for Motorola Moto G ("falcon")</a></p>
+
+<p><a href="https://wiki.cyanogenmod.org/w/Doc:_integrated_kernel_building">integrated kernel building</a></p>
+
+<hr />
+
+<p>First, follow <a href="https://wiki.cyanogenmod.org/w/Build_for_falcon">this post</a>, you can download the source code for <code>falcon</code> device. Support our source code is in <code>~/android/system</code>，You need to do as follows to prepare before compiling the kernel:</p>
+
+<pre><code>  $ cd ~/android/system
+  $ source build/envsetup.sh
+  $ breakfast falcon
+  $ cd device/motorola/falcon
+  $ ./extract-files.sh
+  $ croot
+</code></pre>
+
+<p>NOTE: before executing <code>./extract-files.sh</code>，you need to plug the device to your computer.</p>
+
+<p>After above operations, you need to refer to <a href="https://wiki.cyanogenmod.org/w/Doc:_integrated_kernel_building">this post</a> to prepare and compile the kernel.</p>
+
+<h4>Add CONFIG_MODULE option in the kernel config</h4>
+
+<p>First go to the kernel code directory:</p>
+
+<pre><code>  $ cd kernel/motorola/msm8226
+</code></pre>
+
+<p>If you execute <code>make ARCH=arm help</code>, you can see many candidate defconfig options. In our example, we just need to use the <code>falcon_defconfig</code>, so we do as follows:</p>
+
+<pre><code>  $ make ARCH=arm falcon_defconfig
+</code></pre>
+
+<p>This command will copy the <code>arch/arm/configs/falcon_defconfig</code> file to <code>.config</code>. If we open the <code>.config</code> file, we can see the <code>CONFIG_MODULE</code> option is disabled. In order to enable it, we execute:</p>
+
+<pre><code>  $ make ARCH=arm menuconfig
+</code></pre>
+
+<p>This will open the menuconfig screen based on the <code>.config</code> default configuration. Then we only need to check the <code>Enable loadable module support</code> and some of the following options in the screen:</p>
+
+<p><img src="http://ytliu.info/images/2015-12-14-2.png" title="menuconfig 1" alt="menuconfig 1" /></p>
+
+<p><img src="http://ytliu.info/images/2015-12-14-3.png" title="menuconfig 2" alt="menuconfig 2" /></p>
+
+<p>Then we exit and save the config, copy it to the <code>arch/arm/configs/falcon_defconfig</code>, and clear the config settings (that's important, otherwise, it may fail in the next phase), finally go back to the root directory:</p>
+
+<pre><code>  $ cp .config arch/arm/configs/falcon_defconfig
+  $ make mrproper
+  $ croot
+</code></pre>
+
+<h4>Compile and install kernel</h4>
+
+<p>In this time, we can compile the kernel:</p>
+
+<pre><code>  $ mka bootimage
+</code></pre>
+
+<p>After several minutes, the kernel compiling is done, the <code>out/target/product/falcon/boot.img</code> is generated.</p>
+
+<p>If you want to flash the kernel to your device, you can type:</p>
+
+<pre><code>  $ adb root
+  $ adb remount
+  $ installboot
+  $ adb reboot
+</code></pre>
+
+<p>Or if you just want to test the kernel instead of flashing it:</p>
+
+<pre><code>  $ adb reboot bootloader
+  $ fastboot boot out/target/product/falcon/boot.img
+</code></pre>
+
+<p>Finally your newly built kernel works, and you can see the <code>/proc/modules</code> in the file system, which means you can insert your own modules!</p>
+
+<p><img src="http://ytliu.info/images/2015-12-14-4.png" title="proc modules work" alt="proc modules work" /></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OpenSSL Authenticated Android Accessory Protocol]]></title>
+    <link href="http://ytliu.github.io/blog/2015/12/05/openssl-authenticated-android-accessory-protocol/"/>
+    <updated>2015-12-05T11:09:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/12/05/openssl-authenticated-android-accessory-protocol</id>
+    <content type="html"><![CDATA[<p>前段时间在研究Android Auto（关于什么是Auto请自行google），里面涉及到两个比较关键的数据传输和加密协议：<code>Android Accessory Protocol</code>和<code>OpenSSL</code>。具体来说，auto和车载系统（之后称为headunit）之间数据的传输以及最初连接的建立是基于<a href="https://source.android.com/devices/accessories/protocol.html">Android Open Accessory （AOA）</a>协议的，而它们两个之间的认证过程以及数据的加密是基于<a href="https://www.openssl.org/">OpenSSL</a>的握手和加密协议。</p>
+
+<p>在研究这两个协议的过程中，“如何将AOA协议和SSL协议结合起来”是一个很关键的问题。我在网上找了很多资料，但是并没有一个比较完整的教程，所以打算在这篇博客中做一个详细的介绍，并且将相关代码开源。</p>
+
+<p><a href="https://github.com/ytliu/aoa-with-ssl">github上的源码</a></p>
+
+<!-- more -->
+
+
+<h3>关于Android Auto</h3>
+
+<p>关于什么是<a href="https://www.android.com/auto/">Android Auto</a>，可以到google的官方网站上去查询。简单来说，就是Google开发的一套机制，可以将手机上的应用（包括地图、音乐、通话等）和车载系统进行交互，使得车载系统的功能更加丰富。如果要描述它的机制的话，可以用下面一张图来表示：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-1.png" title="Androi Auto Mechanism" alt="Androi Auto Mechanism" /></p>
+
+<p>其中，负责和headunit进行交互的是GMS (Google Mobile Service)的Car Service，然后它会和Google开发的Auto应用联系，Auto应用负责和其它第三方应用程序交互，现在支持Android Auto的第三方应用程序有<a href="https://play.google.com/store/apps/collection/promotion_3001303_android_auto_all">这些</a>，可以看到大部分还是一些音乐和社交类的应用。这里有一个特殊的应用，那就是Google Map，它是直接整合在GMS里面的，可以直接和Car service进行交互，应该不需要经过Auto（当然这还仅仅是我的推测）。</p>
+
+<h3>关于两个协议</h3>
+
+<p>由于这篇博文主要介绍的是手机和车载的交互协议，因此我们主要关注的是GMS car service和headunit之间的交互，所以，我们把上面那张图简化一下：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-2.png" title="AA and SSL Protocols" alt="AA and SSL Protocols" /></p>
+
+<p>其中<code>Android Open Accessory（AOA）</code>协议发生在两台设备通过USB进行连接，其中一台作为<code>Accessory</code>，一台作为<code>Device</code>。在Auto的例子中，headunit的角色为<code>Accessory</code>，手机的角色为<code>Device</code>。<code>AOA</code>协议主要作用是关于<code>Accessory</code>和<code>Device</code>在初始化连接时候的互相识别，以及之后数据的传输。</p>
+
+<p>关于<code>Accessory</code>和<code>Device</code>的概念可以看<a href="http://www.crifan.com/android_usb_usbaccessory_vs_usbdevice/">这篇博文</a>，这里就不详述了。</p>
+
+<p>当<code>Accessory</code>和<code>Device</code>建立连接之后，两边就可以进行数据的传输了，但是由于一些隐私问题，传输的数据需要进行加密，因此就引入了<code>OpenSSL</code>协议。在OpenSSL协议中连接两端的实体被分为了<code>Server</code>和<code>Client</code>，这两个角色有什么区别会在之后提到。在这里我们只需要知道在Auto的例子中，headunit的角色为<code>Client</code>，手机的角色为<code>Server</code>。因此我们的图又被抽象为如下：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-3.png" title="AA and SSL Protocols 2" alt="AA and SSL Protocols 2" /></p>
+
+<p>好了，到现在为止，我们就完全和Auto撇清关系了，我们接下来要介绍的，就是两个实体，它们通过USB连接，一个作为AOA协议的<code>Accessory</code>和OpenSSL协议的<code>Client</code>，另一个作为AOA协议的<code>Device</code>和OpenSSL协议的<code>Server</code>。</p>
+
+<h3>Android Open Accessory（AOA）协议</h3>
+
+<p>当两个实体通过USB进行连接之后，最先做出反应的是<code>Accessory</code>，它会做以下几件事情：</p>
+
+<h4>步骤1：获得和它连接的<code>Device</code>的VendorID和ProductID；</h4>
+
+<h4>步骤2：判断它们是否匹配相应的数字；</h4>
+
+<p>比如在Auto的例子中，headunit需要判断VendorID是否匹配<code>0x18D1</code>，ProductID是否匹配<code>0x2D00</code>或者<code>0x2D01</code>？）</p>
+
+<ul>
+<li>如果匹配，则表示该设备支持Android accessory模式，并且当前已经处于该模，所以<code>Accessory</code>可以直接和<code>Device</code>进行通信（直接跳到步骤5）；</li>
+<li>否则，则表示该设备目前不处在Android accessory模式，但是不清楚其是否支持该模式，需要进行确认（继续执行步骤3~4）。</li>
+</ul>
+
+
+<h4>步骤3：Android accessory模式确认和重新连接；</h4>
+
+<ul>
+<li><p>通过USB发送一个请求：</p>
+
+<pre><code>requestType:    USB_DIR_IN | USB_TYPE_VENDOR
+request:        51
+value:          0
+index:          0
+data:           protocol version number (16 bits little endian sent from the device to the accessory)
+</code></pre></li>
+<li><p>如果对方返回一个非零整数，则表示该设备支持Android accessory模式，该返回值表示支持的协议版本号；</p></li>
+<li><p>发送另外的请求，该请求中包含一些字符串，用来表示<code>Device</code>中哪些应用程序可以来和<code>Accessory</code>进行交互：</p>
+
+<pre><code>requestType:    USB_DIR_OUT | USB_TYPE_VENDOR
+request:        52
+value:          0
+index:          string ID
+data            zero terminated UTF8 string sent from accessory to device
+</code></pre></li>
+<li><p>有效的string ID包含以下几类：</p>
+
+<pre><code>manufacturer name:  0
+model name:         1
+description:        2
+version:            3
+URI:                4
+serial number:      5
+</code></pre></li>
+<li><p>在Auto的例子中，headUnit在这个过程中会发送两个string ID：<code>manufacturer name = "Android"</code>，<code>model name = "Android Auto"</code>。该string ID会触发手机设备中<code>com.google.android.gms.car.FirstActivity</code>的<code>onCreate()</code>函数，从而使得GMS car service和headUnit进行accessory的连接；</p></li>
+<li><p><code>Accessory</code>最后发送一个请求，告诉<code>Device</code>开始进入Android accessory模式，并且重新建立连接：</p>
+
+<pre><code>requestType:    USB_DIR_OUT | USB_TYPE_VENDOR
+request:        53
+value:          0
+index:          0
+data:           none
+</code></pre></li>
+</ul>
+
+
+<h4>步骤4：重新检查；</h4>
+
+<p>步骤3结束之后，<code>Device</code>会重新和<code>Accessory</code>进行连接，这时<code>Accessory</code>回到步骤1进行检查，如果检查通过，则进入步骤5，如果<code>Device</code>不支持Android accessory模式，或者没有匹配的应用程序，则<code>Device</code>会返回信息告诉<code>Accessory</code>，这时<code>Accessory</code>就只能等待下一个手机设备的接入。</p>
+
+<h4>步骤5：开始通信.</h4>
+
+<p>从这之后，<code>Accessory</code>和<code>Device</code>将通过Android Accessory协议进行通信，<code>Accessory</code>首先获得该USB连接中的一些配置元数据，包括接口类型（UsbInterface），端点信息（UsbEndpoint）等，从而获得对应的bulk endpoints，进行之后的通信过程。</p>
+
+<p>在数据通信的过程中，<code>Accessory</code>通过<code>libusb</code>库提供的<code>libusb_control_transfer</code>和<code>libusb_bulk_transfer</code>接口进行数据的传输，其中，<code>libusb_control_transfer</code>用于传输一些指令数据，而<code>libusb_bulk_transfer</code>用于传输一些比较大的数据，比如音频数据，图像数据等；
+而<code>Device</code>则通过Android <code>USBManager</code>提供的<code>openAccessory</code>接口获得一个文件描述符，然后通过其对应的<code>FileInputStream</code>和<code>FileOutputStream</code>进行数据的读写：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ParcelFileDescriptor</span> <span class="n">mFD</span> <span class="o">=</span> <span class="n">mUSBManager</span><span class="o">.</span><span class="na">openAccessory</span><span class="o">(</span><span class="n">acc</span><span class="o">);</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">mFD</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">FileDescripter</span> <span class="n">fd</span> <span class="o">=</span> <span class="n">mFD</span><span class="o">.</span><span class="na">getFileDescriptor</span><span class="o">();</span>
+</span><span class='line'><span class="n">mIS</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span>  <span class="c1">// use this to receive messages</span>
+</span><span class='line'><span class="n">mOS</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span> <span class="c1">// use this to send commands</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<hr />
+
+<h3>OpenSSL协议</h3>
+
+<p>在<code>Accessory</code>和<code>Device</code>建立连接，并且可以传输数据之后，它们就要开始建立OpenSSL的连接，对数据进行加解密了。这里主要分为了两个过程：握手过程和数据加解密过程。这里简单介绍下握手协议：</p>
+
+<h4>OpenSSL握手协议</h4>
+
+<p>握手协议的作用是身份的认证，该过程由<code>Client</code>端发起，这个协议的过程如下：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-4.png" title="OpenSSL Handshake Protocol" alt="OpenSSL Handshake Protocol" /></p>
+
+<p>在这个过程中，<code>Client</code>首先会对<code>Server</code>提供的证书（Certificate）进行验证，<code>Server</code>也会对<code>Client</code>提供的证书进行验证。同时它们会用<code>Server</code>的公钥（包含在<code>Server</code>的证书中）和存在<code>Server</code>端的私钥进行秘钥的协商，最后通过这个协商好的秘钥（master key）对数据进行加解密。</p>
+
+<p>这里推荐<a href="http://security.stackexchange.com/questions/20803/how-does-ssl-tls-work">StackOverflow的一个帖子</a>，里面的前两个回答对OpenSSL握手协议进行了一个很棒的解释。</p>
+
+<hr />
+
+<h3>代码分析</h3>
+
+<p>在进行了背景介绍之后，我们开始来分析下如何实现这整个过程。</p>
+
+<p>源码可以在<a href="https://github.com/ytliu/aoa-with-ssl">这里</a>下载。</p>
+
+<p>里面有两个目录：<code>aoa-dev-ssl-server</code>和<code>aoa-acc-ssl-client</code>，分别代表上面描述的两个实体。这两个目录是两个不同的Android应用，编译完之后可以通过<code>adb install</code>安装在Android平台的手机或者平板上。</p>
+
+<h4>AOA协议的实现</h4>
+
+<p>首先由<code>aoa-acc-ssl-client</code>发起，代码在<code>src/cn/sjtu/ipads/uas/UasTransport.java</code>文件中：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">usb_acc_string_send</span><span class="o">(</span><span class="n">UsbDeviceConnection</span> <span class="n">connection</span><span class="o">,</span> <span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">String</span> <span class="n">string</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">byte</span><span class="o">[]</span> <span class="n">buffer</span> <span class="o">=</span> <span class="o">(</span><span class="n">string</span> <span class="o">+</span> <span class="s">&quot;\0&quot;</span><span class="o">).</span><span class="na">getBytes</span><span class="o">();</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">len</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">controlTransfer</span><span class="o">(</span><span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_DIR_OUT</span> <span class="o">|</span> <span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_TYPE_VENDOR</span><span class="o">,</span>
+</span><span class='line'>    <span class="n">OAP_SEND_STRING</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">index</span><span class="o">,</span> <span class="n">buffer</span><span class="o">,</span> <span class="n">buffer</span><span class="o">.</span><span class="na">length</span><span class="o">,</span> <span class="mi">10000</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="kd">private</span> <span class="kt">void</span> <span class="n">usb_acc_strings_send</span><span class="o">()</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">usb_acc_string_send</span><span class="o">(</span><span class="n">m_usb_dev_conn</span><span class="o">,</span> <span class="n">OAP_STR_MANUFACTURE</span><span class="o">,</span> <span class="s">&quot;SJTU&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="n">usb_acc_string_send</span><span class="o">(</span><span class="n">m_usb_dev_conn</span><span class="o">,</span> <span class="n">OAP_STR_MODEL</span><span class="o">,</span> <span class="s">&quot;SJTU IPADS&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="kd">private</span> <span class="kt">void</span> <span class="n">acc_mode_switch</span><span class="o">()</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">acc_ver</span> <span class="o">=</span> <span class="n">usb_acc_version_get</span><span class="o">(</span><span class="n">m_usb_dev_conn</span><span class="o">);</span>
+</span><span class='line'><span class="n">usb_acc_strings_send</span><span class="o">();</span>
+</span><span class='line'><span class="n">m_usb_dev_conn</span><span class="o">.</span><span class="na">controlTransfer</span><span class="o">(</span><span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_DIR_OUT</span> <span class="o">|</span> <span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_TYPE_VENDOR</span><span class="o">,</span> <span class="n">OAP_START</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">10000</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="kd">private</span> <span class="kt">void</span> <span class="n">usb_connect</span><span class="o">(</span><span class="n">UsbDevice</span> <span class="n">device</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">if</span> <span class="o">(</span><span class="n">usb_open</span><span class="o">(</span><span class="n">device</span><span class="o">)</span> <span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">usb_disconnect</span><span class="o">();</span>
+</span><span class='line'>  <span class="k">return</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">dev_vend_id</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="na">getVendorId</span><span class="o">();</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">dev_prod_id</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="na">getProductId</span><span class="o">();</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">dev_vend_id</span> <span class="o">==</span> <span class="n">USB_VID_GOO</span> <span class="o">&amp;</span><span class="n">amp</span><span class="o">;&amp;</span><span class="n">amp</span><span class="o">;</span> <span class="o">(</span><span class="n">dev_prod_id</span> <span class="o">==</span> <span class="n">USB_PID_OAP_NUL</span> <span class="o">||</span> <span class="n">dev_prod_id</span> <span class="o">==</span> <span class="n">USB_PID_OAP_ADB</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">acc_mode_connect</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">...</span>
+</span><span class='line'>  <span class="k">return</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="n">acc_mode_switch</span><span class="o">();</span>
+</span><span class='line'><span class="n">usb_disconnect</span><span class="o">();</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这个可以参照我之前讲的AOA协议来对照，这里当调用<code>usb_acc_strings_send()</code>将两个字符串发送出去之后，在<code>Device</code>端就会有相应的应用被唤醒，因为在该应用中定义了如下内容（在<code>aoa-dev-ssl-server</code>目录的<code>res/xml/usb_accessory_filter</code>文件中）：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="ni">&amp;lt;</span>?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+</span><span class='line'><span class="nt">&lt;resources&gt;&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;pre&gt;&lt;code&gt;</span><span class="ni">&amp;lt;</span>usb-accessory manufacturer=&quot;SJTU&quot; model=&quot;SJTU IPADS&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'><span class="nt">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;&lt;/resources&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>而在<code>aoa-dev-ssl-server</code>目录的<code>AndroidManifest.xml</code>文件中定义如下：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="ni">&amp;lt;</span>?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+</span><span class='line'><span class="nt">&lt;manifest</span> <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span>
+</span><span class='line'>  <span class="na">package=</span><span class="s">&quot;cn.sjtu.ipads.ual&quot;</span><span class="nt">&gt;&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="nt">&lt;uses-feature</span> <span class="na">android:name=</span><span class="s">&quot;android.hardware.usb.accessory&quot;</span> <span class="na">android:required=</span><span class="s">&quot;true&quot;</span><span class="nt">/&gt;&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="nt">&lt;application&gt;&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;pre&gt;&lt;code&gt;</span><span class="ni">&amp;lt;</span>uses-library android:name=&quot;com.android.future.usb.accessory&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'>...
+</span><span class='line'><span class="ni">&amp;lt;</span>activity
+</span><span class='line'>  android:name=&quot;UalTraActivity&quot;<span class="ni">&amp;gt;</span>
+</span><span class='line'>  <span class="ni">&amp;lt;</span>intent-filter<span class="ni">&amp;gt;</span>
+</span><span class='line'>    <span class="ni">&amp;lt;</span>action android:name=&quot;android.hardware.usb.action.USB_ACCESSORY_ATTACHED&quot;/<span class="ni">&amp;gt;</span>
+</span><span class='line'>  <span class="ni">&amp;lt;</span>/intent-filter<span class="ni">&amp;gt;</span>
+</span><span class='line'>  <span class="ni">&amp;lt;</span>meta-data
+</span><span class='line'>    android:name=&quot;android.hardware.usb.action.USB_ACCESSORY_ATTACHED&quot;
+</span><span class='line'>    android:resource=&quot;@xml/usb_accessory_filter&quot;/<span class="ni">&amp;gt;</span>
+</span><span class='line'><span class="ni">&amp;lt;</span>/activity<span class="ni">&amp;gt;</span>
+</span><span class='line'>...
+</span><span class='line'><span class="nt">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="nt">&lt;/application&gt;</span>
+</span><span class='line'><span class="nt">&lt;/manifest&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>所以，<code>aoa-dev-ssl-server</code>这个应用会被唤醒，进入<code>UalTraActivity</code>的<code>onCreate()</code>函数。在该类中，会进行USB accessory的连接：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">Bundle</span> <span class="n">savedInstanceState</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">(</span><span class="n">savedInstanceState</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mDeviceHandler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Handler</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+</span><span class='line'><span class="n">mUSBManager</span> <span class="o">=</span> <span class="o">(</span><span class="n">UsbManager</span><span class="o">)</span> <span class="n">getSystemService</span><span class="o">(</span><span class="n">Context</span><span class="o">.</span><span class="na">USB_SERVICE</span><span class="o">);</span>
+</span><span class='line'><span class="n">connectToAccessory</span><span class="o">();</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="kd">public</span> <span class="kt">void</span> <span class="n">connectToAccessory</span><span class="o">()</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="c1">// bail out if we&#39;re already connected</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">mConnection</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span>
+</span><span class='line'>  <span class="k">return</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;connectToAccessory&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="c1">// assume only one accessory (currently safe assumption)</span>
+</span><span class='line'><span class="n">UsbAccessory</span><span class="o">[]</span> <span class="n">accessories</span> <span class="o">=</span> <span class="n">mUSBManager</span><span class="o">.</span><span class="na">getAccessoryList</span><span class="o">();</span>
+</span><span class='line'><span class="n">UsbAccessory</span> <span class="n">accessory</span> <span class="o">=</span> <span class="o">(</span><span class="n">accessories</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="kc">null</span>
+</span><span class='line'>    <span class="o">:</span> <span class="n">accessories</span><span class="o">[</span><span class="mi">0</span><span class="o">]);</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">accessory</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">mUSBManager</span><span class="o">.</span><span class="na">hasPermission</span><span class="o">(</span><span class="n">accessory</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">openAccessory</span><span class="o">(</span><span class="n">accessory</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;no permission for accessory&quot;</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;mAccessory is null&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="kd">private</span> <span class="kt">void</span> <span class="n">openAccessory</span><span class="o">(</span><span class="n">UsbAccessory</span> <span class="n">accessory</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;openAccessory&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="n">mConnection</span> <span class="o">=</span> <span class="k">new</span> <span class="n">UsbConnection</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="n">mUSBManager</span><span class="o">,</span> <span class="n">accessory</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="o">(</span><span class="n">mConnection</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;mConnection is null&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="n">finish</span><span class="o">();</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">performPostConnectionTasks</span><span class="o">();</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>在<code>UsbConnection</code>这个类中会通过<code>UsbManager</code>的<code>openAccessory</code>接口得到一个文件描述符<code>mFileDescriptor</code>，之后的数据传输就是通过对这个<code>mFileDescriptor</code>的读写来进行的：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">public</span> <span class="nf">UsbConnection</span><span class="o">(</span><span class="n">Activity</span> <span class="n">activity</span><span class="o">,</span> <span class="n">UsbManager</span> <span class="n">usbManager</span><span class="o">,&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="n">UsbAccessory</span> <span class="n">accessory</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'><span class="n">mActivity</span> <span class="o">=</span> <span class="n">activity</span><span class="o">;</span>
+</span><span class='line'><span class="n">mFileDescriptor</span> <span class="o">=</span> <span class="n">usbManager</span><span class="o">.</span><span class="na">openAccessory</span><span class="o">(</span><span class="n">accessory</span><span class="o">);</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">mFileDescriptor</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="s">&quot;UsbConnection&quot;</span><span class="o">,</span> <span class="s">&quot;mFileDescriptor&quot;</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">mAccessory</span> <span class="o">=</span> <span class="n">accessory</span><span class="o">;</span>
+</span><span class='line'>  <span class="n">FileDescriptor</span> <span class="n">fd</span> <span class="o">=</span> <span class="n">mFileDescriptor</span><span class="o">.</span><span class="na">getFileDescriptor</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">mInputStream</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">mOutputStream</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="n">IntentFilter</span> <span class="n">filter</span> <span class="o">=</span> <span class="k">new</span> <span class="n">IntentFilter</span><span class="o">(</span><span class="n">ACTION_USB_PERMISSION</span><span class="o">);</span>
+</span><span class='line'><span class="n">filter</span><span class="o">.</span><span class="na">addAction</span><span class="o">(</span><span class="n">UsbManager</span><span class="o">.</span><span class="na">ACTION_USB_ACCESSORY_DETACHED</span><span class="o">);</span>
+</span><span class='line'><span class="n">mActivity</span><span class="o">.</span><span class="na">registerReceiver</span><span class="o">(</span><span class="n">mUsbReceiver</span><span class="o">,</span> <span class="n">filter</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>到目前为止，<code>Accessory</code>和<code>Device</code>的连接已经建立，之后的数据传输就可以进行了。</p>
+
+<p>在<code>Accessory</code>这端的数据读写是在jni层中，可以参阅<code>aoa-acc-ssl-client/jni/hu_usb.c</code>这个文件。</p>
+
+<p>发数据的流程是这样的：</p>
+
+<pre><code>hu_aap_usb_send() -&gt; hu_usb_send() -&gt; iusb_bulk_transfer(out)
+</code></pre>
+
+<p>接受数据的流程是这样的：</p>
+
+<pre><code>hu_aap_usb_recv() -&gt; hu_usb_recv() -&gt; iusb_bulk_transfer(in)
+</code></pre>
+
+<p>具体代码这里不贴了，有兴趣自己去看。</p>
+
+<p>在<code>Device</code>这端的数据读写是在java层，可以参阅<code>aoa-dev-ssl-server/src/cn/sjtu/ipads/ual/UalTraActivity.java</code>这个文件。</p>
+
+<p>发数据就是调用了之前获得的<code>UsbConnection</code>类的这个接口：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mConnection</span><span class="o">.</span><span class="na">getOutputStream</span><span class="o">().</span><span class="na">write</span><span class="o">(</span><span class="n">buffer</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">bufferLength</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>收数据类似：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mConnection</span><span class="o">.</span><span class="na">getInputStream</span><span class="o">().</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">,</span> <span class="n">bufferUsed</span><span class="o">,</span> <span class="n">buffer</span><span class="o">.</span><span class="na">length</span> <span class="o">-</span> <span class="n">bufferUsed</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>AOA协议基本就实现完成了。</p>
+
+<h4>OpenSSL握手协议</h4>
+
+<p>握手协议由<code>aoa-acc-ssl-client</code>发起，在文件<code>aoa-acc-ssl-client/jni/hu_aap.c</code>中：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">hu_aap_start</span> <span class="p">(</span><span class="n">byte</span> <span class="n">ep_in_addr</span><span class="p">,</span> <span class="n">byte</span> <span class="n">ep_out_addr</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">hu_ssl_handshake</span> <span class="p">();</span> <span class="c1">// Do SSL Client Handshake with AA SSL server</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>之后就会经历上面提到的整个握手过程。</p>
+
+<p>这里需要注意的是，这个OpenSSL握手和加解密过程的实现，和我们平时通过socket传输数据时所涉及到的过程有点不一样。</p>
+
+<p>我们在网络编程的时候，一般会调用下面两个API：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">SSL</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">ssl</span> <span class="o">=</span> <span class="n">SSL_new</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>  <span class="o">/&lt;/</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">get</span> <span class="n">new</span> <span class="n">SSL</span> <span class="n">state</span> <span class="n">with</span> <span class="n">context</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="n">SSL_set_fd</span><span class="p">(</span><span class="n">ssl</span><span class="p">,</span> <span class="n">sockfd</span><span class="p">);</span>  <span class="o">/&lt;/</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">set</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">SSL</span> <span class="n">state</span> <span class="err">*/</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>之后的网络数据读写直接通过<code>SSL_write(ssl)</code>和<code>SSL_read(ssl)</code>来做就行了。因为SSL和这个负责读写数据的文件描述符<code>sockfd</code>已经绑定在一起了，在网络库的内部帮我们实现了网络buffer到SSL内部buffer的映射。</p>
+
+<p>然而，当我们需要通过USB进行传输数据的时候就没有那么简单了。我们前面说过，我们同样可以通过对某个文件描述的读写操作来传送和接受USB数据，但是USB的库并没有帮我们实现其buffer到SSL内部buffer的映射。因此这步操作需要我们自己来实现。这里就用到了<code>OpenSSL</code>+<code>Memory BIO</code>的机制。</p>
+
+<p>先提供一个参考资料：<a href="http://www.roxlu.com/2014/042/using-openssl-with-memory-bios">Using OpenSSL with Memory BIO</a></p>
+
+<p>简单来说步骤是这样的：</p>
+
+<ul>
+<li>首先，我们需要配置OpenSSL的数据结构：</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">ual_ssl_ctx</span> <span class="o">=</span> <span class="n">SSL_CTX_new</span><span class="p">(</span><span class="n">ual_ssl_method</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">ret</span> <span class="o">=</span> <span class="n">SSL_CTX_use_certificate</span><span class="p">(</span><span class="n">ual_ssl_ctx</span><span class="p">,</span> <span class="n">x509_cert</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">SSL_CTX_use_PrivateKey</span><span class="p">(</span><span class="n">ual_ssl_ctx</span><span class="p">,</span> <span class="n">priv_key</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">ual_ssl_ssl</span> <span class="o">=</span> <span class="n">SSL_new</span><span class="p">(</span><span class="n">ual_ssl_ctx</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">ual_ssl_rm_bio</span> <span class="o">=</span> <span class="n">BIO_new</span><span class="p">(</span><span class="n">BIO_s_mem</span><span class="p">());</span>
+</span><span class='line'>  <span class="n">ual_ssl_wm_bio</span> <span class="o">=</span> <span class="n">BIO_new</span><span class="p">(</span><span class="n">BIO_s_mem</span><span class="p">());</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">SSL_set_bio</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="n">ual_ssl_wm_bio</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>我中间跳过了很多步，不过那些都不重要（可以去看源码），这里最重要的就是这句话：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">SSL_set_bio</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="n">ual_ssl_wm_bio</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里将<code>ual_ssl_ssl</code>这个数据结构和两段内存联系在一起，这两段内存分别是<code>read BIO</code>和<code>write BIO</code>。</p>
+
+<p>这有什么用呢？其实要解释清楚这个就需要先对OpenSSL的机制有一个初步的了解。</p>
+
+<p>在SSL的所有操作中（比如证书验证，加密，解密等），说到底，就是从某段内存中读取数据，对其进行相应的操作，然后将结果写在另外一段内存中。因此这里的两段内存就分别对应了<code>read BIO</code>和<code>write BIO</code>。</p>
+
+<p>似乎还是有点晕，那么我们来举个例子：</p>
+
+<p>如果我们要进行数据加密，分解步骤是这样的：</p>
+
+<ul>
+<li>输入一段长度为<code>len</code>的明文数据<code>plain_buf</code>；</li>
+<li>调用<code>SSL_write(ual_ssl_ssl, plain_buf, len)</code>，这时OpenSSL内部的逻辑就会对这段数据进行加密，并且将结果保存在<code>write BIO</code>中；</li>
+<li>调用<code>BIO_read(ual_ssl_wm_bio, cipher_buf, DEFBUF)</code>，就可以将这段加密好的数据读出来保存在<code>cipher_buf</code>中；</li>
+<li>最后，我们通过写USB对应的文件描述符就可以将这段加密的数据发送出去了。</li>
+</ul>
+
+
+<p>因此，整个加密的逻辑就可以是这样的：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">ssl_encrypt_data</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">char</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">plain_buf</span><span class="p">,</span> <span class="kt">char</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">cipher_buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">bytes_written</span> <span class="o">=</span> <span class="n">SSL_write</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">bytes_read</span> <span class="o">=</span> <span class="n">BIO_read</span><span class="p">(</span><span class="n">ual_ssl_wm_bio</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">,</span> <span class="n">DEFBUF</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="p">(</span><span class="n">bytes_read</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">length</span> <span class="o">=</span> <span class="n">ssl_encrypt_data</span><span class="p">(</span><span class="n">len</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">);</span>
+</span><span class='line'><span class="n">send_to_usb_fd</span><span class="p">(</span><span class="n">cipher_buf</span><span class="p">,</span> <span class="n">length</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>类似的，解密的分解步骤是这样的：</p>
+
+<ul>
+<li>通过读USB对应的文件描述符读取一段长度为<code>len</code>的密文数据<code>cipher_buf</code>；</li>
+<li>调用<code>BIO_write(ual_ssl_ssl, cipher_buf, len)</code>，将这段密文写入和SSL相关联的<code>read BIO</code>的内存中；</li>
+<li>调用<code>SSL_read(ual_ssl_ssl, plain_buf, DEFBUF)</code>，将<code>read BIO</code>的数据进行解密，并将结果保存在<code>plain_buf</code>中；</li>
+<li>最后，我们就可以对这段明文数据进行处理了。</li>
+</ul>
+
+
+<p>其相应的逻辑就变成这样了：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">ssl_decrypt_data</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">char</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">cipher_buf</span><span class="p">,</span> <span class="kt">char</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">plain_buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">bytes_written</span> <span class="o">=</span> <span class="n">BIO_write</span><span class="p">(</span><span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">bytes_read</span> <span class="o">=</span> <span class="n">SSL_read</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">,</span> <span class="n">DEFBUF</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="p">(</span><span class="n">bytes_read</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">len</span> <span class="o">=</span> <span class="n">recv_from_usb_fd</span><span class="p">(</span><span class="n">cipher_buf</span><span class="p">);</span>
+</span><span class='line'><span class="n">ssl_decrypt_data</span><span class="p">(</span><span class="n">len</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">);</span>
+</span><span class='line'><span class="n">process</span><span class="p">(</span><span class="n">plain_buf</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>和加解密过程相比，握手的过程会比较复杂一些，但是相关原理是一样的。</p>
+
+<p>不管在<code>Server</code>端还是在<code>Client</code>端，都需要调用<code>SSL_do_handshake(ual_ssl_ssl)</code>这个API，OpenSSL内部的逻辑就会根据当前的状态对<code>ual_ssl_rm_bio</code>的数据进行处理，并将结果写到<code>ual_ssl_wm_bio</code>中。在调用<code>SSL_do_handshake</code>这个API前，需要将相关的数据写到<code>read BIO</code>中（比如在<code>Server</code>端，第一次调用<code>SSL_do_handshake</code>前需要将<code>Client Hello</code>的数据通过<code>BIO_write</code>写进<code>ual_ssl_rm_bio</code>中）。所以说，一般情况下需要手动调用大于一次的<code>SSL_do_handshake</code>接口。</p>
+
+<p>整个逻辑大概是这样的：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">ssl_hs_data_enqueue</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">BIO_write</span><span class="p">(</span><span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">buf</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">len</span> <span class="o">-</span> <span class="mi">2</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">ssl_hs_data_dequeue</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">BIO_read</span><span class="p">(</span><span class="n">ual_ssl_wm_bio</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">DEFBUF</span> <span class="o">-</span> <span class="mi">6</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kt">void</span> <span class="n">ssl_handshake</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">SSL_do_handshake</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">while</span> <span class="p">(</span><span class="n">handshake</span> <span class="n">not</span> <span class="n">finished</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">len</span> <span class="o">=</span> <span class="n">recv_from_usb_fd</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ssl_hs_data_enqueue</span><span class="p">(</span><span class="n">len</span><span class="p">,</span> <span class="n">data</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ssl_handshake</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">length</span> <span class="o">=</span> <span class="n">ssl_hs_data_dequeue</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">send_to_usb_fd</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">length</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>讲到这里，OpenSSL的整个流程也基本介绍完了。最后需要说明的一点，在<code>aoa-acc-ssl-client</code>中，数据的传输和加密都是在JNI层完成的，所以代码比较简单。但是在<code>aoa-dev-ssl-server</code>中，数据的传输是在Java层完成的，而加密是在JNI层实现的，所以中间有一个JNI调用的过程，会显得比较复杂。不过整体的原理是一样的。</p>
+
+<p>关于JNI如何调用，网上有很多教程，也可以直接参照源码，这里就不详述了。</p>
+
+<p>最后，关于整个项目的编译和运行，可以参照github中的<code>README.md</code>。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Hooking and Hijacking Android Native Code]]></title>
+    <link href="http://ytliu.github.io/blog/2015/11/15/hooking-and-hijacking-android-native-code/"/>
+    <updated>2015-11-15T15:04:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/11/15/hooking-and-hijacking-android-native-code</id>
+    <content type="html"><![CDATA[<p>首先声明这是一篇中文博客。</p>
+
+<p>先强烈推荐下<a href="http://appsrv.cse.cuhk.edu.hk/~mzheng/">Zheng Min</a>大神的<a href="http://drops.wooyun.org/author/%E8%92%B8%E7%B1%B3">安卓动态调试七种武器系列文章</a>，里面已经有两篇介绍我这次所要介绍的hooking的内容了，而且应该会比我这篇的内容更丰富。然而，任性的我还是要写这篇博客，原因除了自己太久没写博客了有点不好意思之外，更重要的是希望在写的过程中来理解这个技术。</p>
+
+<p>当然了，这篇博文主要还是代码分析，采用的是<a href="http://www.mulliner.org/collin/">Collin Mulliner</a>的这个项目<a href="https://github.com/crmulliner/adbi">adbi</a>。当然他自己也有一个专门的<a href="http://www.mulliner.org/android/feed/binaryinstrumentationandroid_mulliner_summercon12.pdf">slide</a>来介绍里面用到的技术。</p>
+
+<!-- more -->
+
+
+<p>好了，开始进入正文。</p>
+
+<p>首先clone这个项目：</p>
+
+<pre><code>$ git clone https://github.com/crmulliner/adbi.git
+</code></pre>
+
+<p>在具体分析代码之前先简单介绍下这个项目的目的、用法、以及流程吧：</p>
+
+<h4>目的</h4>
+
+<p>对android中的某个进程所使用的某个native库<code>lib</code>中的某个函数<code>func</code>进行劫持，使得当这个进程调用到这个函数的时候，会首先进入我们的hook函数，在hook函数中做一些其它的事情，比如打印一些log之类的，然后再调用真正的函数<code>func</code>。</p>
+
+<h4>用法</h4>
+
+<ul>
+<li><p>对项目进行编译，会生成一个可执行文件<code>hijack</code>和一个链接库文件<code>libexample.so</code>，将其放到<code>/data/local/tmp</code>目录下：</p>
+
+<pre><code>$ adb push hijack/libs/armeabi/hijack /data/local/tmp/
+$ adb push instruments/example/libs/armeabi/libexample.so /data/local/tmp/
+</code></pre></li>
+<li><p>然后进入android的adb shell里面，运行：</p>
+
+<pre><code>$ adb shell
+$ su
+# cd /data/local/tmp
+# ./hijack -d -p PID -l /data/local/tmp/libexample.so
+</code></pre></li>
+</ul>
+
+
+<p>它的作用是劫持pid为<code>PID</code>的进程的<code>epoll_wait()</code>库函数调用，每当该函数被调用，就会进到<code>libexample.so</code>中的<code>my_epoll_wait()</code> hook函数，打印一行内容，并调用真正的<code>epoll_wait()</code>函数。</p>
+
+<h4>流程</h4>
+
+<p>上面这整个hijacking和hooking的流程是这样的：</p>
+
+<ul>
+<li>在hijack的过程中，会将一段<code>hijack code</code>放在目标进程的栈上，调用<code>mprotect</code>将栈设置为可执行，并且将<code>mprotect</code>调用的返回值设置成这段<code>hijack code</code>的地址，因此，在mprotect返回时，就开始执行这段<code>hijack code</code>；</li>
+<li>这段<code>hijack code</code>所做的事情就是调用<code>dlopen</code>，加载<code>libexample.so</code>链接库；</li>
+<li>在<code>libexample.so</code>库的初始化函数中，对目标进程所调用的<code>libc</code>库中的<code>epoll_wait</code>函数进行hook；</li>
+<li>之后，只要目标进程一调用<code>epoll_wait</code>函数，就会首先进入hook函数。</li>
+</ul>
+
+
+<hr />
+
+<p>好了，这个流程看上去很简单，但是里面用到了很多Linux相关的知识，是一个很不错的介绍如何对进程进行hook和hijack的实例，接下来的篇幅就主要来介绍这整个流程是如何通过几百行C代码实现的。</p>
+
+<h4>代码结构</h4>
+
+<p>这是adbi项目的代码结构：</p>
+
+<pre><code>|-hijack
+  |-jni
+    |-Android.mk
+  |-hijack.c
+|-instruments
+  |-base
+    |-jni
+      |-Android.mk
+      |-Application.mk
+    |-base.c
+    |-base.h
+    |-hook.c
+    |-hook.h
+    |-util.c
+    |-util.h
+  |-example
+    |-jni
+      |-Android.mk
+    |-epoll.c
+    |-epoll_arm.c
+|-README.md
+|-build.sh
+|-clean.sh
+</code></pre>
+
+<p>可以看到，里面主要有两个目录：<code>hijack</code>和<code>instruments</code>。其中，<code>hijack</code>主要作用就是之前流程里面说的第一步，即：</p>
+
+<ul>
+<li>将一段<code>hijack code</code>放在目标进程的栈上，调用<code>mprotect</code>将栈设置为可执行，并且将<code>mprotect</code>调用的返回值设置成这段<code>hijack code</code>的地址，因此，在mprotect返回时，就开始执行这段<code>hijack code</code>。</li>
+</ul>
+
+
+<p>而<code>instruments</code>目录中包含了两个子目录，一个是<code>base</code>，主要是一些可以被调用的库函数，它最终会被编译成<code>libbase.a</code>静态链接库；另外一个是<code>example</code>，它用了一个非常简单的例子来展示如何利用<code>libbase.a</code>做hook，即之前流程里面的第三步：</p>
+
+<ul>
+<li>在<code>libexample.so</code>库的初始化函数中，对目标进程所调用的<code>libc</code>库中的<code>epoll_wait</code>函数进行hook。</li>
+</ul>
+
+
+<h4>hijack</h4>
+
+<p>hijack目录中只有一个代码文件：<code>hijack.c</code>，以及一个和编译相关的文件：<code>jni/Android.mk</code>。</p>
+
+<p>我们先来看这个<code>Android.mk</code>：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'> <span class="n">LOCAL_PATH</span> <span class="o">:=</span> <span class="err">$</span><span class="p">(</span><span class="n">call</span> <span class="n">my</span><span class="o">-</span><span class="n">dir</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span> <span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">CLEAR_VARS</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span> <span class="n">LOCAL_MODULE</span>    <span class="o">:=</span> <span class="n">hijack</span>
+</span><span class='line'> <span class="n">LOCAL_SRC_FILES</span> <span class="o">:=</span> <span class="p">..</span><span class="o">/</span><span class="n">hijack</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'> <span class="n">LOCAL_ARM_MODE</span> <span class="o">:=</span> <span class="n">arm</span>
+</span><span class='line'> <span class="n">LOCAL_CFLAGS</span> <span class="o">:=</span> <span class="o">-</span><span class="n">g</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span> <span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_EXECUTABLE</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其实这就是一个很典型的Android应用的jni的编译文件，表示它要用<code>../hijack.c</code>这个源文件编译一个可执行文件（<code>$(BUILD_EXECUTABLE)</code>）<code>hijack</code>。</p>
+
+<p>关于<code>hijack.c</code>这个文件，我们先来看一下<code>main</code>函数：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">while</span> <span class="p">((</span><span class="n">opt</span> <span class="o">=</span> <span class="n">getopt</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="s">&quot;p:l:dzms:Z:D:&quot;</span><span class="p">))</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">...</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">nomprotect</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">find_name</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="s">&quot;mprotect&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">mprotectaddr</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="kt">void</span> <span class="o">*</span><span class="n">ldl</span> <span class="o">=</span> <span class="n">dlopen</span><span class="p">(</span><span class="s">&quot;libdl.so&quot;</span><span class="p">,</span> <span class="n">RTLD_LAZY</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">ldl</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">dlopenaddr</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">dlsym</span><span class="p">(</span><span class="n">ldl</span><span class="p">,</span> <span class="s">&quot;dlopen&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">dlclose</span><span class="p">(</span><span class="n">ldl</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">int</span> <span class="n">lkaddr</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">int</span> <span class="n">lkaddr2</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">find_linker</span><span class="p">(</span><span class="n">getpid</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">lkaddr</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">find_linker</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">lkaddr2</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">dlopenaddr</span> <span class="o">=</span> <span class="n">lkaddr2</span> <span class="o">+</span> <span class="p">(</span><span class="n">dlopenaddr</span> <span class="o">-</span> <span class="n">lkaddr</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// Attach</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&gt;</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_ATTACH</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;cannot attach to %d, error!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">);</span>
+</span><span class='line'><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">appname</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">zygote</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">sprintf</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="s">&quot;/proc/%d/mem&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">fd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_GETREGS</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">regs</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">sc</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r0</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r1</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r2</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r3</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_lr</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_pc</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">17</span><span class="p">]</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span> <span class="o">=</span> <span class="n">dlopenaddr</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// push library name to stack</span>
+</span><span class='line'>  <span class="n">libaddr</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">-</span> <span class="n">n</span><span class="o">*</span><span class="mi">4</span> <span class="o">-</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">sc</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span> <span class="o">=</span> <span class="n">libaddr</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">stack_start</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">stack_start</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">int</span><span class="p">)</span> <span class="n">strtol</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+</span><span class='line'><span class="n">stack_start</span> <span class="o">=</span> <span class="n">stack_start</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">12</span><span class="p">;</span>
+</span><span class='line'><span class="n">stack_end</span> <span class="o">=</span> <span class="n">stack_start</span> <span class="o">+</span> <span class="n">strtol</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// write library name to stack</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&gt;</span> <span class="n">write_mem</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">arg</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">libaddr</span><span class="p">))</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;cannot write library name (%s) to stack, error!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="p">);</span>
+</span><span class='line'><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// write code to stack</span>
+</span><span class='line'>  <span class="n">codeaddr</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">-</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&gt;</span> <span class="n">write_mem</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">sc</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span><span class="o">/</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">long</span><span class="p">),</span> <span class="n">codeaddr</span><span class="p">))</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;cannot write code, error!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// calc stack pointer</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">-</span> <span class="n">n</span><span class="o">*</span><span class="mi">4</span> <span class="o">-</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// call mprotect() to make stack executable</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r0</span> <span class="o">=</span> <span class="n">stack_start</span><span class="p">;</span> <span class="c1">// want to make stack executable</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r1</span> <span class="o">=</span> <span class="n">stack_end</span> <span class="o">-</span> <span class="n">stack_start</span><span class="p">;</span> <span class="c1">// stack size</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r2</span> <span class="o">=</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">;</span> <span class="c1">// protections&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// normal mode, first call mprotect</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">nomprotect</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">regs</span><span class="p">.</span><span class="n">ARM_lr</span> <span class="o">=</span> <span class="n">codeaddr</span><span class="p">;</span> <span class="c1">// points to loading and fixing code</span>
+</span><span class='line'><span class="n">regs</span><span class="p">.</span><span class="n">ARM_pc</span> <span class="o">=</span> <span class="n">mprotectaddr</span><span class="p">;</span> <span class="c1">// execute mprotect()</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="c1">// no need to execute mprotect on old Android versions</span>
+</span><span class='line'>  <span class="k">else</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">regs</span><span class="p">.</span><span class="n">ARM_pc</span> <span class="o">=</span> <span class="n">codeaddr</span><span class="p">;</span> <span class="c1">// just execute the &#39;shellcode&#39;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// detach and continue</span>
+</span><span class='line'>  <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_SETREGS</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">regs</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_DETACH</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">SIGCONT</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里主要有几个重要的步骤：</p>
+
+<ul>
+<li>parse传进来的参数，这个这里就不解释了；</li>
+<li>定位目标进程中<code>mprotect</code>函数的内存地址；</li>
+<li>定位目标进程中<code>dlopen</code>函数的内存地址；</li>
+<li>利用<code>ptrace</code>调用attach目标进程；</li>
+<li>构建hijack所需要的context，这里是一个数据结构<code>sc</code>；</li>
+<li>将<code>sc</code>写到栈上；</li>
+<li>利用之前得到的<code>mprotect</code>将栈设置成可执行，并将<code>mprotect</code>的返回值设置成<code>sc</code>数据结构中的code首地址；</li>
+<li>利用<code>ptrace(PTRACE_SETREGS)</code>设置目标进程的寄存器，使得上面的所有修改生效。</li>
+</ul>
+
+
+<p>这个时候目标进程就开始执行<code>mprotect</code>和<code>sc</code>中的code代码了。</p>
+
+<p>接下来我们来逐一介绍各个步骤：</p>
+
+<h5>定位目标进程中<code>mprotect</code>函数的内存地址；</h5>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">find_name</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="s">&quot;mprotect&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">mprotectaddr</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>我们来看一下<code>find_name</code>：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">int</span>
+</span><span class='line'><span class="nf">find_name</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">char</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">name</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">addr</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">load_memmap</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">mm</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">nmm</span><span class="p">)</span><span class="err">；</span>
+</span><span class='line'>  <span class="n">find_libc</span><span class="p">(</span><span class="n">libc</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">libc</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">libcaddr</span><span class="p">,</span> <span class="n">mm</span><span class="p">,</span> <span class="n">nmm</span><span class="p">)</span><span class="err">；</span>
+</span><span class='line'>  <span class="n">load_symtab</span><span class="p">(</span><span class="n">libc</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">lookup_func_sym</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">addr</span><span class="p">)</span><span class="err">；</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>里面主要分为四个步骤：</p>
+
+<ul>
+<li><code>load_memmap</code>：主要是通过读取特定<code>/proc/PID/maps</code>文件，获得该进程打开的所有动态链接库的地址和其它相关内存地址（如栈的地址），并将所有这些信息存储在<code>mm</code>这个数据结构中；</li>
+<li><code>find_libc</code>：在mm中查找<code>libc</code>，并将其首地址填到<code>libcaddr</code>变量中；</li>
+<li><code>load_symtab</code>：打开libc对应的库文件，根据elf格式将里面的symbol table解析出来，并且填入数据结构<code>symtab_t</code>中，并返回；</li>
+<li><code>lookup_func_sym</code>：在这一堆的symbol table里面找到对应的函数名，并且写入变量<code>addr</code>中。</li>
+</ul>
+
+
+<p>通过以上四个步骤，即可得到进程中<code>mprotect</code>的内存地址。</p>
+
+<h5>定位目标进程中<code>dlopen</code>函数的内存地址；</h5>
+
+<p>获取<code>dlopen</code>的方法和之前获取<code>mprotect</code>的方法不太一样，主要原因是在于<code>dlopen</code>所在的库<code>libdl.so</code>在程序运行时是不会显示在该进程对应的<code>/proc/PID/maps</code>中的，因此需要先在本进程中先用<code>dlopen</code>开启<code>libdl.so</code>，然后通过相对地址的计算方法来获得目标进程中dlopen的内存地址，具体步骤如下：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="kt">void</span> <span class="o">*</span><span class="n">ldl</span> <span class="o">=</span> <span class="n">dlopen</span><span class="p">(</span><span class="s">&quot;libdl.so&quot;</span><span class="p">,</span> <span class="n">RTLD_LAZY</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">ldl</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">dlopenaddr</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">dlsym</span><span class="p">(</span><span class="n">ldl</span><span class="p">,</span> <span class="s">&quot;dlopen&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">dlclose</span><span class="p">(</span><span class="n">ldl</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">int</span> <span class="n">lkaddr</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">int</span> <span class="n">lkaddr2</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">find_linker</span><span class="p">(</span><span class="n">getpid</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">lkaddr</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">find_linker</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">lkaddr2</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">dlopenaddr</span> <span class="o">=</span> <span class="n">lkaddr2</span> <span class="o">+</span> <span class="p">(</span><span class="n">dlopenaddr</span> <span class="o">-</span> <span class="n">lkaddr</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>首先在本进程调用<code>dlopen</code>打开<code>libdl.so</code>（dlopen的用法可参照<a href="http://linux.die.net/man/3/dlopen">这里</a>)；</li>
+<li>利用<code>dlsym</code>获得<code>libdl.so</code>中<code>dlopen</code>函数的内存地址；</li>
+<li>分别获得本进程和目标进程中<code>linker</code>的地址；</li>
+<li>通过<code>dlopen</code>和<code>linker</code>的相对偏移一样的原理来计算目标进程中<code>dlopen</code>的真正内存地址。</li>
+</ul>
+
+
+<p>获得linder的内存地址的方法和获得<code>mprotect</code>函数内存地址的方法类似，这里就不阐述了，主要代码在<code>find_linker_mem</code>和<code>find_linker</code>这两个函数中。</p>
+
+<h5>利用<code>ptrace</code>调用attach目标进程；</h5>
+
+<p>这个步骤就两句话：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'> <span class="c1">// Attach</span>
+</span><span class='line'>  <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_ATTACH</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="err">；</span>
+</span><span class='line'>  <span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>至于什么是<code>ptrace</code>和<code>waitpid</code>，以及如何使用它们，请参考我之前的一篇博客：<a href="http://ytliu.info/blog/2013/04/30/xi-tong-diao-yong-xue-xi-bi-ji-ptrace/">系统调用学习笔记 - Ptrace和wait</a>，这里就不详细说了。</p>
+
+<h5>构建hijack所需要的context，这里是一个数据结构<code>sc</code>；</h5>
+
+<p>其实<code>sc</code>就是一个长度为20的<code>unsigned int</code>数组：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">sc</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class='line'><span class="mh">0xe59f0040</span><span class="p">,</span> <span class="c1">//        ldr     r0, [pc, #64]   ; 48 &amp;lt;.text+0x48&gt;</span>
+</span><span class='line'><span class="mh">0xe3a01000</span><span class="p">,</span> <span class="c1">//        mov     r1, #0  ; 0x0</span>
+</span><span class='line'><span class="mh">0xe1a0e00f</span><span class="p">,</span> <span class="c1">//        mov     lr, pc</span>
+</span><span class='line'><span class="mh">0xe59ff038</span><span class="p">,</span> <span class="c1">//        ldr     pc, [pc, #56]   ; 4c &amp;lt;.text+0x4c&gt;</span>
+</span><span class='line'><span class="mh">0xe59fd02c</span><span class="p">,</span> <span class="c1">//        ldr     sp, [pc, #44]   ; 44 &amp;lt;.text+0x44&gt;</span>
+</span><span class='line'><span class="mh">0xe59f0010</span><span class="p">,</span> <span class="c1">//        ldr     r0, [pc, #16]   ; 30 &amp;lt;.text+0x30&gt;</span>
+</span><span class='line'><span class="mh">0xe59f1010</span><span class="p">,</span> <span class="c1">//        ldr     r1, [pc, #16]   ; 34 &amp;lt;.text+0x34&gt;</span>
+</span><span class='line'><span class="mh">0xe59f2010</span><span class="p">,</span> <span class="c1">//        ldr     r2, [pc, #16]   ; 38 &amp;lt;.text+0x38&gt;</span>
+</span><span class='line'><span class="mh">0xe59f3010</span><span class="p">,</span> <span class="c1">//        ldr     r3, [pc, #16]   ; 3c &amp;lt;.text+0x3c&gt;</span>
+</span><span class='line'><span class="mh">0xe59fe010</span><span class="p">,</span> <span class="c1">//        ldr     lr, [pc, #16]   ; 40 &amp;lt;.text+0x40&gt;</span>
+</span><span class='line'><span class="mh">0xe59ff010</span><span class="p">,</span> <span class="c1">//        ldr     pc, [pc, #16]   ; 44 &amp;lt;.text+0x44&gt;</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     r0</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     r1</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     r2</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     r3</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     lr</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     pc</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     sp</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     addr of libname</span>
+</span><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     dlopenaddr</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其中，<code>sc[0]</code>~<code>sc[10]</code>是一段汇编指令，而<code>sc[11]</code>~<code>sc[19]</code>则是保存了<code>r0~r3</code>、<code>lr</code>、<code>pc</code>和<code>sp</code>这六个寄存器的值，以及需要加载的库libname的地址，和<code>dlopen</code>函数的内存地址。</p>
+
+<p>其中，这六个寄存器的值是通过：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_GETREGS</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">regs</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>从目标进程中获得的，而<code>dlopenaddr</code>就是之前获得的<code>dlopen</code>的地址。<code>libaddr</code>的获得是通过这段代码获得的：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">libaddr</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">-</span> <span class="n">n</span><span class="o">*</span><span class="mi">4</span> <span class="o">-</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span>
+</span><span class='line'><span class="n">sc</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span> <span class="o">=</span> <span class="n">libaddr</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其中<code>n*4</code>是需要加载的库（即<code>/data/local/tmp/libexample.so</code>）的文件名长度，所以，<code>/data/local/tmp/libexample.so</code>这个字符串就被放在了<code>sc</code>数据结构的下方。</p>
+
+<p>有了以上的值，我们来具体看看这段汇编指令到底在做什么：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="mh">0xe59f0040</span><span class="p">,</span> <span class="c1">//        ldr     r0, [pc, #64]   ; 48 &amp;lt;.text+0x48&gt;</span>
+</span><span class='line'><span class="mh">0xe3a01000</span><span class="p">,</span> <span class="c1">//        mov     r1, #0  ; 0x0</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里有一个trick需要先解释一下，即如何通过<code>pc</code>来进行寻址。<code>pc</code>即表示当前程序运行指令的内存地址，<code>[pc, #n]</code>则表示<code>pc+n</code>指针所指向的那个地址。但是这里有一点需要注意的，在我们执行这条语句的时候：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ldr</span>     <span class="n">r0</span><span class="p">,</span> <span class="p">[</span><span class="n">pc</span><span class="p">,</span> <span class="err">#</span><span class="mi">64</span><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><code>pc</code>已经不再是当前指令的内存地址了，而是自动被加了8，即这里的<code>pc</code>其实是<code>pc+8</code>那条指令的内存地址，所以<code>[pc, #64]</code>其实指向的是和当前指令内存地址偏移72 bytes的地址，如果你算一下会发现是</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="mh">0xe1a00000</span><span class="p">,</span> <span class="c1">//        nop                     addr of libname</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>所以，<code>r0</code>的值就是指向<code>/data/local/tmp/libexample.so</code>这个字符串的地址。而<code>r1</code>的值是1，即<code>RTLD_LAZY</code>的值。</p>
+
+<p>而接下来的这两条指令：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="mh">0xe1a0e00f</span><span class="p">,</span> <span class="c1">//        mov     lr, pc</span>
+</span><span class='line'><span class="mh">0xe59ff038</span><span class="p">,</span> <span class="c1">//        ldr     pc, [pc, #56]   ; 4c &amp;lt;.text+0x4c&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>首先将<code>pc</code>值（<code>pc+8</code>的地址）付给了<code>lr</code>，即调用完函数之后的返回值，然后同样利用<code>pc</code>的寻址方式将<code>dlopenaddr</code>的值赋给了<code>pc</code>，因此，接下来就会调用<code>dlopen</code>函数，第一个参数是<code>r0</code>的值，即指向<code>/data/local/tmp/libexample.so</code>字符串的指针，第二个参数是<code>r1</code>的值，即<code>RTLD_LAZY</code>。</p>
+
+<p>当<code>dlopen</code>返回之后，程序的执行流会跳到<code>lr</code>指向的内存地址，即接下来的这段代码：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="mh">0xe59fd02c</span><span class="p">,</span> <span class="c1">//        ldr     sp, [pc, #44]   ; 44 &amp;lt;.text+0x44&gt;</span>
+</span><span class='line'><span class="mh">0xe59f0010</span><span class="p">,</span> <span class="c1">//        ldr     r0, [pc, #16]   ; 30 &amp;lt;.text+0x30&gt;</span>
+</span><span class='line'><span class="mh">0xe59f1010</span><span class="p">,</span> <span class="c1">//        ldr     r1, [pc, #16]   ; 34 &amp;lt;.text+0x34&gt;</span>
+</span><span class='line'><span class="mh">0xe59f2010</span><span class="p">,</span> <span class="c1">//        ldr     r2, [pc, #16]   ; 38 &amp;lt;.text+0x38&gt;</span>
+</span><span class='line'><span class="mh">0xe59f3010</span><span class="p">,</span> <span class="c1">//        ldr     r3, [pc, #16]   ; 3c &amp;lt;.text+0x3c&gt;</span>
+</span><span class='line'><span class="mh">0xe59fe010</span><span class="p">,</span> <span class="c1">//        ldr     lr, [pc, #16]   ; 40 &amp;lt;.text+0x40&gt;</span>
+</span><span class='line'><span class="mh">0xe59ff010</span><span class="p">,</span> <span class="c1">//        ldr     pc, [pc, #16]   ; 44 &amp;lt;.text+0x44&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>它的作用就是恢复这6个寄存器，最后会恢复<code>pc</code>，因此程序重新回到原来的执行流中。</p>
+
+<p>总结一下，<code>sc</code>里面的<code>hijack code</code>的主要作用就是调用一下<code>dlopen</code>加载<code>/data/local/tmp/libexample.so</code>，然后回到正常的执行流中。</p>
+
+<h5>将<code>sc</code>写到栈上；</h5>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="c1">// write code to stack</span>
+</span><span class='line'>  <span class="n">codeaddr</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">-</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&gt;</span> <span class="n">write_mem</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">sc</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span><span class="o">/</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">long</span><span class="p">),</span> <span class="n">codeaddr</span><span class="p">))</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;cannot write code, error!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其中，<code>write_mem</code>的实现非常简单，就是调用了<code>ptrace(PTRACE_POKETEXT)</code>将数据写到目标进程的内存空间中：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">Write</span> <span class="n">NLONG</span> <span class="mi">4</span> <span class="n">byte</span> <span class="n">words</span> <span class="n">from</span> <span class="n">BUF</span> <span class="n">into</span> <span class="n">PID</span> <span class="n">starting</span>
+</span><span class='line'>   <span class="n">at</span> <span class="n">address</span> <span class="n">POS</span><span class="p">.</span>  <span class="n">Calling</span> <span class="n">process</span> <span class="n">must</span> <span class="n">be</span> <span class="n">attached</span> <span class="n">to</span> <span class="n">PID</span><span class="p">.</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">static</span> <span class="kt">int</span>
+</span><span class='line'><span class="n">write_mem</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">buf</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nlong</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pos</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">p</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">for</span> <span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="n">buf</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">nlong</span><span class="p">;</span> <span class="n">p</span><span class="o">++</span><span class="p">,</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_POKETEXT</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">pos</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="mi">4</span><span class="p">)),</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="o">*</span><span class="n">p</span><span class="p">))</span>
+</span><span class='line'>  <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<h5>利用之前得到的<code>mprotect</code>将栈设置成可执行，并将<code>mprotect</code>的返回值设置成<code>sc</code>数据结构中的code首地址；</h5>
+
+<p>代码如下：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="c1">// calc stack pointer</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">=</span> <span class="n">regs</span><span class="p">.</span><span class="n">ARM_sp</span> <span class="o">-</span> <span class="n">n</span><span class="o">*</span><span class="mi">4</span> <span class="o">-</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// call mprotect() to make stack executable</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r0</span> <span class="o">=</span> <span class="n">stack_start</span><span class="p">;</span> <span class="c1">// want to make stack executable</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r1</span> <span class="o">=</span> <span class="n">stack_end</span> <span class="o">-</span> <span class="n">stack_start</span><span class="p">;</span> <span class="c1">// stack size</span>
+</span><span class='line'>  <span class="n">regs</span><span class="p">.</span><span class="n">ARM_r2</span> <span class="o">=</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">;</span> <span class="c1">// protections&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="c1">// normal mode, first call mprotect</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">nomprotect</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">regs</span><span class="p">.</span><span class="n">ARM_lr</span> <span class="o">=</span> <span class="n">codeaddr</span><span class="p">;</span> <span class="c1">// points to loading and fixing code</span>
+</span><span class='line'><span class="n">regs</span><span class="p">.</span><span class="n">ARM_pc</span> <span class="o">=</span> <span class="n">mprotectaddr</span><span class="p">;</span> <span class="c1">// execute mprotect()</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="c1">// no need to execute mprotect on old Android versions</span>
+</span><span class='line'>  <span class="k">else</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">regs</span><span class="p">.</span><span class="n">ARM_pc</span> <span class="o">=</span> <span class="n">codeaddr</span><span class="p">;</span> <span class="c1">// just execute the &#39;shellcode&#39;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>主要就是计算出栈的首地址和长度，然后将目标进程的<code>pc</code>设置成<code>mprotectaddr</code>，将返回地址<code>lr</code>设置成<code>sc</code>中<code>hijack code</code>的起始地址。这样在调用完<code>mprotect</code>之后就能直接执行<code>hijack code</code>了。</p>
+
+<h5>利用<code>ptrace(PTRACE_SETREGS)</code>设置目标进程的寄存器，使得上面的所有修改生效。</h5>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="c1">// detach and continue</span>
+</span><span class='line'>  <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_SETREGS</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">regs</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_DETACH</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">SIGCONT</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>至此，hijack的全部功能就实现了，现在<code>/data/local/tmp/libexample.so</code>已经被加载到了目标进程的内存空间中，接下来就要看下这个库里面到底是如何实现特定函数的hook的。</p>
+
+<h4>hook</h4>
+
+<p>在<code>instruments</code>这个目录下有两个子目录，其中<code>base</code>相当于是一个函数库，它会被编译成静态链接库<code>libbase.a</code>，我们可以看下<code>instruments/base/jni/Android.mk</code>这个文件：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">LOCAL_PATH</span> <span class="o">:=</span> <span class="err">$</span><span class="p">(</span><span class="n">call</span> <span class="n">my</span><span class="o">-</span><span class="n">dir</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">CLEAR_VARS</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_MODULE</span>    <span class="o">:=</span> <span class="n">base</span>
+</span><span class='line'><span class="n">LOCAL_SRC_FILES</span> <span class="o">:=</span> <span class="p">..</span><span class="o">/</span><span class="n">util</span><span class="p">.</span><span class="n">c</span> <span class="p">..</span><span class="o">/</span><span class="n">hook</span><span class="p">.</span><span class="n">c</span> <span class="p">..</span><span class="o">/</span><span class="n">base</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'><span class="n">LOCAL_ARM_MODE</span> <span class="o">:=</span> <span class="n">arm</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_STATIC_LIBRARY</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>而<code>example</code>里面的代码会将<code>libbase.a</code>静态链接进来，然后生成一个动态链接库<code>libexample.so</code>，可以从其编译文件<code>instruments/example/jni/Android.mk</code>看出来：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">LOCAL_PATH</span> <span class="o">:=</span> <span class="err">$</span><span class="p">(</span><span class="n">call</span> <span class="n">my</span><span class="o">-</span><span class="n">dir</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">CLEAR_VARS</span><span class="p">)</span>
+</span><span class='line'><span class="n">LOCAL_MODULE</span> <span class="o">:=</span> <span class="n">base</span>
+</span><span class='line'><span class="n">LOCAL_SRC_FILES</span> <span class="o">:=</span> <span class="p">..</span><span class="o">/</span><span class="p">..</span><span class="o">/</span><span class="n">base</span><span class="o">/</span><span class="n">obj</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">armeabi</span><span class="o">/</span><span class="n">libbase</span><span class="p">.</span><span class="n">a</span>
+</span><span class='line'><span class="n">LOCAL_EXPORT_C_INCLUDES</span> <span class="o">:=</span> <span class="p">..</span><span class="o">/</span><span class="p">..</span><span class="o">/</span><span class="n">base</span>
+</span><span class='line'><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">PREBUILT_STATIC_LIBRARY</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">CLEAR_VARS</span><span class="p">)</span>
+</span><span class='line'><span class="n">LOCAL_MODULE</span>    <span class="o">:=</span> <span class="n">libexample</span>
+</span><span class='line'><span class="n">LOCAL_SRC_FILES</span> <span class="o">:=</span> <span class="p">..</span><span class="o">/</span><span class="n">epoll</span><span class="p">.</span><span class="n">c</span>  <span class="p">..</span><span class="o">/</span><span class="n">epoll_arm</span><span class="p">.</span><span class="n">c</span><span class="p">.</span><span class="n">arm</span>
+</span><span class='line'><span class="n">LOCAL_CFLAGS</span> <span class="o">:=</span> <span class="o">-</span><span class="n">g</span>
+</span><span class='line'><span class="n">LOCAL_SHARED_LIBRARIES</span> <span class="o">:=</span> <span class="n">dl</span>
+</span><span class='line'><span class="n">LOCAL_STATIC_LIBRARIES</span> <span class="o">:=</span> <span class="n">base</span>
+</span><span class='line'><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_SHARED_LIBRARY</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这个example非常简单，它也只有一个文件（<code>epoll.c</code>），里面只有几十行代码，我们先来看下这个库的初始化函数<code>my_init</code>，这个函数会在该库被加载的时候运行一次：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="nf">my_init</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">counter</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">log</span><span class="p">(</span><span class="s">&quot;%s started</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="kt">FILE</span><span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">set_logfunction</span><span class="p">(</span><span class="n">my_log</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">hook</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">eph</span><span class="p">,</span> <span class="n">getpid</span><span class="p">(),</span> <span class="s">&quot;libc.&quot;</span><span class="p">,</span> <span class="s">&quot;epoll_wait&quot;</span><span class="p">,</span> <span class="n">my_epoll_wait_arm</span><span class="p">,</span> <span class="n">my_epoll_wait</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>里面主要是调用了<code>libbase.a</code>提供的<code>hook</code>函数（源文件为<code>instruments/base/hook.c</code>）：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">hook</span><span class="p">(</span><span class="k">struct</span> <span class="n">hook_t</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">h</span><span class="p">,</span> <span class="kt">int</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">char</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">libname</span><span class="p">,</span> <span class="kt">char</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">funcname</span><span class="p">,</span> <span class="kt">void</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">hook_arm</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">hook_thumb</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">find_name</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">funcname</span><span class="p">,</span> <span class="n">libname</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">addr</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">strncpy</span><span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">,</span> <span class="n">funcname</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">addr</span> <span class="o">%</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">thumb</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">patch</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">hook_arm</span><span class="p">;</span>
+</span><span class='line'><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">orig</span> <span class="o">=</span> <span class="n">addr</span><span class="p">;</span>
+</span><span class='line'><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0xe59ff000</span><span class="p">;</span> <span class="c1">// LDR pc, [pc, #0]</span>
+</span><span class='line'><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">patch</span><span class="p">;</span>
+</span><span class='line'><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">patch</span><span class="p">;</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">store</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="kt">int</span><span class="o">*</span><span class="p">)</span><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">orig</span><span class="p">)[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">((</span><span class="kt">int</span><span class="o">*</span><span class="p">)</span><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">orig</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="n">hook_cacheflush</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">jumpt</span><span class="p">));</span>
+</span><span class='line'>  <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这个函数其实是区分了ARM指令集和THUMB指令集的，为了简化，我们暂时只考虑ARM指令，即这里的<code>(addr % 4 == 0)</code>的情况。</p>
+
+<p>首先，这里先找到需要被hook的目标库（<code>libname</code>）的目标函数（<code>funcname</code>）的内存地址，这里需要注意的，由于<code>libexample.so</code>这个库已经是在目标进程的进程空间中运行了，所以其获得的地址即为目标函数在目标进程中的地址。这里的<code>find_name</code>所用到的技术和<code>hijack.c</code>里面用到的技术基本是一样的，这里就不详述了。</p>
+
+<p>在获得目标函数代码的首地址之后，将其赋值给<code>h-&gt;orig</code>这个变量，将这个该函数的前三条指令保存在<code>h-&gt;store</code>这个数组中，并将以下三条指令覆盖（overwrite）目标函数的前三条指令：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0xe59ff000</span><span class="p">;</span> <span class="c1">// LDR pc, [pc, #0]</span>
+</span><span class='line'><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">patch</span><span class="p">;</span>
+</span><span class='line'><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">patch</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其中，<code>h-&gt;patch</code>即为hook函数的地址，在example里面是<code>my_epoll_wait</code>。同样的，这里又一次用到了利用<code>pc</code>进行寻址的技术，可以看前面的内容，这里也不详述了。</p>
+
+<p>最后，调用了一个<code>hook_cacheflush</code>函数：
+<div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">hook_cacheflush</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">jumpt</span><span class="p">));</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这个函数的主要作用就是刷新指令的缓存。因为虽然前面的操作修改了内存中的指令，但有可能被修改的指令已经被缓存起来了，再执行的话，CPU可能会优先执行缓存中的指令，使得修改的指令得不到执行。所以我们需要使用一个隐藏的系统调用来刷新一下缓存。</p>
+
+<p>至此，目标进程目标函数的hook工作也就完成了。最后我们来看一下这个hook函数<code>my_epoll_wait</code>做了什么：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">my_epoll_wait</span><span class="p">(</span><span class="kt">int</span> <span class="n">epfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">epoll_event</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">events</span><span class="p">,</span> <span class="kt">int</span> <span class="n">maxevents</span><span class="p">,</span> <span class="kt">int</span> <span class="n">timeout</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">orig_epoll_wait</span> <span class="o">=</span> <span class="p">(</span><span class="kt">void</span><span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="p">)</span><span class="n">eph</span><span class="p">.</span><span class="n">orig</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">hook_precall</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">eph</span><span class="p">);</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">res</span> <span class="o">=</span> <span class="n">orig_epoll_wait</span><span class="p">(</span><span class="n">epfd</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">maxevents</span><span class="p">,</span> <span class="n">timeout</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">counter</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">hook_postcall</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">eph</span><span class="p">);</span>
+</span><span class='line'><span class="n">log</span><span class="p">(</span><span class="s">&quot;epoll_wait() called</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">counter</span><span class="o">--</span><span class="p">;</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">counter</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">log</span><span class="p">(</span><span class="s">&quot;removing hook for epoll_wait()</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">return</span> <span class="n">res</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其实这个函数非常简单，就是在前<code>count</code>次调用<code>epoll_wait</code>的时候打印一下。这里面有两个<code>libbase.a</code>中的函数：<code>hook_precall</code>和<code>hook_postcall</code>。我们来分别看一下：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="nf">hook_precall</span><span class="p">(</span><span class="k">struct</span> <span class="n">hook_t</span> <span class="o">*</span><span class="n">h</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">thumb</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">orig</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">orig</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">20</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">orig</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">storet</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="k">else</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">((</span><span class="kt">int</span><span class="o">*</span><span class="p">)</span><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">orig</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">store</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="n">hook_cacheflush</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">jumpt</span><span class="p">));</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><code>hook_precall</code>的主要作用是恢复目标函数的前三条指令，这里同样对ARM指令和THUMB指令做了区分。</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="nf">hook_postcall</span><span class="p">(</span><span class="k">struct</span> <span class="n">hook_t</span> <span class="o">*</span><span class="n">h</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">thumb</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">orig</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">orig</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">20</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">orig</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jumpt</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="k">else</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">((</span><span class="kt">int</span><span class="o">*</span><span class="p">)</span><span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">orig</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">jump</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="n">hook_cacheflush</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">orig</span><span class="o">+</span><span class="k">sizeof</span><span class="p">(</span><span class="n">h</span><span class="o">-&gt;</span><span class="n">jumpt</span><span class="p">));</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>而<code>hook_postcall</code>则是重新用hook函数覆盖目标函数的前三条指令。</p>
+
+<hr />
+
+<p>好了，到这里，adbi里面的代码基本上就分析完了。最后简单描述下什么是ARM指令和THUMB指令吧。</p>
+
+<h4>ARM vs. THUMB</h4>
+
+<p>在传统的RISC模式的指令集中，指令都是定长的，比如ARM指令的长度都是32-bits。定长的好处在于处理器处理起来效率高，但是缺点也是显而易见的，即浪费空间。所以又引入了THUMB指令。</p>
+
+<p>THUMB指令可以看作是ARM指令压缩形式的子集，所谓子集，即THUMB指令集中的所有指令都可以被32-bits的ARM指令所替代，而并非所有ARM指令都有对应的THUMB指令。</p>
+
+<p>所以可以说THUMB模式是ARM在时间和空间中的一个权衡，因此，在普通的ARM可执行文件中，ARM指令和THUMB指令是同时存在的，所以在做诸如分析、攻击等操作的时候需要同时考虑两种模式的存在，这也是adbi为什么会需要区分对待ARM和THUMB的原因吧。</p>
+
+<p>ARM和THUMB的具体区别这里就不介绍了，网上这种资料一搜一大堆，有兴趣的还是自己慢慢研究吧。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Moto g 救砖升级刷CM小记]]></title>
+    <link href="http://ytliu.github.io/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji/"/>
+    <updated>2014-07-19T20:57:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji</id>
+    <content type="html"><![CDATA[<p>今天感觉自己爽爽哒，完成了我Motorola Moto g的“救砖”之行，还升了级，刷了CyanogenMod，以及现在还在编译CM的android源码，准备自己定制一番。</p>
+
+<p>一切还得从昨天说起。</p>
+
+<p>在那个无比蛋疼的昨天，我为了做一个实验，想把我的moto g手机里面系统自带的openssl库给换掉，没想到刚换完一重启，整个手机就灰屏了，怎么都起不来，变成了传说中的“砖头”手机。那把我给郁闷的啊，因为刚开机就挂，adb也连不上，ssl库也恢复不了，只能想办法重新刷机了。</p>
+
+<!-- more -->
+
+
+<p>其实刷机并不难，但是我走了很多弯路，一开始想在<a href="sbf.droid-developers.org/phone.php?device=14">sbf.droid-developers.org/phone.php?device=14</a>下载一个官方底包，但是打开一看有好多版本，毫无头绪地乱点下载了一个，发现验证失败。于是又开始了万能但是漫长的google之行，然后发现一个：</p>
+
+<pre><code>fastboot getvar all
+</code></pre>
+
+<p>就能得到你手机的固件信息，然后我发现其实我应该下载Blur_Version.14.85.4.falcon_umtsds.AsiaRetail.en.03，然后就等了好久好久下下来了（这里说一下，falcon其实就是Moto g XT1033的代号）。</p>
+
+<p>然后我按照<a href="http://www.onekeyrom.com/help/moto_moto-g_21172.html">这里</a>的步骤（传说中的“MOTO G 官方救砖升级教程”哦），但是发现还是他妈的验证不过。。。</p>
+
+<p>我想死的心都有了，但是哥的日子还长着呢，哥当然不能现在死啊，于是继续google，我发现如果要手动一步一步刷机的话，第一步就是：</p>
+
+<pre><code>fastboot flash partition gpt.bin
+</code></pre>
+
+<p>然后我发现这个包解压出来的这一步就不通过。。。突然我想起来我之前在胡乱下包的时候从<a href="http://d-h.st/WM6">这里</a>下了一个Android 4.4.2 KitKat的固件包<code>Blur_Version.14.85.4.falcon_umtsds.AsiaRetail.en.03</code>，记得当时执行这条命令好像是可以通过的。</p>
+
+<p>于是抱着活马当作死马医的念头，我就把这里的gpt.bin换到了之前的官方底包里面，运行：</p>
+
+<pre><code>./flashall.sh
+</code></pre>
+
+<p>竟然成功了，而且成功启动起来了！！！！</p>
+
+<p>但是，总有一个但是，系统起来后发现wifi连接的时候不懂为什么，密码框一直没法激活，我也不管那么多了，现在的这个官方底包好像是4.3的系统，而那个<code>Blur_Version.14.85.4.falcon_umtsds.AsiaRetail.en.03</code>是4.4.2 KitKat系统，于是我就直接再按照<a href="http://androidnews.co.in/2014/02/08/download-android-4-4-2-kitkat-moto-g-dual-sim/">这里</a>的做法把系统升级了，然后，就一切都迎刃而解了！</p>
+
+<hr />
+
+<p>之后我还是希望能自己编译源码安装（现在有一种控制欲，总是希望自己能控制源码！），于是就选择了CyanogenMod，至于什么是CyanogenMod，可以看我<a href="http://ytliu.info/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod/">之前写的一篇博客</a>。</p>
+
+<p>说句题外话，我发现CM的官方文档写得真是认真，很多地方都试图把概念解释的很清楚，希望没有太多背景的人也能看懂，太佩服他们了！</p>
+
+<p>在编译源码之前，我先尝试了下直接安装Nightly包，方法特别简单，可以参照<a href="http://wiki.cyanogenmod.org/w/Install_CM_for_falcon">这里</a>，如果熟悉的人可以直接操作下面的步骤：</p>
+
+<ul>
+<li><p>解锁Unlock（这个就不说了，直接参照<a href="https://motorola-global-portal.custhelp.com/app/standalone/bootloader/unlock-your-device-a/action/auth">这里</a>的步骤吧）</p></li>
+<li><p>刷Recovery包：先在<a href="http://loki.rombitch.com/Devs/Dhacker29/MotoG/CWM-swipe-6.0.4.7-falcon.img">这里</a>下载<code>CWM-swipe-6.0.4.7-falcon.img</code>，然后将手机重启到bootloader模式，把recovery包刷进去：</p>
+
+<p>  adb reboot bootloader
+  fastboot flash recovery CWM-swipe-6.0.4.7-falcon.img</p></li>
+</ul>
+
+
+<p>再进入Recovery选项（怎么进这里就不说了，直接看文档吧）</p>
+
+<ul>
+<li><p>在<a href="http://download.cyanogenmod.org/?device=falcon">这里</a>下CM的包，我下的是<code>cm-11-20140719-NIGHTLY-falcon.zip</code>.</p></li>
+<li><p>继续进入ClockworkMod Recovery模式，先wipe data/factory reset，然后install zip > install zip from sideload，在电脑上运行：</p>
+
+<p>  adb sideload cm-11-20140719-NIGHTLY-falcon.zip</p></li>
+</ul>
+
+
+<p>然后就搞定了。</p>
+
+<p><img src="http://ytliu.info/images/2014-07-19-1.jpg" title="My CM" alt="my cm" /></p>
+
+<h4>编译源码：</h4>
+
+<p>具体可以看<a href="http://wiki.cyanogenmod.org/w/Build_for_falcon#Build_CyanogenMod_and_ClockworkMod_Recovery">这个文档</a>，讲的特别详细。不过中间有一个地方需要提一下，我在按照这里讲的方法操作的时候会遇到一个问题，就是它一直找不到<code>vendor/motorola/falcon/falcon-vendor.mk</code>这个文件，于是我在<a href="https://github.com/DonkeyCoyote/proprietary_vendor_motorola">这个github上</a>下了个falcon文件夹，然后复制到<code>vendor/motorola</code>目录下，就可以了，简单来说，流程是这样的：</p>
+
+<ul>
+<li><p>安装环境（这个不讲了，直接安装文档上装sdk，adb，fastboot，以及一系列<code>apt-get</code>就可以了。</p></li>
+<li><p>下载CyanogenMod-android源码：</p>
+
+<pre><code>mkdir -p ~/bin
+PATH=~/bin:$PATH
+curl https://storage.googleapis.com/git-repo-downloads/repo &gt; ~/bin/repo
+chmod a+x ~/bin/repo
+mkdir -p ~/android/system
+cd ~/android/system/
+repo init -u git://github.com/CyanogenMod/android.git -b cm-11.0
+repo sync
+</code></pre></li>
+</ul>
+
+
+<p>等了好几个小时才下好，下了10多G吧。</p>
+
+<ul>
+<li><p>继续前期准备：</p>
+
+<pre><code>cd ~/android/system/vendor/cm
+./get-prebuilts
+cd ~/android/system/
+source build/envsetup.sh
+breakfast falcon
+</code></pre></li>
+</ul>
+
+
+<p>在这里就会遇到我之前说的找不到<code>falcon-vendor.mk</code>的错误，按照之前的做法把这个文件夹补上去就好了。</p>
+
+<ul>
+<li><p>然后插上手机：</p>
+
+<pre><code>cd ~/android/system/device/motorola/falcon
+./extract-files.sh
+</code></pre></li>
+<li><p>最后开始编译：</p>
+
+<pre><code>cd ~/android/system
+brunch falcon
+</code></pre></li>
+</ul>
+
+
+<p>然后就坐等编译结束啦！</p>
+
+<ul>
+<li><p>编译结束之后，会在<code>out/target/product/falcon</code>目录下生成一个<code>recovery.img</code>和一个<code>cm-11-20140719-UNOFFICIAL-falcon.zip</code>文件，只需要和之前安装步骤一样进行安装就好了：先关机，进入bootloader模式，然后刷入recovery.img</p>
+
+<pre><code>cd ~/android/system/out/target/product/falcon
+fastboot flash recovery recovery.img
+</code></pre></li>
+</ul>
+
+
+<p>然后进入ClockworkMod Recovery，选择install zip > install zip from sideload，在电脑上运行：</p>
+
+<pre><code>  adb sideload cm-11-20140719-UNOFFICIAL-falcon.zip
+</code></pre>
+
+<p>重启，搞定！</p>
+
+<p><img src="http://ytliu.info/images/2014-07-19-2.jpg" title="My CM 2" alt="my cm 2" /></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Android的那些事 - CyanogenMod]]></title>
+    <link href="http://ytliu.github.io/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod/"/>
+    <updated>2013-05-04T22:07:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod</id>
+    <content type="html"><![CDATA[<p>这个系列我想记录一些和Android相关但是和技术无关的东西，这次就从CyanogenMod开始讲起吧。</p>
+
+<p>今天要把一个源码编译到手机上（我的测试机是Samsung Galaxy Nexus），按照以前的经历，首先要把它<code>lunch</code>成maguro，然后再开始make，但是这次的lunch发现只有一个叫做cm_maguro的选项，而且关键是它说找不到相关的配置文件，而且<code>repo sync</code>也失败了。</p>
+
+<p>讲到这里，我就不想继续下去了，这个就是一个装机的过程，遇到各种错误，然后google，然后。。。这个过程我打算另开一篇，而这一篇是关于这个<strong>cm_maguro</strong>。</p>
+
+<p>明白人都知道，这个“cm”指的就是“CyanogenMod”，而这个maguro呢？据说是Samsung Galaxy Nexus的一个代号而已，名为金枪鱼。这些在我们平时刷ROM的时候经常会出现的字眼，说出来都不好意思，我从来就没有搞清楚过他们之间具体的关系是什么，直到今天，我感觉自己终于有了一点头绪。</p>
+
+<p>先声明下，以下的部分基本上都是从各种百科或者论坛或者wiki再或者是CyanogenMod的官方网站上撸下来之后进行整理的，可能会感觉似曾相识，不过没关系，就当看故事好了。</p>
+
+<hr />
+
+<h4>CyanogenMod</h4>
+
+<p><a href="http://wiki.cyanogenmod.org/w/About">CyanogenMod</a>，从人的角度来说，是一个由Android爱好者组成的团队，并且它是目前全球最大的Android第三方编译团队。而从系统的角度来说，它又是一个基于开源Android系统，供某些手机使用的二级市场固件，它提供了一些在官方Android系统或手机厂商没有提供的功能。</p>
+
+<p>那么为什么会出现CyanogenMod呢？</p>
+
+<p>原因很简单，我们知道Android系统从一开始发布就是一个开源的系统，当时Android有另外一个问题就是，代码是开源了，但是那么多机型Google就算再闲也某赖新菜（方言，表示没心情管它，请无视），就拿Android 2.3来说，Google开放的源码只支持Nexus S和Nexus One，而对于其它机型，比如HTC的xxx，LG的xxx，google只能说一声对不住了。虽然不同的手机制造厂商会花力气下去生产自己的ROM（简单来说，就是能把改过的代码跑在自己的机器上），但是作为一个Android用户，如果他想刷机怎么办？开源的代码不支持自己的机型，支持自己机型的ROM又由生产厂商封锁着，那些说好的“新功能”呢？那些说好的“随意刷机”呢？我觉得可以这么说，如果没有像CyanogenMod这样的团队，现在什么牛逼的第三方ROM，什么MIUI，估计都还在娘胎里没生出来吧，也就更不用说今天Android手机的千秋万代，一统江湖了。</p>
+
+<!-- more -->
+
+
+<p>那么，CyanogenMod这样的团队到底做了些什么呢？</p>
+
+<p>问得好！其实吧，我也只是一知半解。我只是知道，相比于Google只对少数的几款机型的支持，CyanogenMod增加了对很多其它机型的支持，而这些改动主要是在内核部分。这些内核源代码都是各厂商根据GPL协议共开出来的，CM会在上面作一些改动（比如增加收音机，720P录像等）。</p>
+
+<p>也就是说，CM基于Google官方发布的ASOP，每当google发布新版本的ASOP的时候，CM团队都会将它们port到不同的机型上，并且增加一些新的特性、功能和bug的修复等等。也正是因为这样，CM的ROM经常也会为ASOP带来很多好处，有时候CM加上的新特性会在ASOP的新版本中出现，CM对bug的修复也会贡献给ASOP。</p>
+
+<p>另外在<a href="http://wiki.cyanogenmod.org/index.php?title=Devices">这里</a>可以找到所有CM支持的机型和它们相对应的代号，非常牛逼！</p>
+
+<h5>ROM，firmware，operating system，distribution</h5>
+
+<p>在CM的<a href="http://wiki.cyanogenmod.org/w/About">官方介绍</a>中特别说明，这四个词对于CyanogenMod来说都是指的同一个意思，都是指你装在你手机设备上的一整套软件。</p>
+
+<h5>CM版本</h5>
+
+<p>我们经常会看到CM7，CM8等等，这些都是CM的版本号，从<a href="http://en.wikipedia.org/wiki/CyanogenMod#Version_history">wiki</a>上的一张图可以很清楚的看出这些版本都是代表些什么意思：</p>
+
+<p><img src="http://ytliu.info/images/2013-05-04-1.png" title="CM version" alt="CM version" /></p>
+
+<hr />
+
+<h4>maguro, toro, tuna</h4>
+
+<p>在刷Galaxy Nexus的时候，会碰到这些代号，简单来说，tuna是Samsung Galaxy Nexus的代号，名为金枪鱼（maguro也是金枪鱼的意思）。</p>
+
+<p>这里稍微跑题下，Android的很多机型都是采用和“鱼”相关的代号，比如Galaxy Nexus (tuna, 金枪鱼)，emulator (goldfish, 金鱼)，G1 (trout, 鲑鱼)， Nexus One (mahimahi, 海豚鱼)，Nexus S (herring, 鲱鱼)，Xoom (stingray, 黄貂鱼)等等。</p>
+
+<p>那么maguro和toro又是什么呢？</p>
+
+<p>事实上，Galaxy Nexus有两种类型的设备，一种是GSM/HSPA+的种类，代号为maguro，一种是CDMA/LTE的种类，代号为toro（还有一个它的变种叫toroplus）。对于maguro来说，在Galaxy Nexus的源码树中，一般会有两个目录，一个是<code>device/samsung/tuna</code>，一个是<code>device/samsung/maguro</code>。前者涵盖了所有maguro和toro共享的文件，而后者则存储和maguro特定相关的文件。</p>
+
+<h5>如何识别</h5>
+
+<p>有两种方法，一种是查看<code>Settings &gt; About phone &gt; Model number</code>，看看以下哪个匹配：</p>
+
+<ul>
+<li>Samsung Galaxy Nexus (Maguro; GSM/HSPA+) - GT-I9250</li>
+<li>Samsung Galaxy Nexus (Toro; Verizon; CDMA/LTE) - SGH-I515</li>
+<li>Samsung Galaxy Nexus (Toro Plus; Sprint; CDMA/LTE) - SPH-L700</li>
+</ul>
+
+
+<p>但是在我刷好的手机上，<code>Model number</code>显示的只有Galaxy Nexus，所以可以采用第二种更简单的办法，即看手机后盖上的图标，看看它是否有Verizon (toro) 或者 Sprint (toroplus)字样，如果都没有，那就是maguro了。</p>
+]]></content>
+  </entry>
+  
+</feed>

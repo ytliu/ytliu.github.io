@@ -1,0 +1,468 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>浅谈某些攻击及其防范 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2012/02/25/qian-tan-mou-xie-gong-ji-ji-qi-fang-fan">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">浅谈某些攻击及其防范</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-25T21:03:00+08:00" pubdate data-updated="true">Feb 25<span>th</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>很多时候我觉得攻击和防范的历史就像一部电视连续剧，不断出现的魔高一尺道高一丈，此消彼长，生生不息……</p>
+
+<p>这篇博文的初衷来源于6.858中lecture2里面最后的一篇references:</p>
+
+<pre><code>    INTERPRETER EXPLOITATION: POINTER INFERENCE AND JIT SPRAYING
+</code></pre>
+
+<p>这是一篇介绍两个技术<em>pointer inference</em>和<em>JIT spraying</em>的文章，关于这篇文章我应该会在之后详细介绍，这里想说的又是里面引出的一篇报告：</p>
+
+<p><a href="http://www.azimuthsecurity.com/resources/bh2008_dowd_sotirov.pdf" title="bypassing">Bypassing Browser Memory Protections</a></p>
+
+<p>里面介绍了微软在软硬件层面对5种攻击所作的防范，以及攻击者可以如何绕开这些防范。这里的描述方式也按文中一样按照防范措施来分类感觉会比较清晰点吧</p>
+
+<h4><strong>前言</strong></h4>
+
+<p>对于一个成功的攻击，有很大一部分是需要用到<em>buffer overflow</em>技术的，而<em>bf</em>分为很多，主要看你要覆盖什么内容，之后如何使得控制流变成你想要执行的代码，对于之后的这些攻击技术，也就出现了相应的防范策略和机制。但不管怎么说，这里所提到的所有攻击都源自于<em>bf</em>，没有它的攻击属于另外的范畴，这篇暂且不谈。</p>
+
+<!-- more -->
+
+
+<h4><strong>stack cookies(canaries) &amp; variable reordering</strong></h4>
+
+<p><em>bf</em>最简单的攻击就是修改函数调用的return address，canaries即是在进入函数栈时在压入的return address之后再加入一个4位的随机数（canaries），如果攻击者改了return address那么canaries也会被改，那么系统在返回时将会报错。但是也有可能在函数返回之前调用一些函数变量，variable reordering则是将变量的顺序进行调整使得攻击者无法对本地变量进行overwrite，这两个技术都是靠编译器支持的，如果开启了这两种保护，栈上的结构将会变成这样：</p>
+
+<p><img src="http://ytliu.info/images/2012-02-25-1.png" title="stack layout" alt="stack layout with or without GS protection" /></p>
+
+<p>这两种机制的缺点很明显，对于canaries，它只能保护函数返回时的控制流变化，而且<em>canaries</em>也有可能被破解，对于<em>vr</em>它只支持有限种类的变量reordering，对于一些结构体的保护就不是很好。</p>
+
+<h4><strong>SafeSEH</strong></h4>
+
+<p>这是微软系统对于它们独特的<em>Exception handler</em>机制的保护，叫<em>Structured Exception Handler</em>，这里不想详细介绍，简单说就是在每个函数体的栈上除了一些本地变量之外还会存有一个叫做<em>Exception Handler Record</em>的东西，里面指向一个Exception Handler的链结构，当在函数执行过程中如果发生Exception，则会从这个record开始查找对应的handler。如果攻击者在overflow时将这个结构的handler的地址改成攻击代码的地址，则会在发生Exception时调用恶意代码。而SafeSEH用了两种方法<em>SEH handler validation</em>（维护一张表，在调用handler时检查是否是表中的合法handler）和<em>SEH chain validation</em>（enforce chain的一些特征使其在违反时能够被检查出来）。</p>
+
+<h4><strong>Heap Protection</strong></h4>
+
+<p>这是这篇文章的重点，因为我在这之前虽然听说过<em>heap overflow</em>，但也不清楚里面的细节，<a href="http://www.h-online.com/security/features/A-Heap-of-Risk-747161.html" title="a heap of risk">这篇文章</a>对此做了一个很详细的描述，这里简单介绍下:</p>
+
+<p>文中举了个简单但是明了的例子，虽然不同系统中对heap的实现大同小异，但原理都是一样的。在本文的例子中，堆的结构是这样的：</p>
+
+<p><img src="http://ytliu.info/images/2012-02-25-2.png" title="heap layout" alt="heap layout" /></p>
+
+<p>每一个被回收的堆都有一个带有信息的头结构，里面包含了next, prev, size, used的信息，而在free操作过后都会有一个merge的操作，即将相邻的两个free的堆merge起来从而避免fragmentation，在这个merge操作中有一个非常关键的操作：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>hdr->next->next->prev = hdr->next->prev;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>而系统在计算<em>next->prev</em>时会先得到next的地址然后加4，于是攻击者就可以通过buffer overflow将堆的头结构改成以下内容（这里要说明下，heap的overflow可以通过integer的overflow来实现，具体可参阅文章前半部分）：</p>
+
+<p><img src="http://ytliu.info/images/2012-02-25-3.png" title="heap header layout" alt="heap header layout" /></p>
+
+<p>将next中的地址指向栈中存放<em>return address + 4</em>的地址，然后<em>next + 4</em>即为return address，将其地址通过那步关键操作赋值成攻击者注入的恶意代码的地址，即可达到目的。</p>
+
+<p>heap overflow有一个最大的缺陷就是需要攻击者对系统堆的实现，以及一些内存信息非常了解，而且如果heap若也被标志为NX，则该方法也没有用了。</p>
+
+<h4><strong>DEP（NX）</strong></h4>
+
+<p><em>DEP</em>（Data Execution Prevention）即为通常所说的<em>NX</em>（Non-eXecutable），让除了代码段之外其它地方的数据都不能执行，这在很大程度上防止了攻击者注入的恶意代码的执行，但其有以下几点缺陷：</p>
+
+<pre><code>    * 有些程序就是需要除了代码段的其它section的指令运行，如果用了该技术则会不兼容；
+    * return-oriented &amp; return-to-libc攻击。
+</code></pre>
+
+<h4><strong>ASLR</strong></h4>
+
+<p><em>ASLR</em>（Address Space Layout Randomization）对一些object的地址做随机化，使得攻击者很难准确地overflow正确的信息，但攻击者并非对此毫无办法：</p>
+
+<pre><code>    * 可以猜测，或者用穷举的办法（JIT spraying就是一个很好的例子）；
+    * 可以运行一些代码来获得随机规律；
+    * 有时候并不需要知道确切的地址，只要知道相对值就行了。
+</code></pre>
+
+<hr />
+
+<p>以上是对一些防范和攻击的简单介绍，这周还看了一篇paper叫</p>
+
+<pre><code>    XFI: SOftware Guards for System Address Space
+</code></pre>
+
+<p>是由微软和UCB在OSDI&#8217;06发表的，应该说这是一篇很牛逼的文章，但是可能是因为我功力太浅，实在没怎么看懂，这里就将里面提出的7个properties列出来，如果有兴趣也可以参考MIT的<a href="http://pdos.csail.mit.edu/6.858/2011/lec/l03-xfi.txt">6.858课程lecture3</a>中对这篇文章提出的几个问题。</p>
+
+<p><strong>external properties</strong>:</p>
+
+<p><em>P1. memory-access constraints</em>: memory accesses are either into a). the memory of the XFI module, or b). into what host system has granted. read/write/execute handled separately, no write to XFI module&#8217;s code</p>
+
+<p><em>P2. interface restrictions</em>: control cannot flow out of XFI&#8217;s code, except via calls to a set of prescribed support routines, and via returns to external call-site.</p>
+
+<p><em>P3. scoped-stack integrity</em>: a). stack register points to at least a fixed amount of writable stack memory? b). accurately reflect function calls, returns and exception; c). Windows stack exception frames are well formed, and linked to each other.</p>
+
+<p><em>P4. simplified instruction semantics</em>: certain machine-code instructions (dangerous, privileged instructions) can never be executed, certain other machine-code instructions may be executed only in a context taht constrains their effects.</p>
+
+<p><em>P5. system-environment integrity</em>: certain aspects of system environment are subject to invariants.</p>
+
+<p><strong>internal properties</strong>:</p>
+
+<p><em>P6. control-flow integrity</em>: execution must follow a static, expected control-flow graph, even on computed calls and jumps.</p>
+
+<p><em>P7. program-data integrity</em>: certain module-global and function-local variables can be accessed only via static references from the proper instructions in the XFI module.</p>
+
+<p>文中之后所说的细节很多也都是通过<em>P6</em>和<em>P7</em>来保证整个系统7个properties的，所以说<em>control-flow integrity</em>和<em>data integrity</em>还是非常重要的，关于CFI，相信这一篇也是理解XFI的关键一文：</p>
+
+<pre><code>    Contro-flow Integrity: Principles, Implementations, and Applications
+</code></pre>
+
+<p>打算在接下来的一周认真读一下。</p>
+
+<p>另外还有一个由Robert C. Seacord做的presentation：</p>
+
+<pre><code>    Pointer Subterfuge: Secure Coding in C and C++
+</code></pre>
+
+<p>也详细地介绍了在C和C++语言中可能出现的通过篡改pointer来实现攻击的例子，主要介绍了<em>GOT（Global Offset Table） Entries</em>, <em>The .dtors Section</em>, C++中的<em>Virtual Pointer</em>, <em>atexit()</em>和<em>on_exit()</em>, <em>setjump()</em>和<em>longjump()</em>，还有就是之前说的<em>SEH（Structured Exception Handler）</em>，在这个presentation里面详细介绍了它们的机制和用法，以及攻击者如何利用它们进行攻击的手段等等，是一篇很有趣的报告。</p>
+
+<hr />
+
+<p>然后简单讲下Oakland&#8217;11吧，上周把<em>IEEE Oakland&#8217;11</em>（四大安全会议之一，其余三个为ACM CCS, USENIX Security and ISOC NDSS）的paper简单浏览的一遍，根据题目挑选了20来篇看了下abstract和introduction，安全会议果然和系统相关会议有蛮大区别的，大部分paper主要是针对一个很小但是很具体的问题进行阐述并解决，不过说实话，我对里面的大部分都不是很有兴趣，但是里面一些paper提出来的一些概念，确实挺让我焕然一新，比如在Hardware Security的Section里面提到的硬件厂商或第三方的恶意backdoor，比如<em>HomeAlone</em>中利用Side-Channel来进行防范，还有之前说过的<em>Virtuoso</em>，<em>PRISM</em>中提到的和我们之前想过的细粒度权限控制的想法有着相似但不同称法的<em>Multi-Level Secure（MLS）</em>，以及<em>RePriv</em>中关于用户隐私性和个性化的平衡，还有那些当今比较热门的话题，如<em>Cashier-as-a-Service（CaaS）</em>、<em>Sybil Attack</em>、<em>Mobile Privacy（location privacy）</em>、<em>Side-Channel Attack</em>，甚至是我不是很感兴趣的<em>Formalization</em>，都让我对安全这个领域有了更进一步的了解。之后我又翻阅了下NDSS&#8217;12的paper，发现里面一些更让我感兴趣的知识，这也算是我下周的打算。</p>
+
+<hr />
+
+<p>总之下周注定要成为更忙的一周，重新奋斗hc，加上各种计划各种paper，凡事尽力吧，也无需勉强自己。</p>
+
+<p>最后用这周译言上的那篇文章结尾：<a href="http://select.yeeyan.org/view/216596/248984" title="top five regrets of the dying">Top five regrets of the dying</a></p>
+
+<blockquote><p>1. I wish I&#8217;d had the courage to live a life true to myself, not the life others expected of me;<br/>2. I wish I hadn&#8217;t worked so hard;<br/>3. I wish I&#8217;d had the courge to express my feelings;<br/>4. I wish I had stayed in touch with my friends;<br/>5. I wish that I had let myself be happier.</p></blockquote>
+
+
+<p>人生真的是如此短暂，&#8221;死而无憾&#8221;绝非易事，只希望在活着的时候对得起自己，不辜负亲人、朋友，其它的一切又算得了什么呢？</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-25T21:03:00+08:00" pubdate data-updated="true">Feb 25<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/attack/'>Attack</a>, <a class='category' href='/blog/categories/paper/'>Paper</a>, <a class='category' href='/blog/categories/security/'>Security</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/02/19/za/" title="Previous Post: 杂">&laquo; 杂</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/03/03/wei-lai-zai-na-li/" title="Next Post: 未来在哪里">未来在哪里 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2012/02/25/qian-tan-mou-xie-gong-ji-ji-qi-fang-fan/';
+        var disqus_url = 'http://ytliu.github.io/blog/2012/02/25/qian-tan-mou-xie-gong-ji-ji-qi-fang-fan/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

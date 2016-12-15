@@ -1,0 +1,535 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>知识整理（2015.1） - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2015/01/24/zhi-shi-zheng-li-%282015-dot-1%29">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">知识整理（2015.1）</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-01-24T13:28:00+08:00" pubdate data-updated="true">Jan 24<span>th</span>, 2015</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>从上大学开始到现在，我们学过多少的知识，尝试过多少的技能？特别是对于程序员来说，每天都可能遇到新的东西，听别人讲解或者自己去查询新的知识，但是这些所谓的知识大部分只能在大脑中贮存那么几天，最多几周，那些我们曾经以为自己看懂了就永远都不会忘记的东西又有多少被那个过于自信的自己所遗忘了呢？当自己想要重新去涉及相关领域的时候甚至都不记得该从那里去找了。有时候，我甚至回想前一天看过什么的时候都已然忘记！</p>
+
+<p>确实，现在有很多很方便的软件，或者相应的方法来记录这些，比如evernote，甚至单纯地采用书签。然而单纯的记录和鼠标点击都远远不能达到好的知识学习的效果。在现实生活中，我们想要学习一个知识点，往往都会花上大量的时间和精力在良莠不齐的网页中搜索到那些靠谱的、解释清楚的博客或者文档。再花上时间去阅读和理解。对于我们这种普通人来说，看过的东西大部分会在很短的时间内忘掉，就算当时感觉完全理解了，也会在未来的某一天里不经意地彻底忘记。这种事对我来说发生过太多次了，以至于我经常在某些时候觉得自己掌握了很多知识，充满了自信，而过了一段时间之后又变得颓然无助。</p>
+
+<p>从这个月开始我尝试记录“技术日记”，每天总结一下当天所查询、理解的知识，并且记录下对于我来说比较有用的博客或者的文档出处，以便于日后查询。当记录了一个月之后我依然觉得这样还是不够，我觉得除了每天记录之外，每隔一段时间的回顾和总结也是非常必要的。于是我决定把这个总结作为每个月的常规任务，记录在博客上，或许能够更好地激励和督促我自己，甚至也可能会在不经意间带给别人些许方便呢。</p>
+
+<p>从这次开始，进行2015年1月的知识整理，并不会非常详细，仅仅是当做一个月知识的回顾，并且记录下一些对自己产生启发效果或者科普功能的博客和文档的链接。</p>
+
+<p>这个月的关键字：IOCTL, MSI-X, Eventfd, Namespaces, QOM, Linux Kernel, Inline Assembly, Segement Register, TLS, PCI Device Driver, Xen I/O, BDF Notation, Signal, CPU Privilege Level.</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h4>IOCTL</h4>
+
+<p>推荐LWN的这篇科普文：<a href="http://lwn.net/Articles/119652/">The new way of ioctl</a></p>
+
+<ul>
+<li>原来的IOCTL: 采用内核大锁（big kernel lock: BKL）</li>
+<li>unlocked_ioctl: 优化，采用自定义的锁（self-defined lock）</li>
+<li>compat_ioctl: 当32位的进程需要在64位的系统上调用（whenever a 32-bit process calls ioctl() on a 64-bit system），需要做一些类型转换的操作。</li>
+</ul>
+
+
+<hr />
+
+<h4>MSI-X</h4>
+
+<p><a href="http://lwn.net/Articles/44139/">MSI-X How To</a></p>
+
+<p>另外，在Linux内核的文档中（linux-src/Documentation/PCI/MSI-HOWTO.txt）也有最新的详细的描述。</p>
+
+<p><a href="http://ytliu.info/notes/linux/msix_how_to.html">这里是我对这个文档进行的整理</a></p>
+
+<hr />
+
+<h4>Eventfd</h4>
+
+<p><a href="http://man7.org/linux/man-pages/man2/eventfd.2.html">这里是eventfd的man page</a>，讲的还是比较详细的，有一个简单例子。</p>
+
+<hr />
+
+<h4>Namespaces</h4>
+
+<p>还是推荐<a href="http://lwn.net/Articles/531114/">LWN的那几篇介绍吧</a></p>
+
+<p>这里稍微介绍下，linux的namespace一个最重要的作用是用来支持Linux Container（LXC）的，到目前为止包含6种namespaces（按照出现的时间顺序排列）：</p>
+
+<ul>
+<li><strong>Mount namespace</strong> (Linux 2.4.19)：用于隔离不同进程可见的fs mount point，其中一个作用有点像chroot，和chroot不同的是，mount namespace更安全和更灵活。它还有其它用法。</li>
+<li><strong>UTS namespace</strong> (Linux 2.6.19): 隔离两个标示符：nodename和domainname，由uname()返回，由sethostname()和setdomainname()两个syscall进行设置。UTS允许container中有自己的hostname和domain name.</li>
+<li><strong>IPC namespace</strong> (Linux 2.6.19): 隔离IPC资源（System V IPC object和POSIX message queues），现在感觉有了PID的namespace之后好像不怎么用了吧。</li>
+<li><strong>PID namespace</strong> (Linux 2.6.24) 隔离PID number。即不同PID namespace的进程可以有相同的PID。其中一个好处是container可以在host间迁移，同时保持里面进程原有的PID。另外，它可以允许每个container里面都有自己的init（PID 1）进程，在执行初始化和回收子进程的任务）。也就是说，在一个PID namespace中，每个进程会有两个PID，一个是PID namespace里面的PID，一个是外面host看到的PID</li>
+<li><strong>Network namespace</strong> (Linux 2.6.24 - Linux 2.6.29): 提供网络资源的隔离。每个network namespace有自己的网络设备，IP地址，IP路由表，/proc/net 目录，端口号等等。</li>
+<li><strong>User namespace</strong> (Linux 2.6.23 - Linux 3.8): 对user和group ID number进行隔离。也就是说，一个进程的user ID和group ID在user namespace内外可能不一样。从Linux 3.8开始，一个unprivilege的进程可以创建user namespaces，这产生了一些新的可能性，也会产生一些安全性问题。</li>
+</ul>
+
+
+<hr />
+
+<h4>Qemu Object Model (QOM)</h4>
+
+<p><a href="http://www.linux-kvm.org/wiki/images/0/0b/Kvm-forum-2013-Modern-QEMU-devices.pdf">这个slide</a>介绍了Qemu设备模型的发展历史。</p>
+
+<p><a href="http://wiki.qemu.org/Features/QOM">WIKI的这篇</a>介绍了QOM和Qdev的区别。</p>
+
+<p><a href="http://mnstory.net/wp-content/uploads/2014/10/qemu-device-simulation/qemu-device-simulation.pdf">这个文档</a>详细地介绍了QOM。</p>
+
+<p>当然也可以看<a href="http://ytliu.info/blog/2015/01/10/qemushe-bei-chu-shi-hua/">我写的这篇博客</a>，里面也有一些说明。</p>
+
+<hr />
+
+<h4>Linux Kernel - read/write file</h4>
+
+<p>这个点主要是说明如何在内核里面读写文件。</p>
+
+<p>事实上在内核里面是不建议对文件进行读写操作的。</p>
+
+<p><a href="http://lkml.iu.edu/hypermail/linux/kernel/0005.3/0061.html">这个mailing list</a>里面简单说明了原因。</p>
+
+<p>而在<a href="http://www.linuxjournal.com/article/8110">这个博客中</a>更详细地解释了这件事，不过如果你确实要这么做，它也举了个例子。</p>
+
+<p>这是一个<a href="http://bbs.chinaunix.net/thread-1945223-1-1.html">中文博客</a>，同样了举了个例子说明如何在内核中读写文件（如果你真的要这么做的话）</p>
+
+<p><a href="http://ytliu.info/notes/linux/file_ops_in_kernel.html">这里</a>是我对这个问题的整理。</p>
+
+<hr />
+
+<h4>Linux Kernel - kmalloc, kzalloc, kcalloc, vmalloc</h4>
+
+<p>简单地说，这几个malloc的区别在于：</p>
+
+<ul>
+<li>kzalloc zeroes the memory before returning a pointer</li>
+<li><p>kcmalloc allocates memory for an array, it is not a replacement for kmalloc :</p>
+
+<p>  void *kcalloc(size_t n, size_t size, gfp_t flags)</p></li>
+<li><p>vmalloc is the same as kmalloc, except that it allocates memory that is only virtually contiguous. The underlying physical memory can be discontiguous.</p></li>
+</ul>
+
+
+<p><a href="http://lwn.net/Articles/147014/">LWN的这篇文章</a>说明了为什么要引入kcalloc，以及之后的kzalloc:</p>
+
+<ul>
+<li><code>kcalloc</code>是用于代替<code>kmalloc()/memset()</code>的组合的，</li>
+<li>而<code>kzaloc</code>主要是去掉<code>kcalloc</code>的第一个参数n，因为在大部分情况下它等于<code>1</code>。</li>
+</ul>
+
+
+<hr />
+
+<h4>Inline Assembly</h4>
+
+<p><a href="http://www.ibm.com/developerworks/library/l-ia/">这篇IBM的文档</a>较清楚地介绍了汇编语言和内联汇编的语法。</p>
+
+<p><a href="http://www.delorie.com/djgpp/doc/brennan/brennan_att_inline_djgpp.html">这个</a>和<a href="http://www.ibiblio.org/gferg/ldp/GCC-Inline-Assembly-HOWTO.html">这个</a>是两篇比较简单清楚的科普文档。</p>
+
+<p><a href="http://staff.ustc.edu.cn/~xlanchen/cailiao/x86%20Assembly%20Programming.htm">这个是X86汇编编程的一个简化版的查询文档</a>。</p>
+
+<p><a href="http://www.cs.virginia.edu/~evans/cs216/guides/x86.html">这个事X86汇编的Guide</a>就比较详细的文档。</p>
+
+<hr />
+
+<h4>Segment Register</h4>
+
+<p><a href="http://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for#">这个</a>和<a href="http://reverseengineering.stackexchange.com/questions/2006/how-are-the-segment-registers-fs-gs-cs-ss-ds-es-used-in-linux">这个</a>是两个问答网站上关于gs、fs等segment register的提问，有一些比较详细的回答。</p>
+
+<p><a href="http://www.mouseos.com/arch/segment_registers.html">这个文档</a>介绍了segment寄存器的结构。</p>
+
+<p><a href="http://www.eecg.toronto.edu/~amza/www.mindsec.com/files/x86regs.html">这个文档</a>列举了X86的所有寄存器及其简介。</p>
+
+<hr />
+
+<h4>Thread Local Storage (TLS)</h4>
+
+<p><a href="http://www.longene.org/techdoc/0328131001224576926.html">这个</a>是一篇中文的关于TLS的介绍，比较长，而且主要是关于Windows的。</p>
+
+<p><a href="http://www.uml.org.cn/embeded/201207131.asp">这个博客</a>是Linux TLS的介绍，比较清楚。</p>
+
+<hr />
+
+<h4>PCI Device Driver</h4>
+
+<p><a href="http://nairobi-embedded.org/linux_pci_device_driver.html">Writing a PCI Device Driver, A Tutorial with a QEMU Virtual Device</a> 非常详细地介绍了如何写一个Qemu的PCI设备驱动，采用的是Qemu的Inter-VM share memory来做介绍，非常赞！</p>
+
+<p>另外，在Linux内核的文档中（<code>linux-src/Documentation/PCI/pci.txt</code>）也有最新的详细的描述介绍如何写一个PCI device driver。</p>
+
+<hr />
+
+<h4>Xen I/O</h4>
+
+<p><a href="http://www.mulix.org/lectures/xen-iommu/xen-io.pdf">这是一个介绍Xen I/O的科普slide</a></p>
+
+<p>而<a href="http://www.informit.com/articles/article.aspx?p=1160234">这一篇文章</a>摘自那本《The Definitive Guide to the Xen Hypervisor》书。</p>
+
+<p>其实了解Xen I/O最好的资料是上面提到的这本书，以及去查阅相应的代码。</p>
+
+<p>当然还有一些文档：</p>
+
+<ul>
+<li><a href="http://www.xenproject.org/users/getting-started.html">这个文档</a>是<code>Xen Get Started</code>。</li>
+<li><a href="http://xmodulo.com/install-paravirtualized-xen-guest.html">这个</a>介绍了如何安装一个PV的虚拟机。</li>
+<li><a href="http://twobit.us/2010/07/xen-network-driver-domain-wh/">这个博客</a>和<a href="http://wiki.xen.org/wiki/Driver_Domain">这个文档</a>也说明了如何安装一个network driver domain。</li>
+<li><a href="http://wiki.xenproject.org/wiki/Category:HowTo">这里</a>列举了大部分Xen相关的文档。</li>
+<li><a href="http://wiki.xen.org/wiki/Xen_PCI_Passthrough">这个WIKI</a>介绍了Xen PCI passthrough</li>
+</ul>
+
+
+<hr />
+
+<h4>BDF Notation</h4>
+
+<p><a href="http://wiki.xen.org/wiki/Bus:Device.Function_(BDF)_Notation">这个Xen的Wiki</a>详细并且清楚地科普了BDF的相关知识</p>
+
+<hr />
+
+<h4>Signal in Linux</h4>
+
+<p><a href="http://cs-pub.bu.edu/fac/richwest/cs591_w1/notes/wk3_pt2.PDF">这个slide</a>对signal介绍的蛮清楚的。</p>
+
+<p><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">这个文档</a>对Signal介绍地更为全面。</p>
+
+<hr />
+
+<h4>CPU Privilege Level</h4>
+
+<p><a href="http://xu3stones.blog.163.com/blog/static/2059571362012103094448554/">这篇中文博客</a>前面的对CPL，DPL，RPL的名词解释部分还不错，但是后面有点看不懂。</p>
+
+<p><a href="https://iambvk.wordpress.com/2007/10/10/notes-on-cpl-dpl-and-rpl-terms/">这个英文笔记</a>其实对这三种权限级别介绍的更为简单，但是清楚，特别是最后对RPL的介绍所举的那个例子。</p>
+
+<p><a href="http://ytliu.info/notes/linux/cpl_dpl_rpl.html">这里</a>是我基于上面这篇英文笔记对这几个名词解释的整理。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-01-24T13:28:00+08:00" pubdate data-updated="true">Jan 24<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/others/'>Others</a>, <a class='category' href='/blog/categories/study/'>Study</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/01/10/qemushe-bei-chu-shi-hua/" title="Previous Post: Qemu中的设备注册">&laquo; Qemu中的设备注册</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/02/01/xiao-ai-de-chu-fang-shang-xian-la/" title="Next Post: 小呆的厨房上线啦">小呆的厨房上线啦 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2015/01/24/zhi-shi-zheng-li-%282015-dot-1%29/';
+        var disqus_url = 'http://ytliu.github.io/blog/2015/01/24/zhi-shi-zheng-li-%282015-dot-1%29/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

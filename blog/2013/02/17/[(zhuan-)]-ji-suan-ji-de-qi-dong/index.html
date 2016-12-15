@@ -1,0 +1,622 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>【转】计算机的启动 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/02/17/%5B%28zhuan-%29%5D-ji-suan-ji-de-qi-dong">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">【转】计算机的启动</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-17T14:24:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>寒假回来就要开始执行新年的计划了~首先是每周的一篇blog。</p>
+
+<p>今天看了<a href="http://www.ruanyifeng.com/blog/">阮一峰</a>最新的一篇博客<a href="http://www.ruanyifeng.com/blog/2013/02/booting.html">计算机是如何启动的</a>，感觉写得很好，又清楚又简单。虽然自己关于计算机启动这个过程从大三OS课的时候就陆陆续续地一直有了解，但是都没有一个系统的了解，或者了解了又忘了，希望通过这次记录把这点彻底弄清楚来并且记在脑子里。另外在评论中有另外一个小哥<a href="http://www.dalei.org/">大磊</a>把他的<a href="http://www.dalei.org/linux-unix-boot-process/">博客</a>也贴出来了，写得很详细，作为阮一峰的补充吧。</p>
+
+<!-- more -->
+
+
+<hr />
+
+<p>以下是转来的文章，中间加上了大磊的补充，也没有区分哪句话是谁说的，具体的还是看之前提到的两篇博客吧：</p>
+
+<h4>零、boot的含义</h4>
+
+<p>先问一个问题，&#8221;启动&#8221;用英语怎么说？</p>
+
+<p>回答是boot。可是，boot原来的意思是靴子，&#8221;启动&#8221;与靴子有什么关系呢？ 原来，这里的boot是bootstrap（鞋带）的缩写，它来自一句谚语：</p>
+
+<pre><code>"pull oneself up by one's bootstraps"
+</code></pre>
+
+<p>字面意思是&#8221;拽着鞋带把自己拉起来&#8221;，这当然是不可能的事情。最早的时候，工程师们用它来比喻，计算机启动是一个很矛盾的过程：必须先运行程序，然后计算机才能启动，但是计算机不启动就无法运行程序！</p>
+
+<p>早期真的是这样，必须想尽各种办法，把一小段程序装进内存，然后计算机才能正常运行。所以，工程师们把这个过程叫做&#8221;拉鞋带&#8221;，久而久之就简称为boot了。</p>
+
+<p>计算机的整个启动过程分成四个阶段。</p>
+
+<h4>一、第一阶段：BIOS</h4>
+
+<p>上个世纪70年代初，&#8221;只读内存&#8221;（read-only memory，缩写为ROM）发明，开机程序被刷入ROM芯片，计算机通电后，第一件事就是读取它。</p>
+
+<p><img src="http://ytliu.info/images/2013-02-17-1.png" title="BIOS" alt="BIOS" /></p>
+
+<p>这块芯片里的程序叫做&#8221;基本輸出輸入系統&#8221;（Basic Input/Output System），简称为BIOS。</p>
+
+<h5>1.1 硬件自检</h5>
+
+<p>BIOS中主要存放的程序包括：自诊断程序（通过读取CMOS RAM中的内容识别硬件配置，并对其进行自检和初始化）、CMOS设置程序（引导过程中，通过特殊热键启动，进行设置后，存入CMOS RAM中）、系统自动装载程序（在系统自检成功后，将磁盘相对0道0扇区上的引导程序装入内存使其运行）和主要I/O驱动程序和中断服务（BIOS和硬件直接打交道，需要加载I/O驱动程序）。</p>
+
+<p>BIOS程序首先检查，计算机硬件能否满足运行的基本条件，这叫做&#8221;硬件自检&#8221;（Power-On Self-Test），缩写为POST。</p>
+
+<p>如果硬件出现问题，主板会发出不同含义的蜂鸣，启动中止。如果没有问题，屏幕就会显示出CPU、内存、硬盘等信息。</p>
+
+<h5>1.2 启动顺序</h5>
+
+<p>硬件自检完成后，BIOS把控制权转交给下一阶段的启动程序。</p>
+
+<p>这时，BIOS需要知道，&#8221;下一阶段的启动程序&#8221;具体存放在哪一个设备。也就是说，BIOS需要有一个外部储存设备的排序，排在前面的设备就是优先转交控制权的设备。这种排序叫做&#8221;启动顺序&#8221;（Boot Sequence）。</p>
+
+<p>打开BIOS的操作界面，里面有一项就是&#8221;设定启动顺序&#8221;。</p>
+
+<p><img src="http://ytliu.info/images/2013-02-17-2.png" title="BIOS Sequence" alt="BIOS Sequence" /></p>
+
+<h4>二、第二阶段：主引导记录</h4>
+
+<p>BIOS按照&#8221;启动顺序&#8221;，把控制权转交给排在第一位的储存设备。即根据用户指定的引导顺序从软盘、硬盘或是可移动设备中读取启动设备的MBR，并放入指定的位置（0x7c000）内存中。</p>
+
+<p>这时，计算机读取该设备的第一个扇区，也就是读取最前面的512个字节。如果这512个字节的最后两个字节是0x55和0xAA，表明这个设备可以用于启动；如果不是，表明设备不能用于启动，控制权于是被转交给&#8221;启动顺序&#8221;中的下一个设备。</p>
+
+<p>这最前面的512个字节，就叫做&#8221;主引导记录&#8221;（Master boot record，缩写为MBR）。</p>
+
+<h5>2.1 主引导记录的结构</h5>
+
+<p>&#8220;主引导记录&#8221;只有512个字节，放不了太多东西。它的主要作用是，告诉计算机到硬盘的哪一个位置去找操作系统。</p>
+
+<p>主引导记录由三个部分组成：</p>
+
+<pre><code>（1） 第1-446字节：调用操作系统的机器码。
+（2） 第447-510字节：分区表（Partition table）。
+（3） 第511-512字节：主引导记录签名（0x55和0xAA）。
+</code></pre>
+
+<p>其中，第二部分&#8221;分区表&#8221;的作用，是将硬盘分成若干个区。</p>
+
+<h5>2.2 分区表</h5>
+
+<p>硬盘分区有很多好处。考虑到每个区可以安装不同的操作系统，&#8221;主引导记录&#8221;因此必须知道将控制权转交给哪个区。</p>
+
+<p>分区表的长度只有64个字节，里面又分成四项，每项16个字节。所以，一个硬盘最多只能分四个一级分区，又叫做&#8221;主分区&#8221;。</p>
+
+<p>每个主分区的16个字节，由6个部分组成：</p>
+
+<pre><code>（1） 第1个字节：如果为0x80，就表示该主分区是激活分区，控制权要转交给这个分区。四个主分区里面只能有一个是激活的。
+（2） 第2-4个字节：主分区第一个扇区的物理位置（柱面、磁头、扇区号等等）。
+（3） 第5个字节：主分区类型。
+（4） 第6-8个字节：主分区最后一个扇区的物理位置。
+（5） 第9-12字节：该主分区第一个扇区的逻辑地址。
+（6） 第13-16字节：主分区的扇区总数。
+</code></pre>
+
+<p>最后的四个字节（&#8221;主分区的扇区总数&#8221;），决定了这个主分区的长度。也就是说，一个主分区的扇区总数最多不超过2的32次方。</p>
+
+<p>如果每个扇区为512个字节，就意味着单个分区最大不超过2TB。再考虑到扇区的逻辑地址也是32位，所以单个硬盘可利用的空间最大也不超过2TB。如果想使用更大的硬盘，只有2个方法：一是提高每个扇区的字节数，二是增加扇区总数。</p>
+
+<h4>三、第三阶段：硬盘启动</h4>
+
+<p>这时，计算机的控制权就要转交给硬盘的某个分区了，这里又分成三种情况。</p>
+
+<h5>3.1 情况A：卷引导记录</h5>
+
+<p>上一节提到，四个主分区里面，只有一个是激活的。计算机会读取激活分区的第一个扇区，叫做&#8221;卷引导记录&#8221;（Volume boot record，缩写为VBR）。</p>
+
+<p>&#8220;卷引导记录&#8221;的主要作用是，告诉计算机，操作系统在这个分区里的位置。然后，计算机就会加载操作系统了。</p>
+
+<h5>3.2 情况B：扩展分区和逻辑分区</h5>
+
+<p>随着硬盘越来越大，四个主分区已经不够了，需要更多的分区。但是，分区表只有四项，因此规定有且仅有一个区可以被定义成&#8221;扩展分区&#8221;（Extended partition）。</p>
+
+<p>所谓&#8221;扩展分区&#8221;，就是指这个区里面又分成多个区。这种分区里面的分区，就叫做&#8221;逻辑分区&#8221;（logical partition）。</p>
+
+<p>计算机先读取扩展分区的第一个扇区，叫做&#8221;扩展引导记录&#8221;（Extended boot record，缩写为EBR）。它里面也包含一张64字节的分区表，但是最多只有两项（也就是两个逻辑分区）。</p>
+
+<p>计算机接着读取第二个逻辑分区的第一个扇区，再从里面的分区表中找到第三个逻辑分区的位置，以此类推，直到某个逻辑分区的分区表只包含它自身为止（即只有一个分区项）。因此，扩展分区可以包含无数个逻辑分区。</p>
+
+<p>但是，似乎很少通过这种方式启动操作系统。如果操作系统确实安装在扩展分区，一般采用下一种方式启动。</p>
+
+<h5>3.3 情况C：启动管理器</h5>
+
+<p>在这种情况下，计算机读取&#8221;主引导记录&#8221;前面446字节的机器码之后，不再把控制权转交给某一个分区，而是运行事先安装的&#8221;启动管理器&#8221;（boot loader），由用户选择启动哪一个操作系统。</p>
+
+<p>Linux环境中，目前最流行的启动管理器是Grub。</p>
+
+<p><img src="http://ytliu.info/images/2013-02-17-3.png" title="Grub" alt="Grub" /></p>
+
+<p>对于grub而言，在MBR中的446字节的引导程序属于GRUB的开始执行程序，通过这段程序，进一步执行stage1.5或是stage2的执行程序，将在下面详细介绍执行过程。</p>
+
+<p>其中stage1.5或是stage2便属于阶段2引导的过程了，stage2过程也是作为GRUB kernel的核心代码出现。Stage1.5过程（对于GRUB而言存在stage1.5，GRUB2则不存在）的功能很单一，主要就是为了引导stage2过程服务。由于stage2过程的代码存放在文件系统下的boot分区目录中，因此stage1.5过程就是需要提供一个文件系统的环境，而该文件系统环境需要保证系统可以找到stage2过程的文件，那么stage1.5阶段提供的文件系统需要是boot文件系统所对应的，这个在执行grub install过程中就已经确定了。stage2过程中，主要会把系统切换到保护模式，设置好C运行时环境，找到config文件（事实上就是menulist文件），如果没有找到就执行一个shell，等待用户的执行。然后的工作就变成了输入命令->解析命令->执行命令的循环中。当然该阶段引导的最终状态就是执行boot命令，将内核和initrd镜像加载进入内存中，进而将控制权转交给内核。</p>
+
+<h4>四、第四阶段：操作系统</h4>
+
+<p>控制权转交给操作系统后，操作系统的内核首先被载入内存。</p>
+
+<p>以Linux系统为例，先载入/boot目录下面的kernel。内核加载成功后，第一个运行的程序是/sbin/init。它根据配置文件（Debian系统是/etc/initab）产生init进程。这是Linux启动后的第一个进程，pid进程编号为1，其他进程都是它的后代。</p>
+
+<p>然后，init线程加载系统的各个模块，比如窗口程序和网络程序，直至执行/bin/login程序，跳出登录界面，等待用户输入用户名和密码。</p>
+
+<p>至此，全部启动过程完成。</p>
+
+<hr />
+
+<p>另外在大磊的<a href="http://www.dalei.org/linux-unix-boot-process/">博客</a>中还有许多细节部分：</p>
+
+<h4>BIOS启动细节：</h4>
+
+<p>a) 按下电源开关，电源就开始向主板和其它设备供电；当芯片组检测到电源已经开始稳定供电了(当然从不稳定到稳定的过程只是一瞬间的事情)，它便撤去RESET信号(如果是手工按下计算机面板上的Reset按钮来重启机器，那么松开该按钮时芯片组就会撤去RESET信号)；CPU马上就从地址FFFF:0000H 处开始执行指令，放在这里的只是一条跳转指令，跳到系统BIOS中真正的启动代码处。</p>
+
+<p>b) 系统BIOS的启动代码首先进行POST(Power－On Self Test，加电后自检)。POST的主要检测系统中一些关键设备是否存在和能否正常工作，例如内存和显卡等设备；由于POST是最早进行的检测过程，此时显卡还没有初始化，如果系统BIOS在进行POST的过程中发现了一些致命错误，例如没有找到内存或者内存有问题(此时只会检查640K常规内存)，那么系统BIOS就会直接控制喇叭发声来报告错误，声音的长短和次数代表了错误的类型；在正常情况下，POST过程进行得非常快，几乎无法感觉到它的存在。POST结束之后就会调用其它代码来进行更完整的硬件检测。</p>
+
+<p>c) 接下来系统BIOS将查找显卡的BIOS。前面说过，存放显卡BIOS的ROM芯片的起始地址通常设在C0000H处，系统BIOS在这个地方找到显卡BIOS之后就调用它的初始化代码，由显卡BIOS来初始化显卡。此时多数显卡都会在屏幕上显示出一些初始化信息，介绍生产厂商、图形芯片类型等内容，不过这个画面几乎是一闪而过。系统BIOS接着会查找其它设备的BIOS程序，找到之后同样要调用这些BIOS内部的初始化代码来初始化相关的设备。</p>
+
+<p>d) 查找完所有其它设备的BIOS之后，系统BIOS将显示出它自己的启动画面，其中包括有系统BIOS的类型、序列号和版本号等内容。</p>
+
+<p>e) 接着系统BIOS将检测和显示CPU的类型和工作频率，测试所有的RAM，并同时在屏幕上显示内存测试的进度。可以在CMOS设置中自行决定使用简单耗时少或者详细耗时多的测试方式。</p>
+
+<p>f) 内存测试通过之后，系统BIOS将开始检测系统中安装的一些标准硬件设备，包括硬盘、CD-ROM、串口、并口和软驱等设备，另外绝大多数较新版本的系统BIOS在这一过程中还要自动检测和设置内存的定时参数、硬盘参数和访问模式等。</p>
+
+<p>g) 标准设备检测完毕后，系统BIOS内部支持即插即用的代码将开始检测和配置系统中安装的即插即用设备。每找到一个设备之后，系统BIOS都会在屏幕上显示出设备的名称和型号等信息，同时为该设备分配中断、DMA通道和I/O端口等资源。</p>
+
+<p>h) 到这一步为止，所有硬件都已经检测配置完毕了，多数系统BIOS会重新清屏并在屏幕上方显示出一个表格，其中概略地列出了系统中安装的各种标准硬件设备，以及它们使用的资源和一些相关工作参数。</p>
+
+<p>i) 接下来系统BIOS将更新ESCD(Extended System Configuration Data，扩展系统配置数据)。ESCD是系统BIOS用来与操作系统交换硬件配置信息的一种手段，这些数据被存放在CMOS(一小块特殊的RAM，由主板上的电池来供电)之中。通常ESCD数据只在系统硬件配置发生改变后才会更新，所以不是每次启动机器时都能够看到“Update ESCD… Success”这样的信息。不过，某些主板的系统BIOS在保存ESCD数据时使用了与Windows 9x不相同的数据格式，于是Windows 9x在它自己的启动过程中会把ESCD数据修改成自己的格式。但在下一次启动机器时，即使硬件配置没有发生改变，系统BIOS也会把ESCD的数据格式改回来。如此循环，将会导致在每次启动机器时，系统BIOS都要更新一遍ESCD，这就是为什么有些机器在每次启动时都会显示出相关信息的原因。</p>
+
+<p>j) ESCD更新完毕后，系统BIOS的启动代码将进行它的最后一项工作：即根据用户指定的启动顺序从软盘、硬盘或光驱启动MBR。在这个过程中会按照启动顺序顺序比较其放置MBR的位置的结尾两位是否为0xAA55，通过这种方式判断从哪个引导设备进行引导。在确定之后，将该引导设备的MBR内容读入到0x7C00[1]的位置，并再次判断其最后两位，当检测正确之后，进行阶段1的引导。</p>
+
+<h4>EFI启动细节</h4>
+
+<p>与传统MBR相比，GPT采用了不同的分区方式。</p>
+
+<p>对于传统MBR，其结构主要如下：</p>
+
+<p><img src="http://ytliu.info/images/2013-02-17-4.png" title="BIOS Graph" alt="BIOS Graph" /></p>
+
+<p>上图即对上文中所述的很形象的说明，在图中看到MBR被分成三个部分，分别是：Bootloader、分别表以及Magic Number。其中Bootloader部分为stage1中被执行的起始部分。</p>
+
+<p>相反，对于EFI系统中所采用的GPT分区方式，则采用了不同于MBR分区方式的形式，从下图中可以发现：</p>
+
+<p><img src="http://ytliu.info/images/2013-02-17-5.png" title="EFI Graph" alt="EFI Graph" /></p>
+
+<p>如上图所示，GPT分区表主要包括：保护MBR、首要GPT头、首要GPT、备用GPT、备用GPT头和磁盘数据区。保护MBR与正常的MBR区别不大，主要是分区表上的不同，在保护MBR中只要一个表示为0xEE的分区，以此来表示这块硬盘使用GPT分区表。首要GPT头包含了众多信息，具体内容如下：</p>
+
+<p><img src="http://ytliu.info/images/2013-02-17-6.png" title="EFI Table" alt="EFI Table" /></p>
+
+<p>分区表头定义了硬盘的可用空间以及组成分区表的项的大小和数量。分区表头还记录了这块硬盘的GUID，记录了分区表头本身的位置和大小（位置总是在LBA1）以及备份分区表头和分区表的位置和大小（在硬盘的最后）。它还存储着它本身和分区表的CRC32校验。固件、引导程序和操作系统在启动时可以根据这个校验值来判断分区表是否有错误，如果出错了，可以使用软件从硬盘最后的备份GPT分区表恢复整个分区表，如果备份GPT也校验错误，那么磁盘将不可用，系统拒绝启动。</p>
+
+<p>接下来主要是128个分区表项，GPT分区表使用简单而直接的方式表示分区。一个分区表项的前16字节是分区类型GUID。例如，EFI系统分区的GUID类型是{C12A7328-F81F-11D2-BA4B-00A0C93EC93B} 。接下来的16字节是该分区的唯一的GUID（这个指的是该分区本身，而之前的GUID指的是该分区的类型）。在接下来是分区其实和末尾的64位LBA编号，以及分区的名字和属性。具体结构如下表：</p>
+
+<p><img src="http://ytliu.info/images/2013-02-17-7.png" title="EFI Table2" alt="EFI Table2" /></p>
+
+<h4>MBR引导</h4>
+
+<p>接下来开始真正的引导过程了，主要说明GRUP的引导。总体上GRUB更像是一个mini os，只不过这个mini os的作用只是加载其他的操作系统，在GRUB中包括stage1、stage1.5（可选）和stage2，其中stage1和stage1.5属于boot loader，stage2属于mini os的内核部分。GRUB中stage1过程主要位于MBR的前446字节中（对于支持GPT分区的磁盘，同样有最开始的512字节作为保护MBR，保护MBR与正常的MBR区别不大，主要是分区表上的不同，在保护MBR中只要一个表示为0xEE的分区，以此来表示这块硬盘使用GPT分区表，不能识别GPT硬盘的操作系统通常会识别出一个未知类型的分区，并且拒绝对硬盘进行操作），之后的64字节为硬盘的分区表，最后两个字节为MBR结束标志位（0xAA55）。</p>
+
+<p>stage1部分占用了446字节，其代码文件是源码目录下stage1/stage1.S文件，汇编后生成一个512字节的boot.img，被写在硬盘的0面0道1扇区中，作为硬盘的MBR。stage1的工作很简单，就是加载0面0道2扇区上的512字节到0×8000，然后跳转到0×8000执行。</p>
+
+<p>在0面0道2扇区上的512字节内容为<code>stage1/start.S</code>文件汇编后生成。该扇区上的内容的作用是加载stage1.5或是stage2过程，并将控制权转交。</p>
+
+<h4>Grub引导</h4>
+
+<p>在start过程将控制权转交后，接下来就是GRUB的核心过程了。该过程之所以区分stage1.5和stage2，主要原因是GRUB和GRUB2的区别。在GRUB2中，将stage1.5过程集成到了stage2的过程中，所以stage1.5过程仅仅是针对GRUB的。下面将会分别介绍两种GRUB版本的两种过程。</p>
+
+<p>4.1 GRUB中stage1.5过程</p>
+
+<p>Stage1.5过程很无辜，它的作用很单一，但是非常关键。它的主要功用就是构造一个boot分区系统对应的文件系统，这样可以通过文件系统的路径（/boot/grub/）寻找stage2过程需要的core.img，进而加载到内存中开始执行。</p>
+
+<p>Stage1.5存在于0面0道3扇区开始的地方，并一直延续十几k字节的区域，具体的大小与相应的文件系统的大小有关（文中涉及到了0面0道1-3+x扇区，这部分扇区为保留扇区，BIOS不会放置任何数据。正因为如此如果转换到GPT分区形式，系统将不能被正确引导，如上文所示，MBR后面的扇区都被其他内容所占据）。Stage1.5过程被构建成多种不同类型，但是功能类似，下面简单介绍一下基本的stage1.5过程的文件系统。e2fs_stage1_5（针对ext2fs，可引导ext2和ext3文件系统）、fat_stage1_5（针对fat文件系统，可引导fat32和fat16）、ffs_stage1_5、jfs_stage1_5、minix_stage1_5、reiserfs_stage1_5、vstafs_stage1_5和xfs_stage1_5，这些文件被称为stage1.5过程，这些文件每个至少都在11k以上。除此之外还有两个比较特殊的文件，分别为nbgrub和pxegrub，这两个文件主要是在网络引导时使用，只是格式不同而已，他们很类似与stage2，只是需要建立网络来获取配置文件。</p>
+
+<p>由于stage1.5过程中会涉及到多个文件系统对应的文件，因此本文中主要以ext2fs为例进行说明，其他文件系统与此类似，可以同样进行分析理解。</p>
+
+<p>对于ext2fs文件系统，用于生成该文件系统的stage1.5过程文件（e2fs_stage1_5）的代码为<code>stage2/fsys_ext2fs.c</code>文件。</p>
+
+<p>在<code>stage2/filesys.h</code>文件中定义了每个文件系统对外的接口，用于上层调用，作为stage2过程寻找核心代码使用，文件系统一般被定义的接口主要就是三个函数，分别是mount、read和dir函数。对应ext2fs，其定义的函数为：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#ifdef FSYS_EXT2FS</span>
+</span><span class='line'><span class="cp">#define FSYS_EXT2FS_NUM 1</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">ext2fs_mount</span> <span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">ext2fs_read</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">int</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">ext2fs_dir</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">dirname</span><span class="p">);</span>
+</span><span class='line'><span class="cp">#else</span>
+</span><span class='line'><span class="cp">#define FSYS_EXT2FS_NUM 0</span>
+</span><span class='line'><span class="cp">#endif</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>针对ext2fs有如上的函数名称，每个函数将具体在<code>stage2/fsys_ext2fs.c</code>文件中被定义，这里面没有包含任何的写的过程，对于bootloader而言仅仅读就可以完成任务了，没必要对其系统进行写操作。其中ext2fs_mount函数用于检查文件系统类型，并将superblock读入到内存中；ext2fs_read函数和ext2fs_dir函数用于对文件系统具体的操作。在<code>stage2/fsys_ext2fs.c</code>文件中除了需要对这三个函数的定义之外，还需要文件系统的属性的数据结构（superblock、inode和group结构，这些结构最初被定义在<code>include/linux/ext2_fs.h</code>文件中），通过这些数据结构描述一个文件系统。</p>
+
+<p>如果读者有兴趣可以试着创建新的文件系统的支持，可以参照目前存在的一些文件系统的模板（实例）编写。</p>
+
+<p>4.2 GRUB中stage2过程</p>
+
+<p>GRUB中的核心过程也就是stage2过程了，该过程主要是在文件系统建立以后选择合适的操作系统进行加载并转交控制权，达到最后引导操作系统的目标。由于GRUB属于multi boot loader，因此在引导的时候要进行选择，选择哪种操作系统来运行。在GRUB内部主要包括两种方式，首先是从menu.list中读取显示到屏幕让用户选择，其次是通过grub-shell中定义的命令手动进行启动。本文将在后面介绍这两种方式如何运行，接下来先介绍一下stage2的具体的执行过程。</p>
+
+<p>在上面一节中介绍过，stage1.5过程中将boot分区的文件系统加载了，之后又做了一件事情，就是将控制权转交给stage2，而stage2入口的地方就是<code>stage2/asm.S</code>文件。<code>Stage2/asm.S</code>文件属于汇编代码，主要作用是初始化C语言的运行环境，为下面执行C语言的函数做好准备，在准备好之后，将执行init_bios_info(<code>stage2/common.c</code>)函数。init_bios_info函数的作用是执行一些底层的函数，然后跳转到cmain执行，cmain函数位于<code>stage2/stage2.c</code>文件中。cmain函数内部进行一个死循环，在循环内部首先加载配置文件，显示给用户，在这同时循环一个内层循环，在内层循环中，获取配置文件中的命令，并解析执行。过程中如果没有可用的配置文件，那么进入命令行模式（enter_cmdline函数），如果找到可用的menu，那么开始执行menu的对应的内容（run_menu函数）。</p>
+
+<p>对于enter_cmdline（<code>stage2/stage2.c</code>）函数，将调用find_command（<code>stage2/cmdline.c</code>），进而执行相应命令的函数。</p>
+
+<p>对于run_menu（<code>stage2/stage2.c</code>）函数，将调用<code>stage2/cmdline.c</code>文件中的run_script函数，进而调用find_command，执行相应命令的函数。</p>
+
+<p>这两种方式虽然经过了不同的过程，对用户输入的行为进行分析和处理，最终调用的函数为find_command，在该函数中顺序循环比较“输入”的命令是否与系统内部定义的相同，如果相同转到执行该函数。在这个比较的过程中包含了一个全局的数据结构为struct builtin（<code>stage2/shared.h</code>），由该数据结构组成了一个table类型（<code>stage2/builtins.c</code>），将命令与相对应的builtin结构对应一起并进行串联。下面描述一下builtin结构的定义：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">builtin</span> <span class="p">{</span>
+</span><span class='line'>  <span class="cm">/* 命令名称，重要，是搜索命令时的依据*/</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span><span class='line'>  <span class="cm">/* 命令函数，重要，是搜索匹配后调用的函数*/</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">func</span><span class="p">)</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+</span><span class='line'>  <span class="cm">/* 功能标示，一般未用到. */</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">flags</span><span class="p">;</span>
+</span><span class='line'>  <span class="cm">/* 简短帮助信息*/</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">short_doc</span><span class="p">;</span>
+</span><span class='line'>  <span class="cm">/* 完整帮助信息*/</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">long_doc</span><span class="p">;</span>
+</span><span class='line'><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">struct</span> <span class="n">builtin</span> <span class="o">*</span><span class="n">builtin_table</span><span class="p">[]</span><span class="err">；</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>有兴趣的读者可以对上面的内容进行扩展，形成自己的命令，主要在<code>stage2/builtins.c</code>文件中按照预定的格式更新，并添加到builtin_table中即可。</p>
+
+<p>在上面打开配置文件的过程中，主要是通过一些文件操作函数（被定义在<code>stage2/disk_io.c</code>中）完成。这些文件操作函数主要包括：grub_open、grub_read、grub_seek和grub_close等，这些函数属于grub对外的上层接口，具体的函数内部将调用前文中提到的boot分区对应的文件系统的相应的函数完成，这个过程主要是通过回调函数来完成。该过程整体思路类似于面向对象过程，通过对象操作具体的函数。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-17T14:24:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/linux/'>Linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/01/12/qiao-bang-zhu-chuan-you-gan/" title="Previous Post: 乔帮主传有感">&laquo; 乔帮主传有感</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/02/23/traceview-in-android/" title="Next Post: Traceview in Android">Traceview in Android &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/02/17/%5B%28zhuan-%29%5D-ji-suan-ji-de-qi-dong/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/02/17/%5B%28zhuan-%29%5D-ji-suan-ji-de-qi-dong/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

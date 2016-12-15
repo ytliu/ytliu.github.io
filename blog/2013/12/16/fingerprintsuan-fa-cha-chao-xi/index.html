@@ -1,0 +1,479 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>fingerprint算法查抄袭 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/12/16/fingerprintsuan-fa-cha-chao-xi">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Fingerprint算法查抄袭</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-16T22:51:00+08:00" pubdate data-updated="true">Dec 16<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>这两周在改学生的Lab，据说有很多人直接抄了github上的代码，就把Naruil以前写的查抄袭软件拿来用了下，感觉超有效果，绝对是TA的利器。不过虽然查抄袭这件事本身很方便，写个配置文件输个命令就结束了，不过之后要处理的事就麻烦多了，要回复一堆学生的邮件，巨花时间，所以建议助教还是少干查抄袭这件事，实在是件吃力不讨好的活。</p>
+
+<p>闲话扯到这，其实在我前年的<a href="http://ytliu.info/blog/2011/12/26/paper-reading-tcp-re-and-incremental-mr/">一篇博客</a>就提到过Naruil的这个查抄袭算法，不过当时主要是介绍关于TCP redundancy的，它用到的也是fingerprint算法，而在那篇博文中也提到Naruil用lua写的查抄袭软件其实是基于一篇Sigmod&#8217;03的paper：<a href="http://dl.acm.org/citation.cfm?id=872770">Winnowing</a>，今天就根据这篇论文来介绍下fingerprint算法以及Naruil是如何把它应用在查抄袭这件事儿上的。</p>
+
+<!-- more -->
+
+
+<p>首先，根据Winnowing的作者的经验，查抄袭的算法必须满足以下三个条件：</p>
+
+<ul>
+<li>必须不被像”空格“、字母大小写、标点符号这类字符或token影响（以及在检查代码时不被变量名、函数名影响）；</li>
+<li>必须忽略一些短词对整个算法的影响，比如两个文档中都有很多”the“，但是其实这并没有什么意义；</li>
+<li>必须是”position independence“，即不能因为在某个文档中调换了下”子字符串“顺序，增加了或减少了某些”子字符串“而受影响。</li>
+</ul>
+
+
+<p>而fingerprint算法解决了这三个问题！</p>
+
+<p>首先我们先来描述一个最常见的fingerprint算法：k-gram。将一个文档的字符串分成长度为k（k为可选参数）的子字符串集（k-grams），然后将这些子字符串各自算个hash值，然后再在所有这些hash中选取出来一个子集，这个子集就是这个文档的fingerprint。</p>
+
+<p>举个例子：</p>
+
+<p>对于字符串：</p>
+
+<pre><code>A do run run run, a do run run
+</code></pre>
+
+<p>我们先把一些不相关的字符（如空格）去掉，变成：</p>
+
+<pre><code>adorunrunrunadorunrun
+</code></pre>
+
+<p>然后分成<code>n-k+1</code>个长度为k（假设这里k取5）的子字符串：</p>
+
+<pre><code>adoru dorun orunr runru unrun nrunr runru unrun nruna 
+runad unado nador adoru dorun orunr runru unrun
+</code></pre>
+
+<p>再通过一种hash算法把这些子字符串分别算一个hash值：</p>
+
+<pre><code>77 72 42 17 98 50 17 98 8
+88 67 39 77 72 42 17 98
+</code></pre>
+
+<p>之后问题就变成”如何在所有的hash值中选取一个子集“，即如何<code>sample</code>。最极端的方法就是选取所有的hash值，但是这样就会把原来的n个字符变成<code>（n-k+1)*n</code>个字符数进行计算，这样会产生巨大的计算量。</p>
+
+<p>另外一个之前比较成熟的算法叫<code>0 mod p</code>，即选出这些hash值中<code>mod p</code>为0的值。比如对于上面的例子，可以选取<code>p=4</code>，则选取出来的hash为：</p>
+
+<pre><code>72 8 88 72
+</code></pre>
+
+<p>这种算法的好处在于：对于一个确定的值<code>p</code>，它的实现非常简单，而且基本上可以sample出大约<code>1/p</code>的hash值。但是它有一个缺点，即无法保证两个文档某个段落中的重复被查出来。这个是什么意思呢？让我们假设两个被选出来的hash值对应在文档中的内容之间的距离叫一个”gap“，那么这个”gap“的最大值是unbounded的！也就是说，通过<code>0 mod p</code>这种方法，我们无法保证在”gap“为t之内的一段文字所产生的<code>t-k+1</code>个hash被选取出来。</p>
+
+<p>不知道讲清楚了没有，如果还有问题，那么再具体一些：假设我们有一个文档D，字符数为105，采用k-gram算法且k取值6，则它会产生<code>105-6+1=100</code>个hash值，文档D有5个段落p1, p2, p3, p4, p5，假设使用<code>0 mod p</code>算法，p取值10，那么很有可能这<code>(105-6+1)/10=10</code>个hash值只分布在段落p1, p2, p4中，而p3和p5中没有一个hash值被选取出来。虽然这种概率不大，但是我们不能保证p1~p5这5个段落都有值被选取出来进行比较。</p>
+
+<p>其实还有一种sample的方法，就是每次选取所有hash值中最小的n个。这个方法其实效果也挺好的，不过它的缺点在于如果我们是比较那种containment的情况，即类似于一个文档包含另一个文档的情况，这个就会有问题。即使我们根据产生的hash值数目的比例来选择最小的n个值，比如文档A产生了100个hash值，文档B产生了50个hash值，那么我们在文档A中选取最小的10个，文档B中选取最小的5个，它还是无法保证在文档A中选取的10个hash值中存在和文档B相对应的子文档的hash值（因为可能在文档A中较小的hash值都分布在其他段落中）。</p>
+
+<p>关于k-gram fingerprint算法，还有一点需要提到的，就是如何计算hash值。有一个很有名的算法叫做<code>Kar and Rabin's algorithm</code>，它采用了一种叫做”rolling“的方法，使得第<code>i+1</code>个k-gram能够很快地从第<code>i</code>个k-gram中计算出来。具体流程是这样的：</p>
+
+<p>我们假设一个k-gram c1&#8230;ck是k个b位数，它的hash值的计算方法就是：</p>
+
+<pre><code>c1*b^(k-1) + c2*b^(k-2) + ... + ck
+</code></pre>
+
+<p>那么它的下一个k-gram c2&#8230;c(k+1)的hash值的计算方式则是：</p>
+
+<pre><code>H(c2...c(k+1)) = (H(c1...ck) - c1 * b^(k-1)) * b + c(k+1)
+</code></pre>
+
+<p>或者：</p>
+
+<pre><code>H'(c2...c(k+1)) = ((H'(c1...ck) - c1 * b^k) + c(k+1)) * b
+</code></pre>
+
+<p>上面讲的就是通常的k-grams fingerprint算法，当然还有一些不是基于k-grams的算法，这里就不说了。fingerprint算法可以满足最早提到的查抄袭系统的三个要求：</p>
+
+<ul>
+<li>它会将一些不相关字符（如空格等）先去掉，避免其对结果造成影响；</li>
+<li>对于小于k长度的子字符串它都不会计算hash，从而不会对结果造成影响；</li>
+<li>它并不需要和位置相关，不同位置的相同k长度的子字符串如果得到的hash值都被sample出来了，那么也会被检查出来。</li>
+</ul>
+
+
+<hr />
+
+<p>接下来就要讲下这篇文章的算法——winnowing。</p>
+
+<p>winnowing也是一种k-grams算法，区别在于它sample hash的方式，它解决的就是<code>0 mod p</code>中遇到的问题：unbounded gap。它的方法其实非常简单：</p>
+
+<p>还是利用上面给的例子，得到的hash值是：</p>
+
+<pre><code>77 72 42 17 98 50 17 98 8 88 67 39 77 72 42 17 98
+</code></pre>
+
+<p>假设我们希望任意t个字符之内（不包含t）的重复都能被查出来，那么我们就设置一个窗口（window)<code>w=t-k+1</code>。举个例子，比如在上面5-grams的例子中我们希望t=8，那么我们就设置<code>w=8-5+1=4</code>，于是，得到了以下14个hash值的窗口：</p>
+
+<pre><code>(77, 74, 42, 17) (74, 42, 17, 98) (42, 17, 98, 50)
+(17, 98, 50, 17) (98, 50, 17, 98) (50, 17, 98,  8)
+(17, 98,  8, 88) (98,  8, 88, 67) ( 8, 88, 67, 39)
+(88, 67, 39, 77) (67, 39, 77, 74) (39, 77, 74, 42)
+(77, 74, 42, 17) (74, 42, 17, 98)
+</code></pre>
+
+<p>然后我们选出每个窗口中的最小值，这里需要注意的是，相连几个窗口的最小值可能指的是文档中同一个hash，这个时候我们只需要在这个hash第一次出现的那个窗口选择它就可以了，其它的窗口就不再需要选择最小值了。比如在这个例子中，前三个窗口的最小值都是17，而且指向的是同一个hash，所以我们只需要选择第一个就可以了，另外两个窗口都不需要选择，直到第四个窗口又出现了另外一个17。通过这个算法我们就可以sample出以下5个hash值：</p>
+
+<pre><code>17 17 8 39 17
+</code></pre>
+
+<p>于是这个就是这整个文档的fingerprint。之所以在这里要选择每个window的最小值，就在于这样可以得到很多相同的值，使得最后得到的fingerprint的hash数更少。比如上面得到的5个hash值有3个是重复的，如果应用的需求是和位置无关的话（比如后面会说到的查抄袭程序），则可以在最后的检查过程中把3个”17“变成1个”17“，整个fingerprint就变成：</p>
+
+<pre><code>17 8 39
+</code></pre>
+
+<p>很容易可以看出这种sample的算法选出的fingerprint可以满足它的需求：</p>
+
+<ul>
+<li>如果任意t长度的字符之内（不包含t）存在重复，它都能得到它其中某个k长度的子字符串的fingerprint，并检查出来；</li>
+<li>任意小于k长度的噪声子字符串都不会对结果产生影响。</li>
+</ul>
+
+
+<hr />
+
+<p>接下来就来说下Naruil是如何利用winnowing算法进行查抄袭的：</p>
+
+<ul>
+<li>由于是检查C/C++代码的抄袭情况，所以对于任何需要检查的文件，先要用一个语义分析器把所有的关键字、变量名、函数名等变成一个个token（这里的token其实就是不同的数字），然后把空格、注释、标点符号，以及support code等去掉；</li>
+<li>通过上一步，把任意文件都变成了一个长度为n的token串，然后选择了一个k值（Naruil选的是7，据说是实验了好几次得到的结果），把这个token串分成<code>n-k+1</code>个长度为k的子token串；</li>
+<li>将这些子token串分别算一个hash值；</li>
+<li>选择一个w（window）值（Naruil选择的是5），将上一步算出来的hash值按顺序填入每一个window中；</li>
+<li>然后利用前面说的winnowing算法选出每个window中的最小hash值；</li>
+<li>将这些选出来的hash值去掉重复的，得出来的hash值就是这个文件的fingerprint</li>
+<li>最后就把每一个学生相同文件的fingerprint进行比较，得到任意两个文件相同hash值的比例，就是这两个学生该文件的重复率了。</li>
+</ul>
+
+
+<p>通过这个算法最后得出来的效果还蛮好的，如果去看重复率在70%以上的学生的代码会发现大部分可以很明显地看出来抄袭的痕迹，就是把变量名改一改，把函数顺序换一换什么的。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-16T22:51:00+08:00" pubdate data-updated="true">Dec 16<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/algorithm/'>Algorithm</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/12/13/mei-guo-qian-zheng-mian-qian-xiao-ji/" title="Previous Post: 美国签证面签小记">&laquo; 美国签证面签小记</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/01/19/wo-de-2013/" title="Next Post: 我的2013">我的2013 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/12/16/fingerprintsuan-fa-cha-chao-xi/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/12/16/fingerprintsuan-fa-cha-chao-xi/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

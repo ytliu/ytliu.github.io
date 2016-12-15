@@ -1,0 +1,745 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/page/8">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/06/base64bian-ma/">Base64编码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-06T12:42:00+08:00" pubdate data-updated="true">Jan 6<span>th</span>, 2013</time>
+        
+         | <a href="/blog/2013/01/06/base64bian-ma/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两天看<a href="http://www.csc.ncsu.edu/faculty/jiang/" title="Xuxian Jiang">Jiang</a>团队对<a href="http://www.csc.ncsu.edu/faculty/jiang/AnserverBot/" title="AnserverBot Malware">AnserverBot</a>的一篇详细的<a href="http://www.csc.ncsu.edu/faculty/jiang/pubs/AnserverBot_Analysis.pdf" title="AnserverBot Analysis">分析</a>中提到AnserverBot中对很多数据（比如C&amp;C server的url等）进行了Base64编码，于是，我对这种编码进行了了解，并根据他们实现的python解码脚本，写了一个ruby的解码脚本。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2013/01/06/base64bian-ma/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/30/qemu-study-for-android-emulator/">Qemu Study for Android Emulator</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-30T19:10:00+08:00" pubdate data-updated="true">Dec 30<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/12/30/qemu-study-for-android-emulator/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两天看了下android emulator的源代码，位置在<code>android-src/external/qemu</code>里面，</p>
+
+<p>编译和启动的方式很简单；</p>
+
+<pre><code>$ ./android-configure.sh
+$ make
+$ export ANDROID_SDK_ROOT=/path/to/androdi-sdk
+$ emulator-arm @4.2
+</code></pre>
+
+<p>你可以对源码进行修改，然后重新编译、使用，而这里主要要讲的是qemu的运行原理，资料来源是<a href="http://lists.gnu.org/archive/html/qemu-devel/2011-04/pdfhC5rVdz7U8.pdf">Qemu detailed study</a>。要说明的一点是，android emulator原理基本上是和qemu一样的，只是加了一些android specific的东西在里面。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/12/30/qemu-study-for-android-emulator/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/20/ru-guo-ming-tian-shi-shi-jie-mo-ri/">如果明天是世界末日</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-20T21:44:00+08:00" pubdate data-updated="true">Dec 20<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/12/20/ru-guo-ming-tian-shi-shi-jie-mo-ri/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>那我觉得今天过的好没意义啊。</p>
+
+<p>早晨起床，刷牙，洗脸，拉尿，换衣服，滑轮滑去买了两个肉包，到实验室喝了杯蜂蜜水，写了两行related work，被叫去开组会，突然华为的人进来又听海波和他们讨论了一个上午，中午吃了碗和方便面长的一样但是比方便面难吃还要17块钱的“辛拉面”，回到实验室抄了两个小时的政治课笔记，莫名其妙地又待了一个小时写了几行related work，唯一还算比较有意义的就是晚上和实验室去吃了世界末日前最后一餐，回来被小呆众闺蜜调戏了一番，然后和“追梦的贱人们”聊了会儿天&#8230;然后等下又要冒着雨会寝室，洗脸洗脚，刷牙睡觉&#8230;</p>
+
+<p>如果明天真的是世界末日的话，那这个就算我的遗嘱了吧&#8230;</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/12/20/ru-guo-ming-tian-shi-shi-jie-mo-ri/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/15/dynamic-linker/">Dynamic Linker</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-15T13:03:00+08:00" pubdate data-updated="true">Dec 15<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/12/15/dynamic-linker/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在了解dynamic linker之前，得先对ELF文件有一个初步的了解：</p>
+
+<p>在<a href="http://www.jollen.org/blog/2006/12/enabling_dynamic_loader_1.html" title="elf">jollen</a>的博客中有一断对ELF Session的表格:</p>
+
+<p><img src="http://ytliu.info/images/2012-12-09-1.png" title="elf section" alt="elf section" /></p>
+
+<p>很有参考价值。其中将会涉及到的sections有<em>.got</em>, <em>.plt</em>, <em>.interp</em>。</p>
+
+<p>另外在<a href="http://www.bottomupcs.com/" title="computer science from bottom up">Computer Science from the Bottom Up</a>中有一章对dynamic linker进行了详细的说明。</p>
+
+<p>以下的内容很多来自于该文档和俞甲子的《程序员的自我修养》一书第七章。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/12/15/dynamic-linker/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/09/aslr-in-android/">ASLR in Android</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-09T11:07:00+08:00" pubdate data-updated="true">Dec 9<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/12/09/aslr-in-android/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两篇看了两篇文章分析<a href="https://blog.duosecurity.com/2012/02/a-look-at-aslr-in-android-ice-cream-sandwich-4-0/" title="asli in 4.0">aslr in androi4.0</a>和<a href="https://blog.duosecurity.com/2012/07/exploit-mitigations-in-android-jelly-bean-4-1/" title="aslr in 4.1">android 4.1</a>，觉得蛮有趣的，这里简单介绍下。</p>
+
+<h3>ASLR with Liux Kernel</h3>
+
+<p>首先介绍下linux中的ASLR，ASLR可以对任意内存进行随机化：</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/12/09/aslr-in-android/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/08/get-root-in-my-android/">Get Root in My Android</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-08T16:28:00+08:00" pubdate data-updated="true">Dec 8<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/12/08/get-root-in-my-android/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>首先申明，这其实并不是一篇android root教程，因为我并没有用什么exploit的方法，也没有用CWM等这些第三方ROM，而是改了ASOP，然后把它刷到机子上，然后对其进行所谓的root，装了一个dSploit和busybox。</p>
+
+<p>具体的做法是这样的：</p>
+
+<ul>
+<li>更新到ASOP的最新版 - 4.2.4</li>
+<li>lunch full-maguro, make</li>
+<li>fastboot to smartphone</li>
+<li>把手机连到电脑上，通过adb shell上去，进入su模式</li>
+<li>通过<a href="http://www.cypherpunk.at/2011/10/08/manual-rooting-android-on-linux-2/" title="manual rooting">这里</a>的方法进行root</li>
+</ul>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/12/08/get-root-in-my-android/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/01/connect-smartphone-to-android-emulator/">Connect Smartphone to Android Emulator</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-01T15:37:00+08:00" pubdate data-updated="true">Dec 1<span>st</span>, 2012</time>
+        
+         | <a href="/blog/2012/12/01/connect-smartphone-to-android-emulator/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两天碰到一个难题，如何让手机中的某应用程序通过网络连接PC中的android emulator里面的服务。</p>
+
+<p>即我在emulator里面开启了一个服务，该服务通过socket监听2012端口，那么在我的手机中，如何通过socket连接到这个服务中，也就是说，我的IP要设为什么，端口号要设为什么？</p>
+
+<p>这个问题在于PC为emulator分配了一个端口号（这里为5554），所以在PC中可以很方便地和emulator进行交互，但是emulator并没有一个对外可见的IP地址。</p>
+
+<p>在<a href="http://stackoverflow.com,%20stackoverflow">stackoverflow</a>上查了好久，有一个说<a href="http://stackoverflow.com/questions/7108326/how-can-we-change-the-ip-of-android-emulator">如何连接两个emulator的</a>，还有一个<a href="http://stackoverflow.com/questions/7108326/how-can-we-change-the-ip-of-android-emulator">介绍了一个非常复杂但经过我的测试有效的方法</a>。这里简单介绍一下：</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/12/01/connect-smartphone-to-android-emulator/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/11/25/isfjian-wen-yu-shou-huo/">ISF见闻与收获</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-11-25T13:03:00+08:00" pubdate data-updated="true">Nov 25<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/11/25/isfjian-wen-yu-shou-huo/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>11月22-23日两天参加了<a href="http://isf.cisrg.org/%20ISF2012">ISF2012</a>，作为一个刚刚涉入安全领域的我来说实在是收获太多，很有必要进行个比较详细的总结。</p>
+
+<p>我想自己在这两天最大的收获在于认识了<a href="http://www.claudxiao.net/%20ClaudXiao">Claud Xiao</a>，第一天中午吃饭的时候，当发现一起聊了很久的坐在旁边吃饭的竟然是Claud的时候我瞬间就由一种穿越的感觉，前几天还在疯狂地浏览和学习他的博客，突然发现这个人就坐在我对面。他和我们讲了很多包括业界和学术界的关于安全方面的经历和事情，讲的很平易近人，而且非常的实在。这两天包括和他的聊天，还有他对很多问题的看法，甚至让我觉得他应该在安全领域做了好久了，而最后一个晚上吃饭的时候问他才知道他竟然只比我大了一岁！唉。。。差距啊。。。作为一个学术界和工业界两头都要兼顾的人，真的很不容易吧，而他对于学习新的事物又是那么的渴望而又充满激情，实在是钦佩。在这里真的很推荐他的<a href="http://www.claudxiao.net/%20IClaud">博客</a>，这几天从那里学到好多东西。</p>
+
+<p>还有在这两天与交大的gossip组和港中文的两个博士（sbark和茗坤）也聊了很多，发现他们在代码的静态和动态分析这块领域真的专的蛮深的，和他们一起聊这块东西感觉很多时候我们都插不上话，而只是默默地倾听和学习。和他们的聊天中发现他们对于这方面的东西如数家珍，能够非常融会贯通地聊，而很多东西在我看来听起来很熟悉，但是却时常不能将人与事物，名称和做的东西联系起来，实在是惭愧。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/11/25/isfjian-wen-yu-shou-huo/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/11/12/android-partition-explaination/">Android Partition Explaination</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-11-12T21:16:00+08:00" pubdate data-updated="true">Nov 12<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/11/12/android-partition-explaination/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两天看了AndroidForums上的一个Thread，主要是介绍Android Partition的，感觉写的非常好，很有必要做个简单的笔记。</p>
+
+<p>具体的信息在以下两个链接地址中：</p>
+
+<p>http://androidforums.com/evo-4g-all-things-root/278898-android-partitions-kernels-explained.html</p>
+
+<p>http://androidforums.com/evo-4g-all-things-root/279261-more-information-about-android-partitions.html</p>
+
+<p>这个thread由两个人来写，<a href="http://androidforums.com/members/novox77.html">novox77</a>主要介绍了下android中partition的大概组织结构，<a href="http://androidforums.com/members/akazabam.html">akazabam</a>则详细地介绍了android partition的内部机制和原理，以及如何利用其来将application从RAM中移到sdcard上。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/11/12/android-partition-explaination/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/11/11/getsystemservice-in-android/">getSystemService() in Android</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-11-11T20:18:00+08:00" pubdate data-updated="true">Nov 11<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/11/11/getsystemservice-in-android/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在之前研究了那么久的bindService()这个API，一直没搞清楚一个问题：</p>
+
+<p>为什么我看到的基本上都是和AMS相关的代码，而之前所学到说如果application要和service打交道都是需要通过ServiceManager获得某个service的binder才可以。那么AMS和ServiceManager到底是什么关系呢？如果AMS是通过ServiceManager获得的service binder，那么相关的代码又是在哪里呢？</p>
+
+<p>这个问题困扰了我很久，直到我看到一个<a href="http://blog.csdn.net/windskier/article/details/6625883" title="杜文涛的专栏">博客</a>，我才发现其实我把一个很重要的概念混起来了：</p>
+
+<p>Android中主要通过2种方法来获得service binder：</p>
+
+<ul>
+<li>通过一些API如bindService，来获得application service的binder。因为app service都是直接和AMS注册的，AMS运行在system_server进程；</li>
+<li>通过ServiceManager.getService(String Descriptor)来获得Service Manager管理的service的binder，ServiceManager运行在servicemanager进程。</li>
+</ul>
+
+
+<p>也就是说，尼玛bindService只是用来bind application level的service！！！</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/11/11/getsystemservice-in-android/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/9/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/7/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader&#8217;s blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao&#8217; weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

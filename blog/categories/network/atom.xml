@@ -1,0 +1,1453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Network | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/network/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Netmap setup]]></title>
+    <link href="http://ytliu.github.io/blog/2014/05/28/netmap-setup/"/>
+    <updated>2014-05-28T14:39:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/05/28/netmap-setup</id>
+    <content type="html"><![CDATA[<p>I've recently read the paper <a href="http://info.iet.unipi.it/~luigi/papers/20120503-netmap-atc12.pdf">netmap: a novel framework for fast packet I/O</a> published in ATC 2012 as its best paper award. And I also try to setup it in my mini-pc, with Realtek whose driver is r8169, which is supported by netmap.</p>
+
+<p>However since they only support r8169 before 3.4 linux kernel, and my kernel version is 3.13.7, so I need to write my own r8169 driver patch. Fortunately the r8169 code is not quite different between these two kernel versions, it is trivial to do so.</p>
+
+<p>Let's see how to setup the netmap environment and test it:</p>
+
+<!-- more -->
+
+
+<p>First we need to download a linux kernel source, for me I want to use the same kernel version with current one, so I use <code>3.13.7</code>, download, compile and install it:</p>
+
+<pre><code>$ wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.13.7.tar.gz
+$ tar zxvf linux-3.13.7.tar.gz
+$ cd linux-3.13.7
+$ make menuconfig
+$ cp /boot/config-3.13.7 ./.config
+$ make -j4
+$ sudo make modules_install
+$ sudo make install
+$ sudo update-grub2
+</code></pre>
+
+<p>Then reboot. Next step is make r8169 driver patch for <code>linux-3.13.7/drivers/net/ethernet/realtek/r8169.c</code></p>
+
+<p>Before showing how to do that, we first need to download the Netmap source code:</p>
+
+<pre><code>$ git clone https://code.google.com/p/netmap/
+$ cd netmap/LINUX
+</code></pre>
+
+<p>You will find in <code>patches</code> folder, there are already many patches for different NICs, e.g., e1000, igb, ixgbe, etc., and when you find the <code>diff--r8169.c--xxxxx--xxxxx</code>, you can see the latest kernel version it supports is <code>30200--30400</code>, which is linux 3.2.0 to 3.4.0, so based on this patch <code>diff--r8169.c--30200--30400</code>, I make my own patch for the kernel version 30d07 (3.13.7) as follows:</p>
+
+<pre><code>$ diff -Naur ./r8169.c ./r8169.bk.c &gt; r8169.patch
+$ cp r8169.patch /path/to/netmap/LINUX/patches/diff-r8169.c--30d07--30d08
+$ cat diff-r8169.c--30d07--30d08
+</code></pre>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">---</span> <span class="p">.</span><span class="o">/</span><span class="n">r8169</span><span class="p">.</span><span class="n">c</span> <span class="mi">2014</span><span class="o">-</span><span class="mo">03</span><span class="o">-</span><span class="mi">24</span> <span class="mi">12</span><span class="o">:</span><span class="mi">45</span><span class="o">:</span><span class="mf">42.000000000</span> <span class="o">+</span><span class="mi">0800</span>
+</span><span class='line'><span class="o">+++</span> <span class="p">.</span><span class="o">/</span><span class="n">r8169</span><span class="p">.</span><span class="n">bk</span><span class="p">.</span><span class="n">c</span>  <span class="mi">2014</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">29</span> <span class="mi">14</span><span class="o">:</span><span class="mo">03</span><span class="o">:</span><span class="mf">42.489702302</span> <span class="o">+</span><span class="mi">0800</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">925</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">925</span><span class="p">,</span><span class="mi">12</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">RTL_R32</span><span class="p">(</span><span class="n">OCPAR</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">OCPAR_FLAG</span><span class="p">;</span>
+</span><span class='line'> <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;+</span><span class="err">#</span><span class="k">if</span> <span class="n">defined</span><span class="p">(</span><span class="n">CONFIG_NETMAP</span><span class="p">)</span> <span class="o">||</span> <span class="n">defined</span><span class="p">(</span><span class="n">CONFIG_NETMAP_MODULE</span><span class="p">)</span>
+</span><span class='line'><span class="o">+</span><span class="k">static</span> <span class="kt">int</span> <span class="n">rtl_open</span><span class="p">(</span><span class="k">struct</span> <span class="n">net_device</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="k">static</span> <span class="kt">int</span> <span class="n">rtl8169_close</span><span class="p">(</span><span class="k">struct</span> <span class="n">net_device</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">if_re_netmap_linux</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'> <span class="k">static</span> <span class="n">u32</span> <span class="n">ocp_read</span><span class="p">(</span><span class="k">struct</span> <span class="n">rtl8169_private</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">tp</span><span class="p">,</span> <span class="n">u8</span> <span class="n">mask</span><span class="p">,</span> <span class="n">u16</span> <span class="n">reg</span><span class="p">)</span>
+</span><span class='line'> <span class="p">{</span>
+</span><span class='line'>  <span class="kt">void</span> <span class="n">__iomem</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">ioaddr</span> <span class="o">=</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">mmio_addr</span><span class="p">;</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">5771</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">5777</span><span class="p">,</span><span class="mi">12</span> <span class="err">@@</span>
+</span><span class='line'> <span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="n">re_netmap_tx_init</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span> <span class="k">if</span> <span class="p">(</span><span class="n">re_netmap_rx_init</span><span class="p">(</span><span class="n">tp</span><span class="p">))</span>
+</span><span class='line'><span class="o">+</span>   <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// success</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">NUM_RX_DESC</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="err">@@</span> <span class="o">-</span><span class="mi">5854</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">5866</span><span class="p">,</span><span class="mi">11</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">napi_disable</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">tp</span><span class="o">-&gt;</span><span class="n">napi</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="n">netmap_disable_all_rings</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'>  <span class="n">netif_stop_queue</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">synchronize_sched</span><span class="p">();</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="err">@@</span> <span class="o">-</span><span class="mi">5866</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">5883</span><span class="p">,</span><span class="mi">11</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="n">rtl8169_init_ring_indexes</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">napi_enable</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">tp</span><span class="o">-&gt;</span><span class="n">napi</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="n">netmap_enable_all_rings</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'>  <span class="n">rtl_hw_start</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">netif_wake_queue</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">rtl8169_check_link_status</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">mmio_addr</span><span class="p">);</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">6122</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">6144</span><span class="p">,</span><span class="mi">11</span> <span class="err">@@</span>
+</span><span class='line'> <span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">dirty_tx</span><span class="p">,</span> <span class="n">tx_left</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="k">if</span> <span class="p">(</span><span class="n">netmap_tx_irq</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</span><span class='line'><span class="o">+</span>   <span class="k">return</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'>  <span class="n">dirty_tx</span> <span class="o">=</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">dirty_tx</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">smp_rmb</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">tx_left</span> <span class="o">=</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">cur_tx</span> <span class="o">-</span> <span class="n">dirty_tx</span><span class="p">;</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">6218</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">6245</span><span class="p">,</span><span class="mi">11</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">cur_rx</span><span class="p">,</span> <span class="n">rx_left</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">count</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="k">if</span> <span class="p">(</span><span class="n">netmap_rx_irq</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">count</span><span class="p">))</span>
+</span><span class='line'><span class="o">+</span>       <span class="k">return</span> <span class="n">count</span><span class="p">;</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'>  <span class="n">cur_rx</span> <span class="o">=</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">cur_rx</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">for</span> <span class="p">(</span><span class="n">rx_left</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">budget</span><span class="p">,</span> <span class="n">NUM_RX_DESC</span><span class="p">);</span> <span class="n">rx_left</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span> <span class="n">rx_left</span><span class="o">--</span><span class="p">,</span> <span class="n">cur_rx</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">6439</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">6471</span><span class="p">,</span><span class="mi">11</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="n">del_timer_sync</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">tp</span><span class="o">-&gt;</span><span class="n">timer</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">napi_disable</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">tp</span><span class="o">-&gt;</span><span class="n">napi</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="n">netmap_disable_all_rings</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'>  <span class="n">netif_stop_queue</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">rtl8169_hw_reset</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
+</span><span class='line'><span class="err">@@</span> <span class="o">-</span><span class="mi">6544</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">6581</span><span class="p">,</span><span class="mi">10</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="n">set_bit</span><span class="p">(</span><span class="n">RTL_FLAG_TASK_ENABLED</span><span class="p">,</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">wk</span><span class="p">.</span><span class="n">flags</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">napi_enable</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">tp</span><span class="o">-&gt;</span><span class="n">napi</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="n">netmap_enable_all_rings</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">rtl8169_init_phy</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">tp</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="err">@@</span> <span class="o">-</span><span class="mi">6807</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">6848</span><span class="p">,</span><span class="mi">9</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="n">unregister_netdev</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">rtl_release_firmware</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="n">netmap_detach</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">pci_dev_run_wake</span><span class="p">(</span><span class="n">pdev</span><span class="p">))</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">pm_runtime_get_noresume</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">pdev</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="err">@@</span> <span class="o">-</span><span class="mi">7186</span><span class="p">,</span><span class="mi">6</span> <span class="o">+</span><span class="mi">7230</span><span class="p">,</span><span class="mi">10</span> <span class="err">@@</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">pci_dev_run_wake</span><span class="p">(</span><span class="n">pdev</span><span class="p">))</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">pm_runtime_put_noidle</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">pdev</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">dev</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;+</span><span class="err">#</span><span class="n">ifdef</span> <span class="n">DEV_NETMAP</span>
+</span><span class='line'><span class="o">+</span> <span class="n">re_netmap_attach</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
+</span><span class='line'><span class="o">+</span><span class="err">#</span><span class="n">endif</span> <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">DEV_NETMAP</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="o">+</span>
+</span><span class='line'>  <span class="n">netif_carrier_off</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span> <span class="n">out</span><span class="o">:</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>After making the patch, we can compile the netmap:</p>
+
+<pre><code>$ make
+</code></pre>
+
+<p>There may be some compiling errors in <code>if_re_netmap_linux.h</code>, that is because the API of r8169 driver has changed, so just remove the <code>rtl8169_wait_for_quiescence</code> function invoking, and change <code>rtl8169_open</code> to <code>rtl_open</code>, then all errors are gone.</p>
+
+<p>After the <code>make</code> process, there will generate many <code>.ko</code> file, then we can install the netmap and r8169 driver modules:</p>
+
+<pre><code>$ sudo rmmod r8169
+$ sudo insmod netmap_lin.ko
+$ sudo insmod r8169.ko
+</code></pre>
+
+<p>and compile the example apps they provided:</p>
+
+<pre><code>$ make apps
+</code></pre>
+
+<p>To test whether it succeed, we can use the compiled example <code>pkt-gen</code>:</p>
+
+<pre><code>$ cd /path/to/netmap/examples
+$ sudo ./pkt-gen -i eth0 -f tx -l 64 -d 10.25.192.61 -D 74:d4:35:47:83:db
+</code></pre>
+
+<p>In my situation, the rate line can only reach ~300 Kpps, as the README says:</p>
+
+<blockquote><p>re/r8169 is extremely slow in sending (max 4-500 Kpps)</p></blockquote>
+
+<p>So the environment is already setup.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Netfilter学习笔记（四）]]></title>
+    <link href="http://ytliu.github.io/blog/2013/10/04/netfilterxue-xi-bi-ji-%28si-%29/"/>
+    <updated>2013-10-04T11:39:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2013/10/04/netfilterxue-xi-bi-ji-(si-)</id>
+    <content type="html"><![CDATA[<p>前几天在看kvm网络相关的东西，看到nat，就上网搜了下相关资料，看到<a href="http://linux.vbird.org/">鸟哥的linux私房菜</a>关于<a href="http://linux.vbird.org/linux_server/0250simple_firewall.php">防火墙和nat</a>的介绍，里面有很详细的对netfilter和iptables的介绍，感觉学习了之后又有了更深的了解，特别是对除了<a href="http://ytliu.info/blog/2013/03/29/netfilterxue-xi-bi-ji-%28yi-%29/">之前</a>介绍过的<code>filter</code>之外的另外一个<code>nat</code>表的了解。以下的内容基本上全部摘录自<a href="http://linux.vbird.org/linux_server/0250simple_firewall.php">这篇博文</a>，并进行了一些整理：</p>
+
+<p>我觉得最能够说明<code>nat</code>表和<code>filter</code>表的关系的是鸟哥整理的一张图：</p>
+
+<p><img src="http://ytliu.info/images/2013-10-04-1.png" title="iptalbes" alt="nat filter" /></p>
+
+<p>从上面的图中可以看出如果只是考虑<code>filter</code>和<code>nat</code>两个表的话，iptables可以控制三种网络封包的流向：</p>
+
+<ul>
+<li>路径A：进入主机的封包，在路由判断后确定是向本主机发送的封包，主要就会透过<code>filter</code>的<code>INPUT</code>链来进行控管；</li>
+<li>路径B：将本主机作为防火墙/代理的封包，在路由判断之前进行封包表头的修改之后，发现该封包主要是透过防火墙/代理而去后端主机，此时封包就会走路径B。也就是说，该封包的目标并不是我们的主机，而是要经过<code>filter</code>的<code>FORWARD</code>，以及<code>nat</code>的<code>POSTROUTING</code>链。</li>
+<li>路径C：从本主机发送出去的封包，例如回应用户端的要求，或者是本机主动发送出去的封包，先是经过路由判断，决定输出的路径后，再经由<code>filter</code>的<code>OUTPUT</code>，以及<code>nat</code>的<code>POSTROUTING</code>链传送出去的。</li>
+</ul>
+
+
+<p>也就是说，如果我们要处理到达本机或者从本机发出的网络包，那么我们主要是要关心<code>filter</code>表的<code>INPUT</code>和<code>OUTPUT</code>两条链，而如果我们要在另外一台主机上搭建一个防火墙，或者代理，那么我们就需要对<code>filter</code>表的<code>FORWARD</code>，以及<code>nat</code>表的<code>PREROUTING</code>和<code>POSTROUTING</code>进行配置。</p>
+
+<!-- more -->
+
+
+<hr />
+
+<p>接下来就是对<code>nat</code>用法的一些介绍：</p>
+
+<p>NAT的全名是Network Address Translation，即网络地址翻译。在开始说NAT之前，我们先重新回顾一下比较简单的封包经过iptables传送到后端主机的表与链流程：</p>
+
+<ul>
+<li>先经过<code>nat</code>表的<code>PREROUTING</code>链；</li>
+<li>经由路由判断确定这个封包是要进入本机与否，若不进入本机，则下一步；</li>
+<li>再经过<code>filter</code>表的<code>FORWARD</code>链；</li>
+<li>通过<code>nat</code>表的<code>POSTROUTING</code>链，最后传送出去。</li>
+</ul>
+
+
+<p>而NAT的重点就在于上面流程的第1、4两个步骤，也就是<code>nat</code>表的两条重要的链：<code>PREROUTING</code>与<code>POSTROUTING</code>。这两条链的关键在于修改包头的IP。但是这两条链修改的IP是不一样的：<code>POSTROUTING</code>修改的是来源IP，而<code>PREROUTING</code>修改的则是目标IP。 由于修改的IP 不一样，所以就称为来源NAT（Source NAT，SNAT）及目标NAT（Destination NAT，DNAT）。</p>
+
+<p>我们以下图中的配置为实例，来说明SNAT和DNAT分别是如何工作的：</p>
+
+<p><img src="http://ytliu.info/images/2013-10-04-2.png" title="nat" alt="nat" /></p>
+
+<p>在上图中，linux主机可以作为一个防火墙，将内网与外网进行分离，并控制和过滤网络封包的进出；另外，它也可以作为内网各个主机的网关主机，可以管理内网中的主机与外界互联网的交互。它一般需要两个网络介面（比如eth1负责内网，地址为<code>private IP</code> —— 192.168.1.2，eth0负责外网，地址为<code>public IP</code>）。那么SNAT和DNAT又是什么呢？</p>
+
+<p><em>SNAT</em>：修改封包表头的”来源“项。它可以让家里好几台主机同时透过一条ADSL网路连线到Internet上面；或者对于实验室来说一般只有一个公网IP，而实验室的所有主机连接外网，就需要通过SNAT，即通过<code>nat</code>表的<code>POSTROUTING</code>来处理的。假设你的网路布线如下图所示， 那么NAT主机是如何处理这个封包的呢？</p>
+
+<p><img src="http://ytliu.info/images/2013-10-04-3.png" title="snat 1" alt="snat 1" /></p>
+
+<p>如上图所示，在用户端<code>192.168.1.100</code>这部主机要连线到<code>http://tw.yahoo.com</code>去时，他的封包表头会如何变化？  </p>
+
+<ul>
+<li>用户端所发出的封包表头中，来源地址是<code>192.168.1.100</code>，然后传送到NAT主机；</li>
+<li>NAT主机的内部介面（eth1，地址<code>192.168.1.2</code>）接收到这个封包后，会主动分析表头资料，因为表头资料显示目的并非本本机，所以开始经过路由，将此封包转到可以连接到 Internet 的<code>public IP</code>处；</li>
+<li>由于<code>private IP</code>与<code>public IP</code>不能互通，所以NAT主机透过iptables的<code>nat</code>表内的<code>POSTROUTING</code>链将封包表头的来源伪装成为NAT主机的<code>public IP</code>，并且将两个不同来源（<code>192.168.1.100</code>及<code>public IP</code>）的封包对应写入内存中，然后将此封包传送出去了；
+ 
+此时 Internet 上面看到这个封包时，都只会知道这个封包来自那个<code>public IP</code>而不知道其实是来自内部。那么如果 Internet 回传封包呢？又会怎么作？</li>
+</ul>
+
+
+<p><img src="http://ytliu.info/images/2013-10-04-4.png" title="snat 2" alt="snat 2" /></p>
+
+<ul>
+<li>在 Internet 上面的主机接到这个封包时，会将回应资料传送给那个<code>public IP</code>的主机；</li>
+<li>当NAT主机收到来自 Internet 的回应封包后，会分析该封包的序号，并比对刚刚写到内存中的资料，由于发现该封包为后端主机之前传送出去的，因此在<code>nat</code>的<code>PREROUTING</code>链中，会将目标IP修改成为后端主机，亦即<code>192.168.1.100</code>，然后发现目标已经不是本机（<code>public IP</code>），所以开始透过路由分析封包流向；</li>
+<li>封包会传送到<code>192.168.1.2</code>这个内部介面，然后再传送到最终目标<code>192.168.1.100</code>机器上去。</li>
+</ul>
+
+
+<p> 经过这个流程，你就可以发现，所有内网中的主机都可以透过这部NAT主机连线出去，而大家在 Internet 上面看到的都是同一个IP（就是NAT主机的<code>public IP</code>)，</p>
+
+<p><em>DNAT</em>：修改封包表头的“目标”项。其主要用在内部主机想要架设可以让 Internet 访问的服务器。</p>
+
+<p><img src="http://ytliu.info/images/2013-10-04-5.png" title="dnat" alt="dnat" /></p>
+
+<p>如上图所示，假设我们的内部主机<code>192.168.1.210</code>启动了<code>www</code>服务，这个服务开启了<code>80端口</code>，那么 Internet 上面的主机（<code>61.xx.xx.xx</code>）要如何连接到我的内部服务器呢？首先，它必须要连接到我们NAT主机的<code>public IP</code>才行。  </p>
+
+<ul>
+<li>外部主机想要连接到目的端的<code>www</code>服务，则必须要先连接到我们的NAT主机；</li>
+<li>NAT主机已经设定好<code>80端口</code>的封包对应的内部服务器的IP——<code>192.168.1.210</code>，所以当NAT主机接到这个封包后，会将目标IP由<code>public IP</code>改成<code>192.168.1.210</code>，且将该封包相关资料记录下来，等待内部服务器的回应；</li>
+<li>上述的封包在经过路由后，来到private介面eth1处，然后透过内部的LAN传送到<code>192.168.1.210</code>主机；</li>
+<li><code>192.186.1.210</code>主机会回应资料给<code>61.xx.xx.xx</code>，这个回应会被传送到NAT主机的<code>192.168.1.2</code>介面eth1上；</li>
+<li>经过路由判断后，来到<code>nat</code>表的<code>POSTROUTING</code>链，然后通过刚刚第二步的记录，将来源IP由<code>192.168.1.210</code>改为<code>public IP</code>后，就可以传送出去了。</li>
+</ul>
+
+
+<p> 其实整个步骤几乎就等于SNAT的反向传送。</p>
+
+<h4>iptables的nat用法</h4>
+
+<p>是这样设置的：</p>
+
+<ul>
+<li>内部介面使用eth1，IP为<code>192.168.100.254</code>.</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>&lt;/p&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;h1&gt;!/bin/bash&lt;/h1&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;h1&gt;相关参数&lt;/h1&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;p&gt;  <span class="nv">EXTIF</span><span class="o">=</span><span class="s2">&quot;eth0&quot;</span>             <span class="c"># public IP介面</span>
+</span><span class='line'>  <span class="nv">INIF</span><span class="o">=</span><span class="s2">&quot;eth1&quot;</span>              <span class="c"># private IP介面</span>
+</span><span class='line'>  <span class="nv">INNET</span><span class="o">=</span><span class="s2">&quot;192.168.100.0/24&quot;</span>   <span class="c"># private IP地址</span>
+</span><span class='line'>  <span class="nb">export </span>EXTIF INIF INNET&lt;/p&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;h1&gt;清除 NAT table 的规则&lt;/h1&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;p&gt;  iptables -F -t nat
+</span><span class='line'>  iptables -X -t nat
+</span><span class='line'>  iptables -Z -t nat
+</span><span class='line'>  iptables -t nat -P PREROUTING  ACCEPT
+</span><span class='line'>  iptables -t nat -P POSTROUTING ACCEPT
+</span><span class='line'>  iptables -t nat -P OUTPUT      ACCEPT&lt;/p&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;h1&gt;若有內部介面的存在（双网卡），开放成为路由器，且为IP分享器！&lt;/h1&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;p&gt;  <span class="k">if</span> <span class="o">[</span> <span class="s2">&quot;$INIF&quot;</span> !<span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="o">]</span>; <span class="k">then</span>&lt;/p&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;pre&gt;&lt;code&gt;iptables -A INPUT -i <span class="nv">$INIF</span> -j ACCEPT
+</span><span class='line'><span class="nb">echo</span> <span class="s2">&quot;1&quot;</span> &amp;gt; /proc/sys/net/ipv4/ip_forward
+</span><span class='line'><span class="k">if</span> <span class="o">[</span> <span class="s2">&quot;$INNET&quot;</span> !<span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="o">]</span>; <span class="k">then</span>
+</span><span class='line'><span class="k">    for </span>innet in <span class="nv">$INNET</span>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'><span class="k">        </span>iptables -t nat -A POSTROUTING -s <span class="nv">$innet</span> -o <span class="nv">$EXTIF</span> -j MASQUERADE
+</span><span class='line'>    <span class="k">done</span>
+</span><span class='line'><span class="k">fi</span>
+</span><span class='line'>&lt;/code&gt;&lt;/pre&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;p&gt;  <span class="k">fi</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其中</p>
+
+<pre><code>echo "1" &gt; /proc/sys/net/ipv4/ip_forward 
+</code></pre>
+
+<p>这一行是在让 Linux 主机具有router的能力。而</p>
+
+<pre><code>iptables -t nat -A POSTROUTING -s $innet -o $EXTIF -j MASQUERADE 
+</code></pre>
+
+<p>这一行最关键！就是加入<code>nat</code>表的封包伪装，重点在那个“MASQUERADE”，这个设定值就是把IP伪装成为封包出去（-o）的那块介面上的IP。以上面的例子来说，就是 <code>$EXTIF</code>，也就是eth0。 所以封包来源只要来自<code>$innet</code>（也就是内网的其他主机），只要该封包是通过eth0传送出去，那就会自动修改表头IP的来源成为eth0的<code>public IP</code>。</p>
+
+<p>这里还有一个问题，那就是对于上面所述的情况，内网中其他的主机应该要如何设定相关的网路参数？</p>
+
+<p>答案其实很简单，只要将NAT主机作为内网主机的网关（GATEWAY）即可。只要记得底下的参数值：</p>
+
+<pre><code>NETWORK 为 192.168.100.0
+NETMASK 为 255.255.255.0
+BROADCAST 为 192.168.100.255
+IP 可以设定 192.168.100.1 ~ 192.168.100.254 间，不可重复
+网关（Gateway）需要设定为 192.168.100.254 (NAT主机的private IP)
+</code></pre>
+
+<p>事实上，除了IP伪装（MASQUERADE）之外，我们还可以直接指定修改IP封包表头的来源IP。 举例来说，如下面这个例子：</p>
+
+<pre><code>iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 192.168.1.100
+</code></pre>
+
+<p>即在不使用伪装的情况下，将对外IP固定为<code>192.168.1.100</code>。另外，还可以这样：</p>
+
+<pre><code>iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 192.168.1.210-192.168.1.220
+</code></pre>
+
+<p>是在你的NAT主机有好几个公网IP的情况下，如果你想要轮流使用不同的IP，就可以这么使用。不过需要说明的是，除非你使用的是固定IP，且有多个IP可以对外连线，否则一般使用IP伪装即可，不需要使用到这个SNAT。另外，如果我们要用DNAT的话，就需要修改<code>nat</code>表的<code>PREROUTING</code>链，比如：</p>
+
+<p>假设内网有服务器IP为<code>192.168.100.10</code>，该主机可对外提供<code>www</code>服务，假设<code>public IP</code>所在的介面为eth0，那么你就需要设置：</p>
+
+<pre><code>iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 192.168.100.10:80 
+</code></pre>
+
+<p>那个<code>-j DNAT --to-destination IP[:port]</code>就是精髓，代表从eth0这个介面传入的，且想要使用<code>80端口</code>的服务时，将该封包重定向到<code>192.168.100.10:80</code>的IP及端口上面。其他还有一些较进阶的iptables使用方式，如下所示：</p>
+
+<pre><code>-j REDIRECT --to-ports &lt;port number&gt; 
+</code></pre>
+
+<p>这个也挺常见的，主要就是进行本机上面端口的转换。不过，需要特别留意的是，这个操作仅能够在<code>nat</code>表的<code>PREROUTING</code>以及<code>OUTPUT</code>链上面实行。</p>
+
+<p>比如，将要求与<code>80端口</code>连接的封包转递到<code>8080端口</code>：</p>
+
+<pre><code>iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080 
+</code></pre>
+
+<hr />
+
+<p>另外真的觉得<a href="http://linux.vbird.org/">鸟哥的Linux私房菜</a>很赞，做的很用心，而且还有一股台湾腔看了感觉很亲切:-) 强烈推荐！</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Netfilter学习笔记（三）]]></title>
+    <link href="http://ytliu.github.io/blog/2013/04/09/netfilterxue-xi-bi-ji-%28san-%29/"/>
+    <updated>2013-04-09T21:21:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2013/04/09/netfilterxue-xi-bi-ji-(san-)</id>
+    <content type="html"><![CDATA[<p>这次的内容主要是关于在Android上如何使用iptables。</p>
+
+<p>其实在android源码中已经有对iptables进行了支持，如何确定可以参看<a href="http://www.roman10.net/how-to-build-and-use-libnetfilter_queue-for-android/">这里</a>。</p>
+
+<p>这里简单说下如何采用nfqueue对其进行控制：</p>
+
+<p>首先说下一个很简单的场景：我们需要将从手机端发到192.168.1.2服务器的所有TCP包都拦截下来，将包的信息打印出来，并将其发送出去。</p>
+
+<!-- more -->
+
+
+<p>具体的步骤如下：</p>
+
+<ul>
+<li><p>首先将手机连到PC上，运行：</p>
+
+<p>  $ adb shell
+  $ su
+  #</p></li>
+</ul>
+
+
+<p>进入root模式，这个时候可以配置iptables：</p>
+
+<pre><code># iptables -A OUTPUT -t tcp -d 192.168.1.2 -j NFQUEUE
+</code></pre>
+
+<p>这样到192.168.1.2的所有TCP包都会进入NFQUEUE等着被处理。</p>
+
+<ul>
+<li><p>此时我们需要写程序来处理NFQUEUE里面的包，首先我们在PC上新建一个Android项目：</p>
+
+<p>  $ android create project --target <target_ID> -name IptablesTest --path ./IptablesTest --activity IptablesTestActivity  --package com.iptables.test
+  $ cd IptablesTest
+  $ mkdir jni</p></li>
+</ul>
+
+
+<p>接下来，要下载两个包（<a href="http://www.netfilter.org/projects/libnfnetlink/downloads.html">libnfnetlink</a>和<a href="http://www.netfilter.org/projects/libnetfilter_queue/downloads.html">libnetfilter_queue</a>）到jni目录下。</p>
+
+<p>然后在jni目录下创建一个文件叫做nfqnl_test.c：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+<span class='line-number'>154</span>
+<span class='line-number'>155</span>
+<span class='line-number'>156</span>
+<span class='line-number'>157</span>
+<span class='line-number'>158</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">stdio</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">stdlib</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">unistd</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">netinet</span><span class="o">/</span><span class="n">in</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">linux</span><span class="o">/</span><span class="n">types</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">linux</span><span class="o">/</span><span class="n">netfilter</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span>        <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="k">for</span> <span class="n">NF_ACCEPT</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">errno</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">libnetfilter_queue</span><span class="o">/</span><span class="n">libnetfilter_queue</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;/&lt;</span><span class="n">em</span><span class="o">&gt;</span> <span class="n">returns</span> <span class="n">packet</span> <span class="n">id</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'><span class="k">static</span> <span class="n">u_int32_t</span> <span class="n">print_pkt</span> <span class="p">(</span><span class="k">struct</span> <span class="n">nfq_data</span> <span class="o">*</span><span class="n">tb</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">id</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">nfqnl_msg_packet_hdr</span> <span class="o">*</span><span class="n">ph</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">nfqnl_msg_packet_hw</span> <span class="o">*</span><span class="n">hwph</span><span class="p">;</span>
+</span><span class='line'><span class="n">u_int32_t</span> <span class="n">mark</span><span class="p">,</span><span class="n">ifi</span><span class="p">;</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">data</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">ph</span> <span class="o">=</span> <span class="n">nfq_get_msg_packet_hdr</span><span class="p">(</span><span class="n">tb</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">ph</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">id</span> <span class="o">=</span> <span class="n">ntohl</span><span class="p">(</span><span class="n">ph</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">packet_id</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;hw_protocol=0x%04x hook=%u id=%u &quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="n">ntohs</span><span class="p">(</span><span class="n">ph</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">hw_protocol</span><span class="p">),</span> <span class="n">ph</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">hook</span><span class="p">,</span> <span class="n">id</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">hwph</span> <span class="o">=</span> <span class="n">nfq_get_packet_hw</span><span class="p">(</span><span class="n">tb</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">hwph</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">hlen</span> <span class="o">=</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">hwph</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">hw_addrlen</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;hw_src_addr=&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">hlen</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%02x:&quot;</span><span class="p">,</span> <span class="n">hwph</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">hw_addr</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%02x &quot;</span><span class="p">,</span> <span class="n">hwph</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">hw_addr</span><span class="p">[</span><span class="n">hlen</span><span class="o">-</span><span class="mi">1</span><span class="p">]);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mark</span> <span class="o">=</span> <span class="n">nfq_get_nfmark</span><span class="p">(</span><span class="n">tb</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">mark</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;mark=%u &quot;</span><span class="p">,</span> <span class="n">mark</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">ifi</span> <span class="o">=</span> <span class="n">nfq_get_indev</span><span class="p">(</span><span class="n">tb</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;indev=%u &quot;</span><span class="p">,</span> <span class="n">ifi</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">ifi</span> <span class="o">=</span> <span class="n">nfq_get_outdev</span><span class="p">(</span><span class="n">tb</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;outdev=%u &quot;</span><span class="p">,</span> <span class="n">ifi</span><span class="p">);</span>
+</span><span class='line'><span class="n">ifi</span> <span class="o">=</span> <span class="n">nfq_get_physindev</span><span class="p">(</span><span class="n">tb</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;physindev=%u &quot;</span><span class="p">,</span> <span class="n">ifi</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">ifi</span> <span class="o">=</span> <span class="n">nfq_get_physoutdev</span><span class="p">(</span><span class="n">tb</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;physoutdev=%u &quot;</span><span class="p">,</span> <span class="n">ifi</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">ret</span> <span class="o">=</span> <span class="n">nfq_get_payload</span><span class="p">(</span><span class="n">tb</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">data</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;payload_len=%d &quot;</span><span class="p">,</span> <span class="n">ret</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">fputc</span><span class="p">(</span><span class="sc">&#39;\n&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">return</span> <span class="n">id</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">static</span> <span class="kt">int</span> <span class="n">cb</span><span class="p">(</span><span class="k">struct</span> <span class="n">nfq_q_handle</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">qh</span><span class="p">,</span> <span class="k">struct</span> <span class="n">nfgenmsg</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">nfmsg</span><span class="p">,</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>      <span class="k">struct</span> <span class="n">nfq_data</span> <span class="o">*</span><span class="n">nfa</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">u_int32_t</span> <span class="n">id</span> <span class="o">=</span> <span class="n">print_pkt</span><span class="p">(</span><span class="n">nfa</span><span class="p">);</span>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;entering callback</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="k">return</span> <span class="n">nfq_set_verdict</span><span class="p">(</span><span class="n">qh</span><span class="p">,</span> <span class="n">id</span><span class="p">,</span> <span class="n">NF_ACCEPT</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">struct</span> <span class="n">nfq_handle</span> <span class="o">*</span><span class="n">h</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">nfq_q_handle</span> <span class="o">*</span><span class="n">qh</span><span class="p">;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">nfnl_handle</span> <span class="o">*</span><span class="n">nh</span><span class="p">;</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+</span><span class='line'><span class="kt">int</span> <span class="n">rv</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">4096</span><span class="p">]</span> <span class="n">__attribute__</span> <span class="p">((</span><span class="n">aligned</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;opening library handle</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">h</span> <span class="o">=</span> <span class="n">nfq_open</span><span class="p">();</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;error during nfq_open()</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;unbinding existing nf_queue handler for AF_INET (if any)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">nfq_unbind_pf</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">AF_INET</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;error during nfq_unbind_pf()</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;binding nfnetlink_queue as nf_queue handler for AF_INET</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">nfq_bind_pf</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">AF_INET</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;error during nfq_bind_pf()</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;binding this socket to queue &#39;0&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">qh</span> <span class="o">=</span> <span class="n">nfq_create_queue</span><span class="p">(</span><span class="n">h</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">cb</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">qh</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;error during nfq_create_queue()</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;setting copy_packet mode</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">nfq_set_mode</span><span class="p">(</span><span class="n">qh</span><span class="p">,</span> <span class="n">NFQNL_COPY_PACKET</span><span class="p">,</span> <span class="mh">0xffff</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;can&#39;t set packet_copy mode</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">fd</span> <span class="o">=</span> <span class="n">nfq_fd</span><span class="p">(</span><span class="n">h</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">rv</span> <span class="o">=</span> <span class="n">recv</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">),</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;pkt received</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">nfq_handle_packet</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">rv</span><span class="p">);</span>
+</span><span class='line'>        <span class="k">continue</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">rv</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">0</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">errno</span> <span class="o">==</span> <span class="n">ENOBUFS</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;losing packets!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>        <span class="k">continue</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">perror</span><span class="p">(</span><span class="s">&quot;recv failed&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">break</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;unbinding from queue 0</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">nfq_destroy_queue</span><span class="p">(</span><span class="n">qh</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;closing library handle</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">nfq_close</span><span class="p">(</span><span class="n">h</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里的原理很简单，就是通过：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">qh</span> <span class="o">=</span> <span class="n">nfq_create_queue</span><span class="p">(</span><span class="n">h</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">cb</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>注册了一个callback函数cb，在</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">nfq_handle_packet</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">rv</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>的时候就会将收到的包传给该函数进行处理，当然了，还可以像<a href="http://ytliu.info/blog/2013/03/29/netfilterxue-xi-bi-ji-%28er-%29/">这里</a>一样通过<code>struct iphdr</code>和<code>struct tcphdr</code>结构体来获得payload里面的IP包头和TCP包的信息，对其进行处理。</p>
+
+<ul>
+<li>之后在jni目录下创建<code>Android.mk</code>文件：</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">LOCAL_PATH</span> <span class="n">is</span> <span class="n">used</span> <span class="n">to</span> <span class="n">locate</span> <span class="n">source</span> <span class="n">files</span> <span class="n">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">tree</span><span class="p">.</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">the</span> <span class="n">macro</span> <span class="n">my</span><span class="o">-</span><span class="n">dir</span> <span class="n">provided</span> <span class="n">by</span> <span class="n">the</span> <span class="n">build</span> <span class="n">system</span><span class="p">,</span> <span class="n">indicates</span> <span class="n">the</span> <span class="n">path</span> <span class="n">of</span> <span class="n">the</span> <span class="n">current</span> <span class="n">directory</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_PATH</span><span class="o">:=</span><span class="err">$</span><span class="p">(</span><span class="n">call</span> <span class="n">my</span><span class="o">-</span><span class="n">dir</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h6</span><span class="o">&gt;</span><span class="err">#</span><span class="o">&lt;/</span><span class="n">h6</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">build</span> <span class="n">libnflink</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h6</span><span class="o">&gt;</span><span class="err">#</span><span class="o">&lt;/</span><span class="n">h6</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">CLEAR_VARS</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_MODULE</span><span class="o">:=</span><span class="n">nflink</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_C_INCLUDES</span> <span class="o">:=</span> <span class="err">$</span><span class="p">(</span><span class="n">LOCAL_PATH</span><span class="p">)</span><span class="o">/</span><span class="n">libnfnetlink</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">include</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_SRC_FILES</span><span class="o">:=</span><span class="err">\</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">libnfnetlink</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">src</span><span class="o">/</span><span class="n">iftable</span><span class="p">.</span><span class="n">c</span> \
+</span><span class='line'>
+</span><span class='line'><span class="n">libnfnetlink</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">src</span><span class="o">/</span><span class="n">rtnl</span><span class="p">.</span><span class="n">c</span> \
+</span><span class='line'>
+</span><span class='line'><span class="n">libnfnetlink</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">src</span><span class="o">/</span><span class="n">libnfnetlink</span><span class="p">.</span><span class="n">c</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_STATIC_LIBRARY</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_SHARED_LIBRARY</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h6</span><span class="o">&gt;</span><span class="err">#</span><span class="o">&lt;/</span><span class="n">h6</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">build</span> <span class="n">libnetfilter_queue</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h6</span><span class="o">&gt;</span><span class="err">#</span><span class="o">&lt;/</span><span class="n">h6</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">CLEAR_VARS</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_C_INCLUDES</span> <span class="o">:=</span> <span class="err">$</span><span class="p">(</span><span class="n">LOCAL_PATH</span><span class="p">)</span><span class="o">/</span><span class="n">libnfnetlink</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">include</span> <span class="err">\</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="err">$</span><span class="p">(</span><span class="n">LOCAL_PATH</span><span class="p">)</span><span class="o">/</span><span class="n">libnetfilter_queue</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">include</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_MODULE</span><span class="o">:=</span><span class="n">netfilter_queue</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_SRC_FILES</span><span class="o">:=</span><span class="n">libnetfilter_queue</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">src</span><span class="o">/</span><span class="n">libnetfilter_queue</span><span class="p">.</span><span class="n">c</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_STATIC_LIBRARIES</span><span class="o">:=</span><span class="n">libnflink</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_STATIC_LIBRARY</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_SHARED_LIBRARY</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h6</span><span class="o">&gt;</span><span class="err">#</span><span class="o">&lt;/</span><span class="n">h6</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">build</span> <span class="n">our</span> <span class="n">code</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h6</span><span class="o">&gt;</span><span class="err">#</span><span class="o">&lt;/</span><span class="n">h6</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">CLEAR_VARS</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_C_INCLUDES</span> <span class="o">:=</span> <span class="err">$</span><span class="p">(</span><span class="n">LOCAL_PATH</span><span class="p">)</span><span class="o">/</span><span class="n">libnfnetlink</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">include</span> <span class="err">\</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="err">$</span><span class="p">(</span><span class="n">LOCAL_PATH</span><span class="p">)</span><span class="o">/</span><span class="n">libnetfilter_queue</span><span class="o">-</span><span class="mf">1.0.0</span><span class="o">/</span><span class="n">include</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_MODULE</span><span class="o">:=</span><span class="n">nfqnltest</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_SRC_FILES</span><span class="o">:=</span><span class="n">nfqnl_test</span><span class="p">.</span><span class="n">c</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_STATIC_LIBRARIES</span><span class="o">:=</span><span class="n">libnetfilter_queue</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">LOCAL_LDLIBS</span><span class="o">:=-</span><span class="n">llog</span> <span class="o">-</span><span class="n">lm</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_SHARED_LIBRARY</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">include</span> <span class="err">$</span><span class="p">(</span><span class="n">BUILD_EXECUTABLE</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li><p>之后，调用ndk-build来创建可执行文件nfqnltest，它位于libs目录下。</p></li>
+<li><p>将nfqnltest传进Android中：</p>
+
+<p>  $ adb shell
+  $ su
+  # mkdir /data/data/nfqnltest
+  # chmod 777 /data/data/nfqnltest</p></li>
+</ul>
+
+
+<p>打开一个shell：</p>
+
+<pre><code>$ adb push libs/nfqnltest /data/data/nfqnltest/
+</code></pre>
+
+<p>转回刚刚那个shell</p>
+
+<pre><code># cd /data/data/nfqnltest
+# ./nfqnltest
+</code></pre>
+
+<p>这样整个过程就完成了。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Netfilter学习笔记（二）]]></title>
+    <link href="http://ytliu.github.io/blog/2013/03/29/netfilterxue-xi-bi-ji-%28er-%29/"/>
+    <updated>2013-03-29T20:26:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2013/03/29/netfilterxue-xi-bi-ji-(er-)</id>
+    <content type="html"><![CDATA[<p>之前讲了关于netfilter和iptables的一些简单的原理和用法，对于iptables来说，如果只能对封包进行DROP、ACCEPT操作，那么就显得太弱了，其实在我看来iptables里面filter表中最牛逼的就在于QUEUE（NFQUEUE）这个target了。</p>
+
+<p>那么当iptables将封包插入QUEUE后，用户态又能用什么方法才能读到queue中的数据呢？</p>
+
+<p>这里介绍两种方法，一种是C语言中使用的<code>libipq</code>，一种是python中使用的<code>nfqueue</code>。</p>
+
+<!-- more -->
+
+
+<h3>libipq</h3>
+
+<p><code>libipq</code>是一个对开发者提供的用于读取iptables queue的C库，具体的用法可以参看<a href="http://linux.die.net/man/3/libipq">linux man page</a>和<a href="http://www.imchris.org/projects/libipq.html">这里</a>的用法，需要注意的是在我的机器中必须得再加三个头文件：</p>
+
+<pre><code>#include &lt;netinet/in.h&gt;
+#include &lt;linux/ip.h&gt;
+#include &lt;linux/tcp.h&gt;
+</code></pre>
+
+<p>另外编译出来的文件必须得用<code>sudo</code>执行！！！</p>
+
+<p>这里主要用了一个数据结构</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">ipq_handle</span> <span class="o">*</span><span class="n">h</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">h</span> <span class="o">=</span> <span class="n">ipq_create_handle</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">PF_INET</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>另外需要设置一个模式，这里是<code>IPQ_COPY_PACKET</code>，即是将queue中的封包的payload和header一起拷贝到用户空间：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">status</span> <span class="o">=</span> <span class="n">ipq_set_mode</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">IPQ_COPY_PACKET</span><span class="p">,</span> <span class="n">BUFSIZE</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>之后通过：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">status</span> <span class="o">=</span> <span class="n">ipq_read</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">BUFSIZE</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>将queueu中的封包一个一个拷贝到用户空间，由用户进行操作，用户可以通过：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ipq_message_type</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>得到包的类型，可能是<code>NLMSG_ERROR</code>，也有可能是<code>IPQM_PACKET</code>，如果是后者，即为一个正常的封包，可以通过类似于如下的代码对封包进行操作：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">case</span> <span class="n">IPQM_PACKET</span>: <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">ipq_packet_msg_t</span> <span class="o">*</span><span class="n">m</span> <span class="o">=</span> <span class="n">ipq_get_packet</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">struct</span> <span class="n">iphdr</span> <span class="o">*</span><span class="n">ip</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">iphdr</span><span class="o">*</span><span class="p">)</span> <span class="n">m</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">payload</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">struct</span> <span class="n">tcphdr</span> <span class="o">*</span><span class="n">tcp</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">tcphdr</span><span class="o">*</span><span class="p">)</span> <span class="p">(</span><span class="n">m</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">payload</span> <span class="o">+</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">ip</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">ihl</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">int</span> <span class="n">port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">tcp</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">dest</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">status</span> <span class="o">=</span> <span class="n">ipq_set_verdict</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">m</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">packet_id</span><span class="p">,</span> <span class="n">NF_ACCEPT</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">status</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">0</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">die</span><span class="p">(</span><span class="n">h</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">break</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>上段代码的意思是先从<code>buf</code>中获得整个封包m，之后可以通过<code>struct iphdr</code>和<code>struct tcphdr</code>获得ip包头和tcp包头，最后有一个最关键的代码：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">status</span> <span class="o">=</span> <span class="n">ipq_set_verdict</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">m</span><span class="o">-&gt;</span><span class="n">packet_id</span><span class="p">,</span> <span class="n">NF_ACCEPT</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里的意思相当于原来在规则中target设为ACCEPT，当然也可以设置成<code>NF_DROP</code>等。</p>
+
+<p>在这里我有一个疑问，就是这里除了获得<code>struct tcphdr</code>之外，我没有找到和TCP的payload相关的结构，不知道该如何获得。</p>
+
+<hr />
+
+<h3>nfqueue</h3>
+
+<p>和C的libipq比起来，支持python的nfqueue会显得强大很多，特别是和<a href="http://www.secdev.org/projects/scapy/">scapy</a>结合起来用的时候。</p>
+
+<p>首先需要说明的是在iptables中的target除了之前提到的五项（ACCEPT，DROP，RETURN，QUEUE，other_chain）之外，还有一个叫<code>NFQUEUE</code>，它是QUEUE的扩展。相比于QUEUE，它可以由用户指定不同的queue number。</p>
+
+<p>在使用nfqueue之前，需要安装如下的包：</p>
+
+<pre><code>$ sudo aptitude install libnetfilter-queue-dev
+$ sudo aptitude install nfqueue-bindings-python
+$ sudo aptitude install python-scapy
+</code></pre>
+
+<p>之后就可以采用python对NFQUEUE进行操作了。</p>
+
+<p>假设我们将封包从主机A（<code>192.168.1.1</code>）传输到主机B（<code>192.168.1.2</code>）时，需要对封包进行分析，如果是TCP协议的包，并且其flags为 ACK|PSH 的话，则将其payload进行修改（比如替换成“hack”）：</p>
+
+<p>首先，需要先在主机A中对iptables进行操作：</p>
+
+<pre><code>$ sudo iptables -A OUTPUT -d 192.168.1.2 -p tcp -j NFQUEUE
+</code></pre>
+
+<p>然后利用下面的代码：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">nfqueue</span><span class="o">,</span><span class="nn">socket</span>
+</span><span class='line'><span class="kn">from</span> <span class="nn">scapy.all</span> <span class="kn">import</span> <span class="o">*&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">def</span> <span class="nf">ch_payload_and_send</span><span class="p">(</span><span class="n">pkt</span><span class="p">):</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">pkt</span><span class="p">[</span><span class="n">TCP</span><span class="p">]</span><span class="o">.</span><span class="n">payload</span> <span class="o">==</span> <span class="s">&quot;hack&quot;</span>
+</span><span class='line'><span class="n">send</span><span class="p">(</span><span class="n">pkt</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">payload</span><span class="p">):</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">data</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+</span><span class='line'><span class="n">pkt</span> <span class="o">=</span> <span class="n">IP</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># Check if TCP flags is ACK|PSH</span>
+</span><span class='line'><span class="k">if</span> <span class="n">pkt</span><span class="p">[</span><span class="n">TCP</span><span class="p">]</span><span class="o">.</span><span class="n">flags</span> <span class="o">==</span> <span class="mi">24</span><span class="p">:</span>
+</span><span class='line'>    <span class="c"># Dropping the packet</span>
+</span><span class='line'>    <span class="n">payload</span><span class="o">.</span><span class="n">set_verdict</span><span class="p">(</span><span class="n">nfqueue</span><span class="o">.</span><span class="n">NF_DROP</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">ch_payload_and_send</span><span class="p">(</span><span class="n">pkt</span><span class="p">)</span>
+</span><span class='line'><span class="k">else</span><span class="p">:</span>
+</span><span class='line'>    <span class="c"># Accepting the packet</span>
+</span><span class='line'>    <span class="n">payload</span><span class="o">.</span><span class="n">set_verdict</span><span class="p">(</span><span class="n">nfqueue</span><span class="o">.</span><span class="n">NF_ACCEPT</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">def</span> <span class="nf">main</span><span class="p">():</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">q</span> <span class="o">=</span> <span class="n">nfqueue</span><span class="o">.</span><span class="n">queue</span><span class="p">()</span>
+</span><span class='line'><span class="n">q</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+</span><span class='line'><span class="n">q</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">)</span>
+</span><span class='line'><span class="n">q</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">)</span>
+</span><span class='line'><span class="n">q</span><span class="o">.</span><span class="n">set_callback</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>
+</span><span class='line'><span class="n">q</span><span class="o">.</span><span class="n">create_queue</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">try</span><span class="p">:</span>
+</span><span class='line'>    <span class="n">q</span><span class="o">.</span><span class="n">try_run</span><span class="p">()</span>
+</span><span class='line'><span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+</span><span class='line'>    <span class="k">print</span> <span class="s">&quot;Exiting...&quot;</span>
+</span><span class='line'>    <span class="n">q</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">q</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span class='line'>    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">main</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里用到了<code>scapy</code>这个非常牛逼的模块，它可以直接通过如<code>IP()</code>，<code>TCP()</code>等直接对包进行解释和操作，非常方便，具体的可以参看它的<a href="http://www.secdev.org/projects/scapy/doc/">文档</a>。这里只是说明下它的安装方式：</p>
+
+<pre><code>$ wget scapy.net
+$ mv index.html scapy-latest.zip
+$ chmod +x scapy-latest.zip
+$ mv scapy-latest.zip /usr/local/bin/scapy
+</code></pre>
+
+<p>然后就可以运行：</p>
+
+<pre><code>$ sudo scapy
+</code></pre>
+
+<p>直接开启scapy的交互模式了。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Netfilter学习笔记（一）]]></title>
+    <link href="http://ytliu.github.io/blog/2013/03/29/netfilterxue-xi-bi-ji-%28yi-%29/"/>
+    <updated>2013-03-29T18:39:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2013/03/29/netfilterxue-xi-bi-ji-(yi-)</id>
+    <content type="html"><![CDATA[<p>这两天在学习<code>iptables</code>，感觉这个东西实在是太牛逼！想用两篇博文来介绍一番。</p>
+
+<p>第一篇会介绍下netfilter和iptables的关系，以及iptables的原理；第二篇希望通过<code>libipq</code>和<code>nfqueue-bindings-python</code>来介绍下user态如何利用C和Python来调用iptables的接口获得封包的信息。</p>
+
+<h3>netfilter</h3>
+
+<p>简单地说，netfilter是一套在计算机网络栈中过滤和修改封包的框架，它的做法是在Linux Kernel中插入了一系列的hook，并允许kernel在不同层的网络栈中注册回调函数，这些回调函数会在封包进入相应的hook的时候被调用到。</p>
+
+<!-- more -->
+
+
+<p>网络栈中对netfilter的支持如图所示：</p>
+
+<p><img src="http://ytliu.info/images/2013-03-29-1.png" title="package flow in netfiter and general networking" alt="netfilter" /></p>
+
+<p>可以看到在链路层和网络层中按照封包流的路径有五种类型的hooks: prerouting, input, forward, output, postrouting。这五种hooks会在封包到达之时按照封包流的顺序调用相应的回调函数，对四种类型的表中的chain（会在iptables中描述）进行过滤和修改：filter, nat, mangle, raw。而定义这些过滤的规则则是由一个用户态的命令<code>iptables</code>进行配置，也就是我接下来要详细描述的命令。</p>
+
+<h3>iptables</h3>
+
+<p><a href="http://itzone.hk/article/index.php?tid=14">这里</a>有6篇系列的文章介绍iptables的，讲的挺清楚，蛮适合入门学习的。</p>
+
+<p>前面说过iptables有四种类型的表：filter，nat，mangle，raw，这里只是对filter表进行介绍：</p>
+
+<p>filter表主要用于对封包进行过滤，在该表中有三条默认的chain：INPUT，FORWARD，OUTPUT。</p>
+
+<p>chain是做什么的呢？(转自<a href="http://itzone.hk/article/article.php?aid=200502091507054036">这里</a>)</p>
+
+<blockquote><p>所謂chain就是一組封包過濾規則，您可以在INPUT chain中加入一條防止所有外界封包進入的規則；您可以在OUTPUT chain中加入一條防止用戶連接某網頁伺服器。準備進入網絡的封包，會順著chain內的過濾規則被稽核，若果該封包並不符合任何規則，則會直接進入網 內，因為INPUT和OUTPUT在Linux kernel裡被預設為ACCEPT，而FORWARD則被預設為DROP。</p></blockquote>
+
+<p>比如说，如果要把发到某个地址（如192.168.1.2）的包丢弃，可以这样做：</p>
+
+<pre><code>$ sudo iptables -A OUTPUT -d 192.168.1.2 -j DROP
+</code></pre>
+
+<p>这里<code>-A</code>指对OUTPUT这条链的规则进行修改，<code>-d</code>表示这个封包的destination，<code>-j</code>后加的是target，有五种选择：ACCEPT（不作任何操作，让封包流过），DROP（将封包丢弃），QUEUE（将封包插入队列，传递到用户态处理，这个会在第二篇中详细描述），RETURN（直接从该chain中返回，到前一个chain的下一条规则继续执行），以及自己定义的CHAIN，如下：</p>
+
+<pre><code>$ sudo iptables -N SELF_CHAIN
+</code></pre>
+
+<p>也就是说我们可以按照不同的源地址、目标地址、端口、协议等规则分类，由不同的chain进行处理，可以更合理地对过滤条件进行管理。</p>
+
+<p>另外，有几个常用的选项这里提一下：</p>
+
+<pre><code>-A chain                # modify a chain
+-D chain rulenum        # delete a specific rule of chain
+-I chain rulenum rule   # insert rule in rulenum of chain
+-R chain rulenum rule   # replace rule with rulenum of chain
+-L [chain]              # list rules of chain
+-F [chain]              # flush the rules of chain
+-N chain                # new a chain
+-X [chain]              # delete chain
+
+-p protocol             # e.g., tcp, udp, icmp...
+-s source address       # e.g., 192.168.1.22
+-d destination address  # e.g., 192.168.1.13
+-j target               # e.g., ACCEPT, DROP, RETURN, QUEUE, other-chain
+-i in-interface         # e.g., eth0
+-o out-interface        # e.g., eth0
+</code></pre>
+
+<hr />
+
+<p>下一篇主要介绍当<code>iptables</code>的target是QUEUE或者NFQUEUE时，用户态要如何调用相关接口。</p>
+]]></content>
+  </entry>
+  
+</feed>

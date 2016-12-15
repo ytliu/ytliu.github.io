@@ -1,0 +1,534 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Notes in CCS 2015 (Denver) - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2015/10/18/notes-in-ccs-2015">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Notes in CCS 2015 (Denver)</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-18T14:41:00+08:00" pubdate data-updated="true">Oct 18<span>th</span>, 2015</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This week I&#8217;ve been to Denver, Colorado, to attend the CCS 2015 and present our work SeCage, which is a hypervisor-enforced approach for intra-domain isolation.</p>
+
+<p>The main conference lasts for 3 days (10.13 ~ 10.15). There are 3 parallel tracks for 36 sessions, for specific reasons, I have only attended 6 sessions.</p>
+
+<p>Following are some of the notes about what I&#8217;ve heard from these sessions.</p>
+
+<!-- more -->
+
+
+<h4>Session 1B: iOS and MAC OS Security</h4>
+
+<p>This is a very interesting session that shows the security of iOS/Mac OS. There are 2 papers in this session.</p>
+
+<p>The first is presented by Luyi Xing from Indiana Univercity Bloomington. As he shows, from 2010 to yesterday, in the 4 top security conferences (S&amp;P, Usenix securiy, CCS, NDSS), there were 0 session with 3 papers discussing about iOS security, compared to the 17 sessions with 88 papers about Android security.</p>
+
+<p>The paper presented by Xing is titled <em>&#8220;Cracking App Isolation on Apple: Unauthorized Cross-App Resource Access on MAC OS X and iOS&#8221;</em>. This is an attack paper that shows several ways to attack iOS/Mac OS with full protection (e.g., sandboxing isolating, indirect interaction, direct communication, vetting), and results in the leakage of private data like passwords, tokens, cookies, etc.</p>
+
+<p>This presentation only shows 2 kinds of so-called Unauthorized cross-app resource access (XARA) approaches. the first one is to crack keychain and steal password, while the second one is to intercept IPC using the bugs in distributed objects mechanism, and steal the tokens from Evernote server.</p>
+
+<p>The details can be found in the paper, it shows many interesting points, like the lessons of unclear boundary of responsibilities between developer and Apple, etc. This paper is also armed with 3 Apple CVEs (CVE-2015-3786, CVE-2015-5835, CVE-2015-5836). Thus it is a very typical security paper. I&#8217;m going to read it later.</p>
+
+<p>The second presentation is from Brendan Saltaformaggio, Purdue University. It is noted that Brendan have 3 papers in this year&#8217;s CCS, one of which wins the best paper award!</p>
+
+<p>In this presentation, he starts with a very interesting statistics:</p>
+
+<p>As Apple claimed, all applications will be protected by the vetting mechanism. However how well is the vetting performed is under question. In 2015 till now, there are 1.5 million new applications created in apple store, which means 556 application vetting per day! Therefore it is reasonable to say that the vetting process is fast, lightweight, &#8216;almost&#8217; automatic and may use static program analysis.</p>
+
+<p>This paper is targeted at solving the problem of finding private API abuse in the application. Private API is supposed only used by Apple Internal. However since the function call in Objective-C can be called by sending a message to object, e.g.,</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">object_msgSend</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="err">“</span><span class="n">foo</span><span class="err">”</span><span class="p">,</span> <span class="n">param</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>can be used to invoke a function <code>foo</code> of object <code>obj</code>. Thus following trick can alse be leveraged to invoke <code>foo</code> function:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">char</span> <span class="n">sel</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+</span><span class='line'><span class="n">strcpy</span> <span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="err">“</span><span class="n">f</span><span class="err">”</span><span class="p">);</span>
+</span><span class='line'><span class="n">strcat</span> <span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="err">“</span><span class="n">oo</span><span class="err">”</span><span class="p">)</span>
+</span><span class='line'><span class="n">object_msgSend</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">param</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So it is really hard for static analysis to detect such private API abuse (if foo is a private API).</p>
+
+<p>This this paper, they use static analyssi + Guided forced exection (dynamic analysis) to solve such problem. For static analysis, they use backward slicing, which is vulnerable for obfuscation. Then they use an approach called <code>force execution</code>, to complete the analysis. During force execution, in every branch, the condition is flipped, so that every branch can be reached.</p>
+
+<p>Since I&#8217;m not familiar with program analysis, it is a little hard for me to fully understand it. More details can be found in the paper.</p>
+
+<h4>Session 2C: Password Security</h4>
+
+<p>Honestly speaking, I&#8217;m not quite interested in papers of this session, just have a simple note for each of the paper:</p>
+
+<ul>
+<li>The 1st one is titled <em>&#8220;Monte Carlo Strength Evaluation: Fast and Reliable Password Checking&#8221;</em>, is to use the probabilistic password models to design a scientifically sound password strength meter.</li>
+<li>The 2nd one is titled <em>&#8220;Surpass: System-initiated user-replaceable passwords&#8221;</em>, the motivation is that random passwords are secure, but hard to memorized. Thus they design a mechanism that user can replace password initialized by system randomly for memorable. They have done many surveys on the tradeoff between entropy and memorability, and provide some statistic conclusion. Some interesting points is that they use large-scale amazone mechanical turk for recruiting 5312 anticipator, and use hashcat for cracking passwords.</li>
+<li>The 3rd paper is titled <em>&#8220;Optimal Distributed Password Verification&#8221;</em>, the problem it wants to solve is the single server/point of failure, which may cause the whole data of password stolen, and offline dictionary attacks can be conducted. In this paper, it proposes a distributed password verification mechanism, so that even one server is under attack, the password data are still safe.</li>
+</ul>
+
+
+<h4>Session 3B: Memory Randomization</h4>
+
+<p>In this session, I only listen to 3 presentations.</p>
+
+<p>The first one is titled <em>&#8220;It&#8217;s a TRAP: Table Randomization and Protection against Function Reuse Attacks&#8221;</em>. This is a paper targeted at solving Counterfeit OOP (COOP), shamefully I&#8217;m not familiar with this attack! I can only tell that this paper proposes to randomize vtable. But I&#8217;m not quite clear about the challenges and solution, since I&#8217;m newbie for C++.</p>
+
+<p>The second one is very interesting, it is called <em>&#8220;Heisenbyte: Thwarting Memory Disclosure Attacks using Destructive Code Reads&#8221;</em>. It uses a technique called <code>destructive code read</code> to solve the problem of code disclosure attack for ASLR, e.g., JIT-ROP. The main idea is that for systems where data/code are mixed, all memory can be read, but executale memory should be mediated after reading. So different with previous solutions like XnR, this paper thinks, we do not need to prohibit the executable memory read, since it is not compatible for systems especially like Windows. We only need to take care if we found the executable memory is read. Therefore, they use the EPT mechanism, because EPT seperate read permission with executable permission, to mediate the executable memory after reading.</p>
+
+<p>The third one is titled <em>&#8220;Timely Rerandomization for Mitigating Memory Disclosures&#8221;</em>, it is also relate to attacks like JIT-ROP, the core idea is to synchronize with the attacker, more specifically, it is to</p>
+
+<ul>
+<li>identify disclosure time</li>
+<li>identify memory corruption time</li>
+<li>and rerandomize in between.</li>
+</ul>
+
+
+<p>which means, if we know when the code memory is leaked, we can rerandomize the memory, so that the JIT-ROP is prevented. Therefore, they choose to rerandomize after some I/O system calls, since attackers must leak the memory from network I/O.</p>
+
+<h4>Session 5B Understanding Android Apps</h4>
+
+<p>There are 2 papers in this session.</p>
+
+<p>The 1st one <em>&#8220;Towards Automatic Generation of Security-Centric Descriptions for Android Apps&#8221;</em> is done by Mu Zhang from NEC Laboratories America. The authors list also includes Heng Yin from Syracuse University. The motivation of this paper is that in Android there are 2 mechanisms to describe the application, permission and textual description. However, permission is not inadequate and hard to understand, while textual decription is devated with permission, and not related to security. So the goal of this paper is to automatically generate the textual description by analyse the whole program, and to help average users to understand security risk in semantic level. The techniques they use are</p>
+
+<ul>
+<li>behavior graph generation</li>
+<li>subgraph mining &amp; graph compression</li>
+<li>natural language generation</li>
+</ul>
+
+
+<p>The 2nd paper is called <em>&#8220;AUTOREB: Automatically Understanding the Review-to-Behavior Fidelity in Android Applications&#8221;</em>, by Deguang Kong from Samsung Research America. This paper is quite simple, it just focus on user comments and app behaviors, and infer security issues from user reviews. They need to solve some challenges by some approaches:</p>
+
+<ul>
+<li>review semantic (appraoches: featuer augmentation, relevance feedback, co-occurrenc, feature correlation)</li>
+<li>security concern (approaches: security feature extraction, machine learning)</li>
+<li>credibility of users (approach: crowdsourcing)</li>
+</ul>
+
+
+<p>More details can be found in the paper if you are interested in it.</p>
+
+<h4>Session 8B: Control Flow Integrity</h4>
+
+<p>CFI is still popular in this year, there are totally 5 presentations in this session, the 1st one is to show the problems of current static analysis for CFG generation; The 2nd one is to generate CFG per input, to reduce the number of edges for the CFG; The 3rd one is named <em>&#8220;Practical Context-Sensitive CFI&#8221;</em>, it uses LBR to enforece context-sensitive CFI during runtime; The 4th one is <em>&#8220;CCFI: Cryptographically Enforced Control Flow Integrity&#8221;</em>, which uses some MAC mechanism to protect the control flow; And the last is <em>&#8220;Losing Control: On the Effectiveness of Control-Flow Integrity under Stack Attack&#8221;</em>, it shows one stack-based attak, though I&#8217;m not quite convinced why it is stack-based.</p>
+
+<h4>Session 12C: Side Channel</h4>
+
+<p>This is the session including my presentation, though I&#8217;m quite confused why my paper is located in this session, in my paper, we claimed that we don&#8217;t consider about DoS and side-channel attacks.</p>
+
+<p>There are 4 papers in total, I&#8217;ve listened for 2, except my own.</p>
+
+<p>The 1st is titled <em>&#8220;Mitigating Storage Side Channels Using Statistical Privacy Mechanisms&#8221;</em>. It is by Qiuyu Xiao from University of North Carolina and Yinqian Zhang from The Ohio State University. This paper leverages differential privacy to solve the side channle attack by revealing private information (e.g., which website you are scanning) from <code>procfs</code> (like memory/cpu states). It adds some noise to procfs, while remaining most of the correctness.</p>
+
+<p>The 2nd one is <em>&#8220;Nomad: Mitigating Arbitrary Cloud Side Channels via Provider-Assisted Migration&#8221;</em> by Soo-Jin Moon from Carnegie Mellon University. The goal of this paper is realize a general deployable system to defend against cloud side-channel attack. It simply use migration to mitigate such attacks, make sure the VMs not share the same physical machine for long time.</p>
+
+<hr />
+
+<p>My prenstation is the last one in the last session. I should say it is OK with the talk (though still a little nervous), but for Q/A, it is quite embarrassed, 4 people ask 5 questions. However many of them are not clearly understood by myself.</p>
+
+<p>3 about static analysis:</p>
+
+<ul>
+<li>OpenSSL complicated, how to analysis it.</li>
+<li>Prateek ask about whether do we consider about control dependence.</li>
+<li>Why static is useful according to our mechanism</li>
+</ul>
+
+
+<p>1 about VMFUNC security by prateek</p>
+
+<p>1 about selective plaintext attack? Not quite understand.</p>
+
+<p>The good thing is though I&#8217;m the last presentor, there are still a lot of questions, which means lots of people are interested in my work. The bad things is I&#8217;m quite awkful!</p>
+
+<hr />
+
+<h4>Other topics and papers</h4>
+
+<p>There are some other papers I&#8217;m quite interested in but failed to listen to for some specific reasons. Simply list them here, and I&#8217;m going to read the paper later.</p>
+
+<h5>Session 1B: MAC OS and iOS Security</h5>
+
+<ul>
+<li><em>Cracking App Isolation on Apple: Unauthorized Cross-App Resource Access on MAC OS X and iOS</em> by Luyi Xing (from Indiana University Bloomington)</li>
+</ul>
+
+
+<h5>Session 3B: Memory Randomization</h5>
+
+<ul>
+<li><em>Heisenbyte: Thwarting Memory Disclosure Attacks using Destructive Code Reads</em> by Adrian Tang (from Columbia University)</li>
+<li><em>ASLR-Guard: Stopping Address Space Leakage for Code Reuse Attacks</em> by Kangjie Lu (from Georgia Institute of Technology)</li>
+</ul>
+
+
+<h5>Session 4B: Software Vulnerabilities</h5>
+
+<ul>
+<li><em>Unearthing Stealthy Program Attacks Buried in Extremely Long Execution Paths</em> by Xiaokui Shu (from Virginia Tech)</li>
+<li><em>From Collision to Exploitation: Unleashing Use-After-Free Vulnerabilities in Linux Kernel</em> by Wen Xu (from SJTU)</li>
+</ul>
+
+
+<h5>Session 8C: Enhancing Trust</h5>
+
+<ul>
+<li><em>TrustOTP: Transforming Smartphones into Secure One-Time Password Tokens</em> by Kun Sun (from College of William and Mary)</li>
+<li><em>Clean Application Compartmentalization with SOAAP</em> by Khilan Gudka (from University of Cambridge)</li>
+</ul>
+
+
+<h5>Session 10B: Mobile Device Attacks</h5>
+
+<ul>
+<li><em>From System Services Freezing to System Server Shutdown in Android: All You Need Is a Loop in an App</em> by Heqing Huang (from The Pennsylvania State University)</li>
+<li><em>When Good Becomes Evil: Keystroke Inference with Smartwatch</em> by Xiangyu Liu (from The Chinese University of Hong Kong)</li>
+</ul>
+
+
+<hr />
+
+<h4>People meet in CCS</h4>
+
+<p>In CCS, I find myself not quite active in socializing with others. Most people I met and talked with are Chinese, either professors like Yan Huang, Kun Sun, Li Depeng, Yinqian Zhang, Yin Heng, Dongyan Xu, Long Lu, Xiapu Luo, or students like Guoxing Chen, Jian Liu, Xiaokuan Zhang, Qiuyu Xiao, Yaohui Chen.</p>
+
+<p>I find there are so many Chinese in this community, this is the first time for me to step into this community, I hope there are other oppotunities in the future.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-18T14:41:00+08:00" pubdate data-updated="true">Oct 18<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/conference/'>Conference</a>, <a class='category' href='/blog/categories/system/'>System</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/09/03/chu-shi-wifi-pineapple/" title="Previous Post: 初识Wifi Pineapple">&laquo; 初识Wifi Pineapple</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/11/15/hooking-and-hijacking-android-native-code/" title="Next Post: Hooking and Hijacking Android Native Code">Hooking and Hijacking Android Native Code &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2015/10/18/notes-in-ccs-2015/';
+        var disqus_url = 'http://ytliu.github.io/blog/2015/10/18/notes-in-ccs-2015/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

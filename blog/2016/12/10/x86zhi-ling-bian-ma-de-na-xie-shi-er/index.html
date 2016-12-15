@@ -1,0 +1,693 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>X86指令编码的那些事儿 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="X86 Encoding opcode ModR/M">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">X86指令编码的那些事儿</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-12-10T22:46:00+08:00" pubdate data-updated="true">Dec 10<span>th</span>, 2016</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>好久没有写博客了，感觉时间飞逝，转眼又到了一年的最后一个月了，不管怎么说这一年自己还是挺有收获的，当然这些是留在年末总结的时候来写的。这篇文章继续之前“那些事儿”系列，这次要介绍的，是关于X86指令编码的“事儿”。</p>
+
+<p>如果你之前有见过或者听说过<code>prefix</code>，<code>opcode</code>，<code>ModR/M</code>，<code>escape opcode</code>这些词，但是其实并不是那么清楚它们是什么意思，那么恭喜你，今天你就将得到它们！首先还是先说明下这篇博客主要参考的资料，依旧是来自Intel的文档（这里再次安利下Intel文档，写的非常详细），不过这次是第二册的几个章节（Volume 2 - Chapter 2~4, 以及Appendix A）。</p>
+
+<!-- more -->
+
+
+<p>好了，废话不说，直接进入正题。</p>
+
+<p>我们知道，CPU在运行的时候认的是一个个二进制的数字（或者人类为了方便说明，一般会把它们先转换成一个个十六进制的数字）。那么，就需要有一套编码机制，告诉计算机，这些数字代表的意思是什么。</p>
+
+<p>我们还知道，CPU一般执行的都是一条条的指令，每个指令都有其相对应的含义，以及一些它们所需的附加信息，比如数据读取的原地址，或者写入的目标地址。而CPU就是用之前所谓的编码机制，来识别并且运行这一条条指令的。</p>
+
+<p>因此，将这两个合起来，就是我们今天所要讨论的<code>指令编码</code>，如果用一个英文词的话，可以用<code>encoding</code>，如果用两个英文词的话，那就是<code>instruction encoding</code>，如果还要加第三个词的话，就变成了<code>x86 instructino encoding</code>。好了，我不无聊了，继续往下聊吧。</p>
+
+<p>你之前可能听说过，x86是一种CISC指令集，CISC的全称是“Complex Instruction Set Computer”，表示的是一种复杂的指令集，其中一个最重要的复杂性在于在这个指令集中，指令是不定长的，要使得CPU在这种不定长的指令集里面确定每一条指令的含义，就需要一种特定的指令格式，下图显示了<code>Intel 64</code>和<code>IA-32</code>架构下的指令格式，当然，这两种架构所采用的都是x86指令编码：</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-1.png" title="Intel 64 and IA-32 Architectures Instruction Format" alt="Instruction Format" /></p>
+
+<p>可以看出，在x86的指令格式中，每条指令<strong>最多</strong>会有六部分组成，在这六部分中，只有<code>opcode</code>是必须的，其它的部分都是可选的。接下来我们一个部分一个部分进行介绍：</p>
+
+<h4>Instruction prefix</h4>
+
+<p><code>prefix</code>说白了就是对本条指令进行一个修饰，主要包含了以下四组可能的prefix：</p>
+
+<ul>
+<li>第一组：<code>lock</code> 和 <code>repeat</code></li>
+</ul>
+
+
+<p>其中，LOCK prefix保证该条指令对共享内存的访问是独占的；而repeat prefixes 表示这条指令会重复执行多次，直到某个条件满足位置。其中第二种repeat prefix只能用在对string的操作，或者对I/O的操作上。</p>
+
+<ul>
+<li>第二组：<code>segment override</code>，<code>branch hints</code> 和 <code>bound</code></li>
+</ul>
+
+
+<p>其中，segment override prefix会在执行这条指令的时候将默认的段寄存器给换掉；branch hints prefix主要应用在条件跳转指令（Jcc）中，可以协助CPU进行指令的prefetch；而bound prefix主要是用intel MPX硬件特性上。</p>
+
+<ul>
+<li>第三组：<code>operand-size override</code></li>
+</ul>
+
+
+<p>这个prefix主要是在解析指令的操作数的时候，可以在十六位或者三十二位的操作数大小间进行切换。</p>
+
+<ul>
+<li>第四组：<code>address-size override</code></li>
+</ul>
+
+
+<p>这个prefix主要是在进行指令寻址的时候，可以在十六位或者三十二位的地址大小中进行切换。</p>
+
+<h4>Opcode</h4>
+
+<p>接下来是最重要的opcode，基本上整个指令编码都是围绕opcode来进行的，所以opcode是整个指令的核心。</p>
+
+<p>一个opcode可能的长度为1、2或3，除此之外，在之后会提到的<code>ModR/M</code>所占用的那个byte中，还有可能会有3个bits来表示opcode的一部分内容，当然，这3个bits主要用来定义一些额外的信息，包括：direction of operation, size of displacements, register encoding, condition codes, or sign extension，至于这三个bits是否属于opcode，或者它们表示什么信息，是由不同的opcode来决定的。</p>
+
+<p>一个opcode可以由一个byte组成，我们称之为<code>1-byte opcode</code>，当然，与之对应的，就有<code>2-bytes opcode</code>和<code>3-bytes opcode</code>。其中，后两者一般会有一个被称为<code>escape opcode</code>的byte进行引导，该byte的数值是<code>0FH</code>。所以，一般情况下，<code>2-bytes opcode</code>就是<code>0FH</code>后面再加一个byte，而<code>3-bytes opcode</code>就是<code>0FH</code>后面再加两个bytes。</p>
+
+<p>除此之外，还有一种可能是，在这个<code>escape opcode</code>之前，还有可能会出现一个被称为<code>mandatory prefix</code>的byte，这不属于我们之前提到的任何一种prefix，我感觉它一般是在某个新的硬件特性出来的时候，为该硬件特性新增加指令的一种做法。这个byte可能的取值为<code>66H</code>，<code>F2H</code>或者<code>F3H</code>。很有趣的一点是，<code>66H</code>也是<code>lock prefix</code>的取值，而<code>F2H</code>和<code>F3H</code>也是<code>repeat prefix</code>的取值。所以说，当遇到这些prefix的时候，还得需要根据之后的opcode来判断这是属于哪种prefix。</p>
+
+<p>这里举一个例子，比如一个指令叫<code>PHADDW</code>，是在<code>XMM</code>特性中的一条指令，它的编码为<code>66 0F 38 01</code>，因此，它是一个<code>3-bytes opcode</code>，<code>66</code>是<code>mandatory prefix</code>（而不是<code>lock prefix</code>），<code>0F</code>是escape opcode，而最后两个bytes<code>38 01</code>就是另外两个opcode bytes。</p>
+
+<h4>ModR/M 和 SIB</h4>
+
+<p><code>ModR/M</code>主要是在对指令中的操作数进行寻址的时候需要用到的域，它由一个byte组成，如之前的图所示，<code>ModR/M</code>这一个byte又被分成了三部分：<code>mod</code>（由6~7两个bits组成），<code>reg/opcode</code>（由3~5三个bits组成），<code>r/m</code>（由0~2三个bits组成）。其中，如前所说，<code>reg/opcode</code>可以表示某个寄存器，或者作为opcode的三个额外bits进行使用。而<code>mod</code>和<code>r/m</code>结合，可以产生32种可能的值，包括了8个寄存器和24中寻址模式。</p>
+
+<p>另外，在<code>ModR/M</code>三个部分可能的组合中，还有可能会涉及到另外一个寻址模式，被称为SIB，SIB也是由三部分组成：Scale，Index和Base。一般如果涉及到SIB，则相关的值就可以通过<code>base + index * scale</code>计算出来。</p>
+
+<p>接下来，我们来详细解释下如何利用<code>ModR/M</code>和<code>SIB</code>进行寻址。这里主要有三张非常关键的表，可以说，利用<code>ModR/M</code>和<code>SIB</code>进行寻址都可以通过查这三张表完成。</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-2.png" title="16-Bit Addressing Forms with the ModR/M Byte" alt="16-bit ModR/M" /></p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-3.png" title="32-Bit Addressing Forms with the ModR/M Byte" alt="32-bit ModR/M" /></p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-4.png" title="32-Bit Addressing Forms with the SIB Byte" alt="32-bit SIB" /></p>
+
+<p>其中，可以利用第一张表对16位的地址寻址进行查询，利用第二张表对32位的地址寻找进行查询，而第三张对某些需要用到SIB的地址寻址进行查询。对于<code>ModR/M</code>表（即前两张表），我们看到中间一部分列出了00~FF所有的数字，这些数字是即为一个byte的所有可能值，该byte的组成之前也提到了，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-5.png" title="ModR/M Byte" alt="ModR/M byte" /></p>
+
+<p>所以，当得到一个<code>ModR/M</code>的值，就可以查询这张表，这里举个例子，比如<code>ModR/M</code> byte的值为<code>CC</code>，那么我们找到<code>CC</code>对应的行和列，可以发现，它对应的行为<code>ESP/SP/AHMM4/XMM4</code>，列为<code>CL/CX/ECX/MM1/XMM1/1/001</code>。那么就将范围限定在了这几个寄存器上，当然，至于它最后要选哪个寄存器，则是由opcode来决定的。</p>
+
+<p>同样的，对于需要用到<code>SIB</code>表（即最后一张表）的指令，同样的，我们获得<code>SIB</code>的数值（比如<code>CC</code>），发现它对应的行为<code>[ECX*8]</code>，列为<code>ESP</code>，即表示SIB最终的值的计算方法为<code>[ESP]+ECX*8</code>。</p>
+
+<h4>Displacement 和 Immediate</h4>
+
+<p>某些指令会在最后要求有一个用于计算内存地址的值，或者一个立即数。这部分很直接，就不解释了。</p>
+
+<hr />
+
+<h3>IA-32e mode</h3>
+
+<p>上面提到的都是16位或者32位的寻址，而我们现在主要用的系统都是64位的，那么，在64位系统下的寻址又是怎么样的呢？</p>
+
+<p>这里又要引入一个新的prefix：<code>REX prefix</code>，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-6.png" title="Prefix Ordering in 64-bit Mode" alt="REX prefix" /></p>
+
+<p>这里需要注意的是，每条指令最多只能有一个表示<code>REX prefix</code>的byte，而且这个byte必须紧紧贴着opcode，不能放在其他的prefix之前。另外，<code>REX prefix</code>的格式如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-7.png" title="REX Prefix Fields" alt="REX prefix format" /></p>
+
+<p>其中，最高的4位是固定的值（<code>0100</code>），低4位分别代表了operand size，以及是否修改<code>ModR/M</code>和<code>SIB</code>的值。比如说下面四张图：</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-8.png" title="REX Prefix 1" alt="REX prefix 1" /></p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-9.png" title="REX Prefix 2" alt="REX prefix 2" /></p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-10.png" title="REX Prefix 3" alt="REX prefix 3" /></p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-11.png" title="REX Prefix 4" alt="REX prefix 4" /></p>
+
+<p>如果对应的R\X\B bit被设置上了，则会根据opcode来修改对应的<code>ModR/M</code>中<code>r/m</code>或者<code>reg/opcode</code>域中的值，或者<code>SIB</code>中<code>base</code>或者<code>index</code>域中的值。我们知道，这些域其实就是指定了某些寄存器，而基于<code>REX prefix</code>的修改其实就是将16或者32位的寄存器换成64位的，比如把<code>EAX</code>换成<code>RAX</code>这样。</p>
+
+<hr />
+
+<h3>opcode table</h3>
+
+<p>好了，最关键的技能来了，教你如何看懂opcode table!</p>
+
+<p>其实也就三张opcode table（或者叫opcode map也行），就是前面所说的<code>1-byte</code>, <code>2-bytes</code>和<code>3-bytes</code>。比如我们随便截一张图：</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-12.png" title="opcode table random" alt="opcode table 1" /></p>
+
+<p>这是一个<code>1-byte</code> opcode table，如果我们的opcode是<code>85</code>，则找到第八行第五列对应的那个小格子：<code>TEST (Ev, Gv)</code>。那么这个是什么意思呢？首先，<code>TEST</code>是opcode，<code>(Ev, Gv)</code>是这条opcode的寻址模式。<code>E</code>，<code>v</code>，<code>G</code>这些都是缩写，在opcode map中有很多缩写，这篇博文最后的附件中显示了它们的含义。可以看到，<code>E</code>表示opcode之后会跟一个<code>ModR/M</code> byte，用来表示操作数，该操作数可以是一个寄存器或者一个内存地址，如果是内存地址的话，该地址可以通过之后的SIB和displacement算出来；<code>v</code>表示这个操作数可能是一个16位的word，32为的doubleword，或者64位的quadword，具体情况要根据operand-size的属性决定（比如是否有<code>operand-size override prefix</code>，或者REX.W bit是否被置上等）；<code>G</code>代表<code>ModR/M</code>中的<code>reg</code>域会选择一个通用寄存器。
+因此，有了这个opcode table之后，就可以接着往下去看对应的<code>ModR/M</code>、<code>SIB</code>以及可能存在的displacement了，然后再去查之前<code>ModR/M</code>和<code>SIB</code>相关的表，就能得到整条指令的意思，以及该指令所对应的寻址方式。</p>
+
+<p>其实查询opcode table的整个流程特别简单。如果你想要模拟一个指令，你就在opcode table中搜索这条指令，然后找到其对应的小格子（比如前面例子中的那个<code>TEST (Ev, Gv)</code>），然后根据前面所的方法再去看后面的<code>ModR/M</code>和<code>SIB</code>等内容，一个个往下走就行了。</p>
+
+<hr />
+
+<h3>虚拟化环境中的指令模拟</h3>
+
+<p>其实到这里，x86的指令编码部分基本上都讲完了。之所以还要加上这一小节，是想举个例子，练习练习。</p>
+
+<p>我们知道，在虚拟化环境中，如果非特权级环境中的客户虚拟机执行了一条特权级指令，则会引发下陷，进入特权级别中的虚拟机监控器，由虚拟机监控器对该指令进行模拟。在虚拟化环境中有14条指令是会无条件引发虚拟机下陷（VMExit）的，它们是<code>CPUID</code>, <code>GETSEC</code>, <code>INVD</code>, <code>XSETBV</code>, <code>INVEPT</code>, <code>INVVPID</code>, <code>VMCALL</code>, <code>VMCLEAR</code>, <code>VMLAUNCH</code>, <code>VMPTRLD</code>, <code>VMPTRST</code>, <code>VMRESUME</code>, <code>VMXOFF</code>, <code>VMXON</code>。我们就以<code>VMCLEAR</code>这条指令为例，看看虚拟机监控器里面要如何对其进行模拟。</p>
+
+<p>当然，最简单的办法就是在发生VMExit的时候直接去读取相应<code>RIP</code>的值，然后获得指令的opcode和其它内容，通过查表我们可以知道<code>VMCLEAR</code>指令的opcode是<code>66 0F C7 /6</code>，然后通过查opcode table，我们发现以下内容：</p>
+
+<p><img src="http://ytliu.info/images/2016-12-10-13.png" title="opcode table for vmclear" alt="opcode table vmclear" /></p>
+
+<p>这里需要注意的一点是，这个表示一个扩展表，是Intel为其它新添加的硬件特性重新扩展得到的opcode table，其实我们之前提到过，这里<code>66</code>是一个<code>mandatory prefix</code>，所以它的opcode是<code>0F C7</code>，另外，<code>ModR/M</code>中的<code>reg/opcode</code>用于补充opcode，所以这里的<code>/6</code>表示的是<code>ModR/M</code>中<code>reg/opcode</code>的值。</p>
+
+<p>不管怎么样，<code>VMCLEAR</code>有3个bytes的opcode，然后从opcode table查询出来的值为<code>VMCLEAR (Mq)</code>，我们查询缩写表可以知道，<code>M</code>表示<code>ModR/M</code>用于表示内存寻址，而<code>q</code>表示一个64位的quadword（不管operand-size是什么）。因此，我们知道在这个opcode之后一定至少有一个表示<code>ModR/M</code>的byte，所以我们就可以继续读这个byte，然后通过<code>ModR/M</code>的寻址表来确定操作数的内存地址是什么了。具体的这里就不阐述了。</p>
+
+<p>不过这里还需要提一点的是，其实最后我们发现，<code>VMCLEAR</code>采用的是SIB寻址的模式，而且对于它的寻址，可以不需要通过opcode table来进行，因为在虚拟化环境中，虚拟机下陷会将需要的信息填入VMCS的某些数据结构中，比如，对于特权指令产生的下陷，会将和这个指令相关的信息（特别是操作数寻址的信息）存入一个叫<code>VM-exit instruction information</code>的域中，这个域对于每种指令都会提供不同的存储信息的格式，因此我们在虚拟机监控器中对这些指令进行模拟的时候，其实是可以直接从<code>VM-exit instruction information</code>域中获取所需的信息的。</p>
+
+<hr />
+
+<p>附：opcode table中缩写码的含义：</p>
+
+<ul>
+<li>Codes for Addressing Method</li>
+</ul>
+
+
+<table>
+<thead>
+<tr>
+<th align="center">Code </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">A </td>
+<td align="left"> Direct address: the instruction has no ModR/M byte; the address of the operand is encoded in the instruction. No base register, index register, or scaling factor can be applied (for example, far JMP (EA)).</td>
+</tr>
+<tr>
+<td align="center">B </td>
+<td align="left"> The VEX.vvvv field of the VEX prefix selects a general purpose register.</td>
+</tr>
+<tr>
+<td align="center">C </td>
+<td align="left"> The reg field of the ModR/M byte selects a control register (for example, MOV (0F20, 0F22)).</td>
+</tr>
+<tr>
+<td align="center">D </td>
+<td align="left"> The reg field of the ModR/M byte selects a debug register (for example, MOV (0F21,0F23)).</td>
+</tr>
+<tr>
+<td align="center">E </td>
+<td align="left"> A ModR/M byte follows the opcode and specifies the operand. The operand is either a general-purpose register or a memory address. If it is a memory address, the address is computed from a segment register and any of the following values: a base register, an index register, a scaling factor, a displacement.</td>
+</tr>
+<tr>
+<td align="center">F </td>
+<td align="left"> EFLAGS/RFLAGS Register.</td>
+</tr>
+<tr>
+<td align="center">G </td>
+<td align="left"> The reg field of the ModR/M byte selects a general register (for example, AX (000)).</td>
+</tr>
+<tr>
+<td align="center">H </td>
+<td align="left"> The VEX.vvvv field of the VEX prefix selects a 128-bit XMM register or a 256-bit YMM register, determined by operand type. For legacy SSE encodings this operand does not exist, changing the instruction to destructive form.</td>
+</tr>
+<tr>
+<td align="center">I </td>
+<td align="left"> Immediate data: the operand value is encoded in subsequent bytes of the instruction.</td>
+</tr>
+<tr>
+<td align="center">J </td>
+<td align="left"> The instruction contains a relative offset to be added to the instruction pointer register (for example, JMP (0E9), LOOP).</td>
+</tr>
+<tr>
+<td align="center">L </td>
+<td align="left"> The upper 4 bits of the 8-bit immediate selects a 128-bit XMM register or a 256-bit YMM register, deter- mined by operand type. (the MSB is ignored in 32-bit mode)</td>
+</tr>
+<tr>
+<td align="center">M </td>
+<td align="left"> The ModR/M byte may refer only to memory (for example, BOUND, LES, LDS, LSS, LFS, LGS, CMPXCHG8B).</td>
+</tr>
+<tr>
+<td align="center">N </td>
+<td align="left"> The R/M field of the ModR/M byte selects a packed-quadword, MMX technology register.</td>
+</tr>
+<tr>
+<td align="center">O </td>
+<td align="left"> The instruction has no ModR/M byte. The offset of the operand is coded as a word or double word (depending on address size attribute) in the instruction. No base register, index register, or scaling factor can be applied (for example, MOV (A0–A3)).</td>
+</tr>
+<tr>
+<td align="center">P </td>
+<td align="left"> The reg field of the ModR/M byte selects a packed quadword MMX technology register.</td>
+</tr>
+<tr>
+<td align="center">Q </td>
+<td align="left"> A ModR/M byte follows the opcode and specifies the operand. The operand is either an MMX technology register or a memory address. If it is a memory address, the address is computed from a segment register and any of the following values: a base register, an index register, a scaling factor, and a displacement.</td>
+</tr>
+<tr>
+<td align="center">R </td>
+<td align="left"> The R/M field of the ModR/M byte may refer only to a general register (for example, MOV (0F20-0F23)).</td>
+</tr>
+<tr>
+<td align="center">S </td>
+<td align="left"> The reg field of the ModR/M byte selects a segment register (for example, MOV (8C,8E)).</td>
+</tr>
+<tr>
+<td align="center">U </td>
+<td align="left"> The R/M field of the ModR/M byte selects a 128-bit XMM register or a 256-bit YMM register, determined by operand type.</td>
+</tr>
+<tr>
+<td align="center">V </td>
+<td align="left"> The reg field of the ModR/M byte selects a 128-bit XMM register or a 256-bit YMM register, determined by operand type.</td>
+</tr>
+<tr>
+<td align="center">W </td>
+<td align="left"> A ModR/M byte follows the opcode and specifies the operand. The operand is either a 128-bit XMM register, a 256-bit YMM register (determined by operand type), or a memory address. If it is a memory address, the address is computed from a segment register and any of the following values: a base register, an index register, a scaling factor, and a displacement.</td>
+</tr>
+<tr>
+<td align="center">X </td>
+<td align="left"> Memory addressed by the DS:rSI register pair (for example, MOVS, CMPS, OUTS, or LODS).</td>
+</tr>
+<tr>
+<td align="center">Y </td>
+<td align="left"> Memory addressed by the ES:rDI register pair (for example, MOVS, CMPS, INS, STOS, or SCAS).</td>
+</tr>
+</tbody>
+</table>
+
+
+<ul>
+<li>Codes for Operand Type</li>
+</ul>
+
+
+<table>
+<thead>
+<tr>
+<th align="center">Code </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">a </td>
+<td align="left"> Two one-word operands in memory or two double-word operands in memory, depending on operand-size attribute (used only by the BOUND instruction).</td>
+</tr>
+<tr>
+<td align="center">b </td>
+<td align="left"> Byte, regardless of operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">c </td>
+<td align="left"> Byte or word, depending on operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">d </td>
+<td align="left"> Doubleword, regardless of operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">dq </td>
+<td align="left"> Double-quadword, regardless of operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">p </td>
+<td align="left"> 32-bit, 48-bit, or 80-bit pointer, depending on operand-size attribute. pd 128-bit or 256-bit packed double-precision floating-point data.</td>
+</tr>
+<tr>
+<td align="center">pi </td>
+<td align="left"> Quadword MMX technology register (for example: mm0).</td>
+</tr>
+<tr>
+<td align="center">ps </td>
+<td align="left"> 128-bit or 256-bit packed single-precision floating-point data.</td>
+</tr>
+<tr>
+<td align="center">q </td>
+<td align="left"> Quadword, regardless of operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">qq </td>
+<td align="left"> Quad-Quadword (256-bits), regardless of operand-size attribute. s 6-byte or 10-byte pseudo-descriptor.</td>
+</tr>
+<tr>
+<td align="center">sd </td>
+<td align="left"> Scalar element of a 128-bit double-precision floating data.</td>
+</tr>
+<tr>
+<td align="center">ss </td>
+<td align="left"> Scalar element of a 128-bit single-precision floating data.</td>
+</tr>
+<tr>
+<td align="center">si </td>
+<td align="left"> Doubleword integer register (for example: eax).</td>
+</tr>
+<tr>
+<td align="center">v </td>
+<td align="left"> Word, doubleword or quadword (in 64-bit mode), depending on operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">w </td>
+<td align="left"> Word, regardless of operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">x </td>
+<td align="left"> dq or qq based on the operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">y </td>
+<td align="left"> Doubleword or quadword (in 64-bit mode), depending on operand-size attribute.</td>
+</tr>
+<tr>
+<td align="center">z </td>
+<td align="left"> Word for 16-bit operand-size or doubleword for 32 or 64-bit operand-size.</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-12-10T22:46:00+08:00" pubdate data-updated="true">Dec 10<span>th</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/system/'>System</a>, <a class='category' href='/blog/categories/tutorial/'>Tutorial</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/09/30/segmentation-protection-in-intel-processor/" title="Previous Post: Segmentation Protection in Intel Processor">&laquo; Segmentation Protection in Intel Processor</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/" title="Next Post: 萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载） &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/';
+        var disqus_url = 'http://ytliu.github.io/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

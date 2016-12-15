@@ -1,0 +1,765 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Git | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/git/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[progit reading 2]]></title>
+    <link href="http://ytliu.github.io/blog/2012/09/21/progit-reading-2/"/>
+    <updated>2012-09-21T16:50:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2012/09/21/progit-reading-2</id>
+    <content type="html"><![CDATA[<p>上章介绍了git internal的内容，接下里会从git更接近用户的角度来说。</p>
+
+<hr />
+
+<h1>git basic</h1>
+
+<p>git中的文件有以下几种状态，而所有的命令也就是对于这几种状态的查看和转换：</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-4.png" title="git file status" alt="git file status" /></p>
+
+<p>一般情况下，在新建一个文件后，需要<em>git add</em>将其变成tracked file，如果修改了一个该文件，则同样需要使用<em>git add</em>将其变成staged file，只有staged的文件才会在<em>git commit</em>的时候commit成功。</p>
+
+<p><strong>git status</strong></p>
+
+<p>这个可以用来查看当前文件的状态。如果我们在commit的参数中加上<em>-a</em>，就可以自动将tracked file变成staged file了。当然也可以忽略一些文件，这些都是写在.gitignore文件下的，那么，如何unstage一个文件呢？其实在你使用<em>git stage</em>命令的时候就会有提示:</p>
+
+<pre><code>$ git reset HEAD &lt;file&gt;
+</code></pre>
+
+<p>同样的，我们也可以把一个modified file变成unmodified file:</p>
+
+<pre><code>$ git checkout -- &lt;file&gt;
+</code></pre>
+
+<!-- more -->
+
+
+<p><strong>git diff</strong></p>
+
+<p>由于<em>git status</em>只能告诉我们哪些文件被修改了，而不能告诉我们都修改了哪些具体内容，所以有一个<em>git diff</em>命令来补充这个功能。</p>
+
+<p><em>git diff</em>显示的是changed but not staged的文件，而<em>git diff --cached</em>显示的是staged的文件</p>
+
+<p><strong>git commit</strong></p>
+
+<p>这个就是将stage area里面的东西进行提交，在提交的时候需要指定<em>-m</em>参数。另外还有一个比较有用的命令叫*git commit --amend**用来返回到最近的一次commit之前，然后加一些其它文件，然后再自动提交一遍，这样就不会有两个相似的commit了。</p>
+
+<p><strong>git rm</strong></p>
+
+<p>如果只是简单地用<em>rm</em>命令，那么它还是处于unstage的状态，用<em>git rm</em>会将其变成untrack状态。另外，如果你加了参数<em>-f</em>则可以将其从index中删除，这样如果之前没有commit这个文件的话之后也就无法恢复了。</p>
+
+<p>还有一个比较有用的命令是:</p>
+
+<pre><code>$ git rm --cached &lt;file&gt;
+</code></pre>
+
+<p>这个命令可以在硬盘上保留file，但是将其从working tree中删除。比如说你忘记把file添加到.gitignore文件中的话就可以用这个命令。</p>
+
+<p>同样，这个命令也支持正则表达式。</p>
+
+<p><strong>git mv</strong></p>
+
+<p>在git中，如果你用<em>git mv</em>命令，在git history中应该是没有renaming这个记录的，那么为什么还有mv这个命令呢？在git中：<em>git mv file_from file_to</em>这一个命令相当于</p>
+
+<pre><code>$ mv file_from file_to
+$ git rm file_from
+$ git add file_to
+</code></pre>
+
+<p>这三条命令。</p>
+
+<p><strong>git log</strong></p>
+
+<p>用来查看git commit history，有许多有用的参数，比如<em>--stat</em>可以查看一些简略的信息，<em>-p -2</em>可以列出最近的两条entris，<em>--pretty=oneline</em>可以将history简略成一行，同样可以指定format——<em>--pretty=format:"%h - %an, %ar : %s</em>，而这些参数的意义如下:</p>
+
+<pre><code>Option  Description of Output
+%H  Commit hash
+%h  Abbreviated commit hash
+%T  Tree hash
+%t  Abbreviated tree hash
+%P  Parent hashes
+%p  Abbreviated parent hashes
+%an  Author name
+%ae  Author e-mail
+%ad  Author date (format respects the –date= option)
+%ar  Author date, relative
+%cn  Committer name
+%ce  Committer email
+%cd  Committer date
+%cr  Committer date, relative
+%s  Subject
+</code></pre>
+
+<p>另外还有<em>--graph</em>用来列出一个history graph，还有一些和时间相关的log，比如<em>--since=2.weeks</em>，列出两周内的commit信息...</p>
+
+<pre><code>Option  Description
+-(n)  Show only the last n commits
+--since, --after  Limit the commits to those made after the specified date.
+--until, --before  Limit the commits to those made before the specified date.
+--author  Only show commits in which the author entry matches the specified string.
+--committer  Only show commits in which the committer entry matches the specified strin
+</code></pre>
+
+<p><strong>git tag</strong></p>
+
+<p>这个先不说了，感觉用不太到...</p>
+
+<p><strong>git remote</strong></p>
+
+<p>主要就7个命令：</p>
+
+<pre><code>$ git remote add local_name url
+$ git remote -v
+$ git remote show local_name
+$ git fetch [local_name | url]
+$ git push [local_name | url] [branch_name]
+$ git remote rename old_name new_name
+$ git remote rm local_name
+</code></pre>
+
+<p><strong>tips and tricks</strong></p>
+
+<p><em>git aliases</em>: 可以将很多命令缩写，比如:</p>
+
+<pre><code>$ git config --global alias.co checkout
+......
+$ git config --global alias.unstage 'reset HEAD --'
+$ git config --global alias.last 'log -1 HEAD'
+</code></pre>
+
+<h1>git branch</h1>
+
+<p>git branch的抽象是这样子的，每次commit都会产生一个commit object:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-5.png" title="commit object" alt="commit object" /></p>
+
+<p>而一个branch则有一个个commit object通过pointer串起来的:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-6.png" title="branch" alt="branch" /></p>
+
+<p>在整个git目录中有一个很特别的index叫做HEAD，它指向了当前的branch:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-7.png" title="current branch" alt="current branch" /></p>
+
+<p>之后，就是对branch的一些操作:</p>
+
+<pre><code>$ git checkout -b new_branch
+</code></pre>
+
+<p>这个等价于:</p>
+
+<pre><code>$ git branch new_branch
+$ git checkout new_branch
+</code></pre>
+
+<p><strong>merge</strong></p>
+
+<p>merge需要先指定base的branch，然后再和一个新的branch进行合并：</p>
+
+<pre><code>$ git checkout base_branch
+$ git merge another_branch
+</code></pre>
+
+<p>如果两个branch不在一个history中(如图所示):</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-8.png" title="merge branch 1" alt="merge branch 1" /></p>
+
+<p>则会找到一个common ancestor，之后创建一个新的commit object，它的parents为两个branch，</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-9.png" title="merge branch 2" alt="merge branch 2" /></p>
+
+<p>如果两个branch有conflic，则需要通过diff工具进行merge，merge完之后用<em>git add</em>和<em>git commit</em>进行确认。</p>
+
+<p><strong>delete branch</strong></p>
+
+<p>删除一个branch的命令为:</p>
+
+<pre><code>$ git branch -d branch_name
+</code></pre>
+
+<p><strong>remote branch</strong></p>
+
+<p>主要是个命令的使用:</p>
+
+<pre><code>$ git clone url
+$ git fetch local_name
+$ git push local_name branch_name
+$ git checkout --track local_name/branch_name   # set up a tracking branch
+$ git checkout -b new_branch_name local_name/branch_name
+$ git push local_name :branch_name  # delete a remote branch from the server
+</code></pre>
+
+<p><strong>rebasing</strong></p>
+
+<p>和merge不同，rebase是将一个branch的改动replay到另一个branch上，比如说，一个简单的例子:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-10.png" title="rebase branch 1" alt="rebase branch 1" /></p>
+
+<p>以experiment为current branch，<em>git merge master</em>的结果是这样的:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-11.png" title="rebase branch 2" alt="rebase branch 2" /></p>
+
+<p>而以experiment为current branch，<em>git rebase master</em>的结果是这样的:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-12.png" title="rebase branch 3" alt="rebase branch 3" /></p>
+
+<p>它的过程是这样的：先找到一个common ancestor，将两个branch的diff结果保存到一个文件里面，将当前的branch重新设成新的branch，之后将这些diff都应用到这个branch中。</p>
+
+<p>对于rebase，有一点要注意的:</p>
+
+<p><blockquote><p>Do not rebase commits that you have pushed to a public repository.</p></blockquote></p>
+
+<p>否则会造成很多你意想不到的结果。</p>
+
+<h1>git distribution</h1>
+
+<p>/<em> fix me </em>/</p>
+
+<h1>git tools</h1>
+
+<p><strong>revision selection</strong></p>
+
+<p>主要是几条命令:</p>
+
+<pre><code>$ git log --abbrev-commit --pretty=oneline
+$ git rev-parse topic1 
+ca82a6dff817ec66f44342007202690a93763949
+$ git reflog
+$ git log -g branch     # see reflog of master
+$ git show HEAD^    # see the parent commit of HEAD
+$ git show HEAD~2   # see the grandparent commit of HEAD...
+</code></pre>
+
+<p>另外也可以看commit range，比如如图所示:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-13.png" title="commit range" alt="commit range" /></p>
+
+<p>branch1..branch2的意思是: all commits reachable by branch2 that aren't reachable by branch1。</p>
+
+<p>branch1...branch2的意思是: all commits that are reachable by either of two references but not by both of them。</p>
+
+<p>所以:</p>
+
+<pre><code>$ git log master..experiment
+D 
+C
+
+$ git log experiment..master
+F
+E
+
+$ git log master...experiment
+F
+E
+D
+C
+</code></pre>
+
+<p>另外下面三个命令是等价的:</p>
+
+<pre><code>$ git log refA..refB
+$ git log ^refA refB
+$ git log refB --not refA
+</code></pre>
+
+<p><strong>interactive staging</strong></p>
+
+<p>如果为<em>git add</em>加一个<em>-i</em>选项，则可以进入interactive的模式，之后会有几个命令让你选择:</p>
+
+<pre><code>Commands * 1: status 2: update 3: revert 4: add untracked 5: patch 6: diff 7: quit 8: help 
+</code></pre>
+
+<p>之后就可以交互式地stage每个文件，同时，还可以stage文件的一部分（5：patch），很方便。</p>
+
+<p><strong>stashing</strong></p>
+
+<p>stashing的作用是将当前目录的状态（不管是modified还是staged的文件）都保存起来，然后做其它的工作，在之后可以从中恢复过来。</p>
+
+<p>另外，可以用<em>git stash list</em>列出当前被stash的内容，之后用<em>git stash apply</em>来应用某个，或者<em>git stash drop</em>来丢弃某个，或者直接用<em>git stash pop</em>将最近的一个apply然后drop。</p>
+
+<p>还有一种比较牛逼但比较用不到的场景，你apply了一个stash，do some work，然后想unapply之前的工作（指originally come from the stash），可以用这个命令:</p>
+
+<pre><code>$ git stash show -p stash@{0} | git apply -R
+</code></pre>
+
+<p><strong>rewriting history</strong></p>
+
+<p>之前有说过<em>git commit --amend</em>，这里要注意的是这个命令就像一个小的rebase，如果你已经push到remote的话最后就不要用这条命令了。</p>
+
+<p>如果你想要改之前的commit，那么就需要用<em>git rebase</em>了，加上<em>-i</em>选项:</p>
+
+<pre><code>$ git rebase -i HEAD~3
+</code></pre>
+
+<p>之后会有几个选项让你选:</p>
+
+<pre><code>p, pick = use commit
+r, reword = use commit, but edit the commit message
+e, edit = use commit, but stop for amending
+s, squash = use commit, but meld into previous commit
+f, fixup = like "squash", but discard this commit's log message
+x, exec = run command (the rest of the line) using shell
+</code></pre>
+
+<p>这里我遇到一个问题: 在退出编辑器的时候报错——could not execute editor，解决的办法是:</p>
+
+<pre><code>$ git config --global core.editor "/usr/bin/vim"
+</code></pre>
+
+<p>总的来说这是一个很强大的功能，可以修改commit message，可以reordering commit，可以squashing commit，也可以splitting commit，还有一个非常牛逼的filter-branch功能，可以用来把一个文件从每次的commit中删除。在这里就不详细介绍了。</p>
+
+<p><strong>debugging with git</strong></p>
+
+<p>/<em> fix me </em>/</p>
+
+<p><strong>submodules</strong></p>
+
+<p>submodule的作用是将某段代码目录作为子目录导入你的主工程中，让别人可以下载，另外，由于这个子工程可能是别人开发的，所以需要分开来commit。</p>
+
+<p>可以通过以下命令来建立submodule:</p>
+
+<pre><code>$ git submodule add url local_module_name
+</code></pre>
+
+<p>但是如果你直接用<em>git clone</em>是不会把这个submodule下下来的，需要运行以下两个命令:</p>
+
+<pre><code>$ git submodule init
+$ git submodule update
+</code></pre>
+
+<p><strong>subtree merging</strong></p>
+
+<p>/<em> fix me </em>/</p>
+
+<h1>git customization</h1>
+
+<p><strong>git configuration</strong></p>
+
+<p>一般，git的配置参数在/etc/gitconfig和~/.gitconfig两个文件里面。</p>
+
+<p>git可以设置默认的commit message:</p>
+
+<pre><code>$ git config --global commit.template &lt;file&gt;
+</code></pre>
+
+<p>还有其它的:</p>
+
+<pre><code>$ git config --global core.pager [more | less | '']
+$ git config --global help.autocorrect [0 | 1]
+$ git config --global color.ui [true | false]
+$ git config --global color.branch [true | false | always]
+$ git config --global color.diff [true | false | always]
+......
+</code></pre>
+
+<p><strong>git attributes</strong></p>
+
+<p>可以在.gitattributes中加入<em><em>.b binary</em>来表示以b结尾的文件都是binary file，这样在</em>git diff<em>的时候就不会diff它了，还可以通过</em>*.doc diff=word*来表示用word来进行diff，而word可以通过:</p>
+
+<pre><code>$ git config diff.word.textconv strings
+</code></pre>
+
+<p>来进行设置。</p>
+
+<p><strong>git hooks</strong></p>
+
+<p>这是一个很强大的工具，你可以将所有可执行脚本通过合法的命名方式放在.git/hooks目录下，主要分为client-side和server-side的hooks，比如在client-side中，可以规定在commit之前运行一个脚本进行检查...</p>
+
+<p>这是一个蛮有趣的话题，我会单独写一篇文章来说明下~</p>
+
+<hr />
+
+<p>以上基本上就是progit的全部内容，还有一些我觉得暂时还用不到就没有详细写，有一些我可能还会再单独更详细地描述。</p>
+
+<p>总之，git真的是一个很神奇的用于提高开发效率和可靠性的工具，如果能熟练地掌握它的用法将能极大地提高工作效率。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[progit reading 1]]></title>
+    <link href="http://ytliu.github.io/blog/2012/09/16/progit-reading-1/"/>
+    <updated>2012-09-16T22:54:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2012/09/16/progit-reading-1</id>
+    <content type="html"><![CDATA[<p>花了大概两周的时间吧，把《progit》那本书看完了（我看书实在是比较慢，特别是这种英文书）。发觉git实在是一个太强大的工具了，以至于我看完了一遍又把前面所说的功能忘记了。。。orz。。。于是乎决定花一周时间重新回顾一下，顺便把一些牛逼的地方记下来。</p>
+
+<h2>Plumbing &amp; Porcelain</h2>
+
+<p>因为这是progit的最后一章，也是我刚刚看完的一章，还比较有印象。更重要的是这是git的internal的机制，对于深入理解git有很大的帮助，所以想先把这章啃下来。</p>
+
+<p>porcelain是瓷器的意思，在这里是指git中比较user-friendly的命令，比如文中介绍的将近30条git命令，包括checkout, brance, commit, 以及所有的remote命令等等。而plumbing是水管的意思，和porcelain相对的，指的是一些和unix style类似的low-level的可以直接在脚本中执行的命令（其实我也没搞懂为什么要交porcelain和plumbing两个名字，感觉没什么关系啊？）。事实上，如果我没有理解错的话，porcelain在git中应该就是由一系列plumbing命令组成的。比如git commit命令就是由一个叫做“git commit-tree”的plumbing命令完成的，至于什么是commit-tree，以及这个tree是怎么形成的，这个会再接下来慢慢解释。</p>
+
+<p>首先来看下.git目录下都有些什么。</p>
+
+<pre><code>$ ls .git
+HEAD
+config
+description
+hooks/
+index
+info/
+objects/
+refs/
+</code></pre>
+
+<p>这些是在<em>git init</em>的时候初始化就默认产生的，其中description现在还不需要考虑，config主要用来配置一些program-specific的参数选项，info是一个目录，包含了一些需要被ignore的文件模式，而hooks定义了一些client或server端用于用户进行脚本定制的功能，这会在接下来详细介绍。而在这一节中主要描述了以下四个对象：<strong>HEAD</strong>，<strong>index</strong>，<strong>objects</strong>，<strong>refs</strong>。这是git最internal的部分。</p>
+
+<!-- more -->
+
+
+<h2>git objects</h2>
+
+<p>object主要由两种组成：<em>tree object</em>和<em>commit object</em>，在介绍这两个object之前首先要说明下git的文件系统，git是一个content-addressable文件系统，换句话来说，对于git的核心存储来说仅仅是一个key-value数据库，你能向里面插入任何数据，并得到一个相对应的hash值用于之后的访问。这里有两个plumbing命令<em>hash-object</em>和<em>cat-file</em>，比如在新建的git仓库中输入以下命令；</p>
+
+<pre><code>$ echo 'test content' | git hash-object -w --stdin
+</code></pre>
+
+<p><strong>-w</strong>表示对该object进行存储，将会返回：</p>
+
+<pre><code>d670460b4b4aece5915caf5c68d12f560a9fe3e4
+</code></pre>
+
+<p>这个时候你查看.git/objects目录下的内容将会看到：</p>
+
+<pre><code>$ find .git/objects -type f
+  .git/objects/d6/70460b4b4aece5915caf5c68d12f560a9fe3e4
+</code></pre>
+
+<p>其中d6是这个hash值的前两个数字，如果运行<em>cat-file</em>将会得到该object：</p>
+
+<pre><code>$ git cat-file -p d670460b4b4aece5915caf5c68d12f560a9fe3e4
+  test content
+</code></pre>
+
+<p><strong>-p</strong>表示把里面的内容打印出来，而另一个参数<strong>-t</strong>这是将该object的类型打印出来：</p>
+
+<pre><code>$ git cat-file -t d670460b4b4aece5915caf5c68d12f560a9fe3e4
+  blob
+</code></pre>
+
+<p>注意这里的<em>blob</em>是一种type，它是属于整个<em>tree object</em>的叶子节点的类型，而那些中间节点都可以叫做tree。于是现在就可以详细来说说<em>tree object</em>了：</p>
+
+<h3>tree object</h3>
+
+<p>首先我们来运行以下的命令：</p>
+
+<pre><code>$ vi test1
+$ vi test2
+$ find .git/objects/ -type f
+$ git add .
+$ find .git/objects/ -type f
+  .git/objects//18/0cf8328022becee9aaa2577a8f84ea2b9f3827
+  .git/objects//9f/71d140ff7712ec3a6dda42c09078fd290a3a61
+$ git ci -m "first commit"
+$ find .git/objects/ -type f
+  .git/objects//18/0cf8328022becee9aaa2577a8f84ea2b9f3827
+  .git/objects//92/bfc1480834507340a9bb30ac05fb4965785875
+  .git/objects//9f/71d140ff7712ec3a6dda42c09078fd290a3a61
+  .git/objects//dc/7a09861107e178fa0016fb48300b569de5c64c
+$ git cat-file -p 92bf
+  tree dc7a09861107e178fa0016fb48300b569de5c64c
+  author ytliu &lt;mctrain016@gmail.com&gt; 1347865347 +0800
+  committer ytliu &lt;mctrain016@gmail.com&gt; 1347865347 +0800
+
+  first commit
+$ git cat-file -p dc7a
+  100644 blob 9f71d140ff7712ec3a6dda42c09078fd290a3a61 test1
+  100644 blob 180cf8328022becee9aaa2577a8f84ea2b9f3827 test2
+$ git cat-file -t dc7a
+  tree
+</code></pre>
+
+<p>到目前为止，在first commit之后，整个数据存储的树结构是这样的：</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-1.png" title="tree object 1" alt="tree object 1" /></p>
+
+<p>记下来我们新建一个目录dir，并再次commit一次：</p>
+
+<pre><code>$ mkdir dir
+$ vi dir/test3
+$ git add .                 
+$ find .git/objects/ -type f
+  .git/objects//18/0cf8328022becee9aaa2577a8f84ea2b9f3827
+  .git/objects//92/bfc1480834507340a9bb30ac05fb4965785875
+  .git/objects//9f/71d140ff7712ec3a6dda42c09078fd290a3a61
+  .git/objects//dc/7a09861107e178fa0016fb48300b569de5c64c
+  .git/objects//df/6b0d2bcc76e6ec0fca20c227104a4f28bac41b
+$ git ci -m "second commit" 
+$ find .git/objects/ -type f
+  .git/objects//18/0cf8328022becee9aaa2577a8f84ea2b9f3827
+  .git/objects//41/77687db29c641515b10f13536dd70fae4ed142
+  .git/objects//84/ddd13670be5f3636586915421cd98035ad9c66
+  .git/objects//92/bfc1480834507340a9bb30ac05fb4965785875
+  .git/objects//9f/71d140ff7712ec3a6dda42c09078fd290a3a61
+  .git/objects//c5/04b82867a9a4104974edd54c56f01856d9426b
+  .git/objects//dc/7a09861107e178fa0016fb48300b569de5c64c
+  .git/objects//df/6b0d2bcc76e6ec0fca20c227104a4f28bac41b
+$ git cat-file -t 4177      
+  tree
+$ git cat-file -p 4177
+  040000 tree c504b82867a9a4104974edd54c56f01856d9426b dir
+  100644 blob 9f71d140ff7712ec3a6dda42c09078fd290a3a61 test1
+  100644 blob 180cf8328022becee9aaa2577a8f84ea2b9f3827 test2
+$ git cat-layoutfile -p 84dd
+  tree 4177687db29c641515b10f13536dd70fae4ed142
+  parent 92bfc1480834507340a9bb30ac05fb4965785875
+  author ytliu &lt;mctrain016@gmail.com&gt; 1347865426 +0800
+  committer ytliu &lt;mctrain016@gmail.com&gt; 1347865426 +0800
+
+second commit
+$ git cat-file -p c504
+  100644 blob df6b0d2bcc76e6ec0fca20c227104a4f28bac41b test3
+</code></pre>
+
+<p>可以看出，现在多了两个<em>tree object</em>，当前的树结构是这样的：</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-2.png" title="tree object 2" alt="tree object1 2" /></p>
+
+<p>也就是说在新建一个dir的时候会新建一个<em>tree object</em>，而它指向的是这个dir下的blob或其它tree，另外，在进行一次commit的时候也会新建一个<em>tree object</em>，其包含的内容是staging area里面的所有东西。另外，git也提供了和<em>tree object</em>相关的plumbing命令：<em>write-tree</em>和<em>read-tree</em>。<em>write-tree</em>用于新建一个tree，把staging area里面的object就涵盖进来，而<em>read-tree</em>则是将一个tree读入staging area，比如运行以下命令：</p>
+
+<pre><code>$ git write-tree
+  4177687db29c641515b10f13536dd70fae4ed142
+$ git cat-file -p 4177
+  040000 tree c504b82867a9a4104974edd54c56f01856d9426b dir
+  100644 blob 9f71d140ff7712ec3a6dda42c09078fd290a3a61 test1
+  100644 blob 180cf8328022becee9aaa2577a8f84ea2b9f3827 test2
+$ git read-tree --prefix=bak 4177
+$ git write-tree
+  389a980f31bfb78f9bf7e41d85fb3a1736a54f8c
+$ git cat-file -p 389a
+  040000 tree 4177687db29c641515b10f13536dd70fae4ed142 bak
+  040000 tree c504b82867a9a4104974edd54c56f01856d9426b dir
+  100644 blob 9f71d140ff7712ec3a6dda42c09078fd290a3a61 test1
+  100644 blob 180cf8328022becee9aaa2577a8f84ea2b9f3827 test2
+$ ls                  
+  dir test1 test2
+</code></pre>
+
+<p>可以看出<em>write-tree</em>新建了一个<em>tree object</em>，并通过read-tree被标为bak，成为另一个tree的subtree，但是我们通过<strong>ls</strong>并不能显示出来这个tree——bak。</p>
+
+<h3>commit object</h3>
+
+<p>在之前的cat-file命令中可以看到有另一类object</p>
+
+<pre><code>$ git cat-file -p 84dd
+  tree 4177687db29c641515b10f13536dd70fae4ed142
+  parent 92bfc1480834507340a9bb30ac05fb4965785875
+  author ytliu &lt;mctrain016@gmail.com&gt; 1347865426 +0800
+  committer ytliu &lt;mctrain016@gmail.com&gt; 1347865426 +0800
+
+  second commit
+$ git cat-file -t 84dd
+  commit
+</code></pre>
+
+<p>这就是一个<em>commit object</em>，是在每一次commit的时候产生的。可以看到，它所指向的<em>tree object</em>为4177，即：</p>
+
+<pre><code>$ git cat-file -p 4177
+  040000 tree c504b82867a9a4104974edd54c56f01856d9426b dir
+  100644 blob 9f71d140ff7712ec3a6dda42c09078fd290a3a61 test1
+  100644 blob 180cf8328022becee9aaa2577a8f84ea2b9f3827 test2
+</code></pre>
+
+<p>这个很好理解，当然了，相应与<em>write-tree</em>，同样也有一个<em>commit object</em>相关的plumbing命令：<em>commit-tree</em>，用法大概是这样的：</p>
+
+<pre><code>$ echo 'first commit' | git commit-tree 4177
+  d8c7554eb5ee1a0eca359f3d58b99529ac94529c
+$ echo 'second commit' | git commit-tree 389a -p d8c7 
+  fc45c76849a24fe3e6b98fec5f17194c0c5f52a3
+......
+</code></pre>
+
+<p>具体的就不详说了，前面的echo是commit message，<strong>-p</strong>选项表示parent。这个时候如果你运行git log:</p>
+
+<pre><code>$ git log
+  commit 84ddd13670be5f3636586915421cd98035ad9c66
+  Author: ytliu &lt;mctrain016@gmail.com&gt;
+  Date:   Mon Sep 17 15:03:46 2012 +0800
+
+  second commit
+
+  commit 92bfc1480834507340a9bb30ac05fb4965785875
+  Author: ytliu &lt;mctrain016@gmail.com&gt;
+  Date:   Mon Sep 17 15:02:27 2012 +0800
+
+  first commit
+</code></pre>
+
+<p>它只显示了之前commit的记录，那么新commit的third commit和fourth commit呢？原因很简单，因为我在commit-tree third commit的时候并没有指定<strong>-p</strong>，所以它并没有接着second commit下去，而是自己新开了一个：</p>
+
+<pre><code>$ git log fc45
+  commit fc45c76849a24fe3e6b98fec5f17194c0c5f52a3
+  Author: ytliu &lt;mctrain016@gmail.com&gt;
+  Date:   Mon Sep 17 16:20:10 2012 +0800
+
+  fourth commit
+
+  commit d8c7554eb5ee1a0eca359f3d58b99529ac94529c
+  Author: ytliu &lt;mctrain016@gmail.com&gt;
+  Date:   Mon Sep 17 16:18:13 2012 +0800
+
+  third commit
+</code></pre>
+
+<p>当然，我也没有指定它们属于那个branch，所以它现在是属于一个没有被记录的detached HEAD状态，不属于任何一个branch。如果需要为它加一个branch，可以用：</p>
+
+<pre><code>$ git co fc4f -b new_branch
+</code></pre>
+
+<p>到目前为止，整个git仓库的objects的关系可以用下图来表示：</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-3.png" title="object 1" alt="object 1" /></p>
+
+<h2>git references</h2>
+
+<p>其实.git/refs的目的主要是为了更方便用户记忆object，而不用每次都用一个那么长的SHA-1，比如：</p>
+
+<pre><code>$ cat .git/refs/heads/master 
+  84ddd13670be5f3636586915421cd98035ad9c66
+</code></pre>
+
+<p>这个就是传说中的master是怎么被关联到最新的commit的。你可以用git提供的plumbing命令<em>update-ref</em>来更新不同的ref：</p>
+
+<pre><code>$ git update-ref refs/heads/master fc45
+</code></pre>
+
+<p>这个时候master就指向fourth commit了。当然你也可以用这个命令新建ref：</p>
+
+<pre><code>$ git update-ref refs/heads/test 84dd
+$ git co test
+$ git log
+  commit 84ddd13670be5f3636586915421cd98035ad9c66
+  Author: ytliu &lt;mctrain016@gmail.com&gt;
+  Date:   Mon Sep 17 15:03:46 2012 +0800
+
+  second commit
+
+  commit 92bfc1480834507340a9bb30ac05fb4965785875
+  Author: ytliu &lt;mctrain016@gmail.com&gt;
+  Date:   Mon Sep 17 15:02:27 2012 +0800
+
+  first commit
+</code></pre>
+
+<p>还有一种reference是remote <em>reference</em>，可以用remote add来添加：</p>
+
+<pre><code>$ git remote add origin git@github.com:something.git
+</code></pre>
+
+<p>然后吧本地的master分支push上去。</p>
+
+<pre><code>$ git push origin master
+</code></pre>
+
+<p>然后你就可以在refs/remotes/origin/master下看到当前最新的分支情况了~</p>
+
+<h2>HEAD</h2>
+
+<p>HEAD其实就是一个reference指向当前branch的引用：</p>
+
+<pre><code>$ cat .git/HEAD
+  ref: refs/heads/test
+</code></pre>
+
+<p>我们可以直接修改这个文件，也可以用git提供的命令<em>symbolic-ref</em>来修改：</p>
+
+<pre><code>$ git symbolic-ref HEAD refs/heads/test
+$ cat .git/HEAD
+  ref: refs/heads/test
+</code></pre>
+
+<h2>packfiles</h2>
+
+<p>接下来是一个很重要的概念——packfile。具体的场景是这样的：</p>
+
+<p>假设我们有一个很大的文件largefile，它的hash是fb699e017d85f1f0d037f0417a7e17a449533ecc：</p>
+
+<pre><code>$ git cat-file -s fb69
+  132480
+</code></pre>
+
+<p><strong>-s</strong>表示object的大小，这个时候我们对其进行了一个小小的修改，并重新commit：</p>
+
+<pre><code>$ echo "modify a little" &gt;&gt; largefile
+$ git add largefile
+$ git ci -m "modify largefile"
+</code></pre>
+
+<p>这个时候largefile的hash就变成了084d9fa99e4558d38cba7006e3b28f6c87a8fd86；</p>
+
+<pre><code>$ git cat-file -s 084d
+  132496
+</code></pre>
+
+<p>可以看出，在git里面存了两个基本差不多的largefile的object，这样是非常浪费空间的。其实git在disk上存的object是一种叫做<em>loose object</em>的格式，而在一段时间之后git会将这些<em>loose object</em>打包。当然这种情况一般会在两种情况下发生: 执行<em>git gc</em>命令，以及push到remote server：</p>
+
+<pre><code>$ git gc
+$ find .git/objects/ -type f
+  .git/objects//1e/f02bee3de76100febdefb8c55bf99fcfbdf714
+  .git/objects//45/699e25f45a743e08c0909ce1925641f9c03e2e
+  .git/objects//info/packs
+  .git/objects//pack/pack-4ba1c4a110a95c95d7fc1a33d0c5916bb4c10a34.idx
+  .git/objects//pack/pack-4ba1c4a110a95c95d7fc1a33d0c5916bb4c10a34.pack
+</code></pre>
+
+<p>可以看到，现在只剩下5行了，若我们用plumbing命令verify-pack来查看的话可以看到：</p>
+
+<pre><code>$ git verify-pack -v .git/objects/pack/pack-4ba1c4a110a95c95d7fc1a33d0c5916bb4c10a34.pack 
+  eb5efdaed6e57b4356a6758e77c998f1efd009ed commit 221 151 12
+  5a937dca309316f541a433e624868dfe5196c165 commit 218 150 163
+  fc45c76849a24fe3e6b98fec5f17194c0c5f52a3 commit 218 149 313
+  84ddd13670be5f3636586915421cd98035ad9c66 commit 218 149 462
+  d8c7554eb5ee1a0eca359f3d58b99529ac94529c commit 43 53 611 1 84ddd13670be5f3636586915421cd98035ad9c66
+  92bfc1480834507340a9bb30ac05fb4965785875 commit 169 119 664
+  902c38d7fbadea10287a581b9c557fea63d8b00c tree   133 131 783
+  c504b82867a9a4104974edd54c56f01856d9426b tree   33 44 914
+  df6b0d2bcc76e6ec0fca20c227104a4f28bac41b blob   6 15 958
+  084d9fa99e4558d38cba7006e3b28f6c87a8fd86 blob   132496 316 973
+  9f71d140ff7712ec3a6dda42c09078fd290a3a61 blob   7 16 1289
+  180cf8328022becee9aaa2577a8f84ea2b9f3827 blob   6 15 1305
+  f5adadb9b7cf88c0aa57bc4c810d5c2a68d93c5c tree   133 131 1320
+  fb699e017d85f1f0d037f0417a7e17a449533ecc blob   13 22 1451 1 084d9fa99e4558d38cba7006e3b28f6c87a8fd86
+  389a980f31bfb78f9bf7e41d85fb3a1736a54f8c tree   126 126 1473
+  4177687db29c641515b10f13536dd70fae4ed142 tree   96 98 1599
+  dc7a09861107e178fa0016fb48300b569de5c64c tree   66 70 1697
+  non delta: 15 objects
+  chain length = 1: 2 objects
+  .git/objects/pack/pack-4ba1c4a110a95c95d7fc1a33d0c5916bb4c10a34.pack: ok
+</code></pre>
+
+<p>原来第一个largefile的object fb69 现在指向了084d，而其大小也变成了13，而084d作为修改过的largefile，大小还是132496。另外，git还把其它的一些类似的object进行了pack，更充分地缩减了空间。</p>
+
+<h2>refspec</h2>
+
+<p>这个是和remote branch相关的，即当你运行了<em>git remote add</em>命令后，在.git/config下面会有一个诸如：</p>
+
+<pre><code>[remote "origin"]
+url = git@github.com:something.git
+fetch = +refs/heads/*:refs/remotes/origin/*
+</code></pre>
+
+<p>的entry，其中origin是remote端在本地的reference，url是remote端的地址，fetch是你在执行fetch命令时的操作，格式为(+)src:dst，其中src是remote side的匹配模式，dst是local side的匹配模式，+为可选，表示即使不是fast-forward也要更新reference。当然你也可以在每次fetch的时候手动指定。另外对于push同样有这种模式，只需要在config中加上一个push行就行了。</p>
+
+<h2>remove object</h2>
+
+<p>最后一个想讲的是如何真正地删除一个object。比如你有一个很大的object，你用<em>git rm</em>把他删除了，但是你并没有真正地把它从怎个历史中删除，任何一个其他人要fetch你的git仓库，都会把这个很大的object也一起fetch过去。那么，要如何才能真正意义上地删除一个大的object呢？</p>
+
+<p>/<em> fix me </em>/</p>
+
+<hr />
+
+<p>接下来我会从头开始回顾：<em>git basic</em>, <em>git branch</em>, <em>git distribution</em>, <em>git tools</em>, 以及<em>git customization</em>。</p>
+]]></content>
+  </entry>
+  
+</feed>

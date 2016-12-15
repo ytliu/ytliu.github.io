@@ -1,0 +1,521 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Segmentation Protection in Intel Processor - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Segmentation Intel">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2016/09/30/segmentation-protection-in-intel-processor">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Segmentation Protection in Intel Processor</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-09-30T13:49:00+08:00" pubdate data-updated="true">Sep 30<span>th</span>, 2016</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>最近继续看Intel手册，第三卷的第3章和第5章，感觉又学到很多，包括一些之前一直困扰我的问题。这里做一个整理和总结吧。</p>
+
+<!-- more -->
+
+
+<p>这里先推荐一篇博文，<a href="http://duartes.org/gustavo/blog/post/cpu-rings-privilege-and-protection/">CPU Rings, Privilege, and Protection</a>，感觉写的非常好，思路很清晰。建议可以先阅读一下。</p>
+
+<p>首先提一个问题，为什么在当前的Linux操作系统里面，用户态的程序不能访问内核的数据，不能执行内核的代码，同时不能执行一些特权指令呢？在回答这个问题之前，首先需要明白一个概念，到底什么是用户态和内核态。</p>
+
+<h4>特权级（privilege levels）</h4>
+
+<p>特权级是处理器硬件内部维护的一个状态，软件无法直接修改。Intel处理器一共有四个特权级，从高到低分别由0到3表示，即数字越低，表示特权越高，而每个数字即表示了当前CPU运行在哪个特权级上。一般情况下（特别是在64位系统中），系统只会用到这四个特权级中的两个，即0和3，其中0就是所谓的内核态，而3就是用户态。</p>
+
+<p>所以说，一个程序运行在用户态的意思，就是该程序所运行的CPU里面的特权级的状态为3，内核态就表示运行内核的CPU的状态为0，仅此而已。当然，这个特权级会和其它的一些机制组合在一起，在触发某些操作的时候进行检查。这个会在之后详细说明。</p>
+
+<h4>软件如何知道自己运行在哪个特权级上</h4>
+
+<p>按道理来说，特权级是CPU内部的一个状态，软件是无法对它进行直接修改的。但是Intel为软件提供了一个机制，使得软件能够知道自己当前运行在哪个特权级上，简单来说，就是通过段寄存器<code>cs</code>来获得该信息。<code>cs</code>说白了就是一个16位的寄存器，长成这样：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-1.png" title="cs register" alt="cs register" /></p>
+
+<p>也就是说，它最后两个bits就表示当前CPU所处的特权级状态。软件可以通过直接读取<code>cs</code>寄存器获取该信息：</p>
+
+<figure class='code'><figcaption><span>read_cs.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">read_cs</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">cs</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">asm</span> <span class="k">volatile</span> <span class="p">(</span><span class="s">&quot;mov %%cs, %0&quot;</span> <span class="o">:</span> <span class="s">&quot;=r&quot;</span> <span class="p">(</span><span class="n">cs</span><span class="p">));</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">cs</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果读出来最后两个bits是0，则表示运行在内核态，如果是3，则表示运行在用户态。</p>
+
+<h4>基于特权级的保护机制</h4>
+
+<p>有了特权级的概念，我们就可以比较清楚地了解Intel处理器本身提供的那些保护机制了，总体来说，该保护机制主要由三个部分组成。</p>
+
+<ul>
+<li>特权指令的执行</li>
+<li>Memory的保护</li>
+<li>I/O的保护</li>
+</ul>
+
+
+<p>对于I/O的保护，我们这里暂且不表，这里主要考虑的是前面两个部分。</p>
+
+<h3>特权指令的执行</h3>
+
+<p>在Intel的处理器中，一共有16条指令是用户态不能直接执行的（只有内核态可以执行），这些指令如下：</p>
+
+<ul>
+<li>LGDT — Load GDT register.</li>
+<li>LLDT — Load LDT register.</li>
+<li>LTR — Load task register.</li>
+<li>LIDT — Load IDT register.</li>
+<li>MOV (control registers) — Load and store control registers.</li>
+<li>LMSW — Load machine status word.</li>
+<li>CLTS — Clear task-switched flag in register CR0.</li>
+<li>MOV (debug registers) — Load and store debug registers.</li>
+<li>INVD — Invalidate cache, without writeback.</li>
+<li>WBINVD — Invalidate cache, with writeback.</li>
+<li>INVLPG —Invalidate TLB entry.</li>
+<li>HLT— Halt processor.</li>
+<li>RDMSR — Read Model-Specific Registers.</li>
+<li>WRMSR —Write Model-Specific Registers.</li>
+<li>RDPMC — Read Performance-Monitoring Counter.</li>
+<li>RDTSC — Read Time-Stamp Counter.</li>
+</ul>
+
+
+<p>如果在CPL非0的状态下执行这些指令，将会产生一个general-protection exception (#GP) 。至于这些指令都是做什么的，这里也不一一解释了。</p>
+
+<h3>Memory的保护</h3>
+
+<p>这是这篇博文重点关注的内容，主要分为两个部分：Segmentation和Paging。</p>
+
+<h4>段机制（Segmentation）</h4>
+
+<p>下图是利用段机制将内存分成不同段（代码段，数据段等）的一个例子：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-2.png" title="Protected Flat Model" alt="segmentation" /></p>
+
+<p>在这个设计中，有很多段寄存器，通过每个段寄存器可以分别找到其对应的段描述符，然后获得相应的段的基地址，大小，权限等信息。</p>
+
+<p>下图是一个利用段机制寻址的例子：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-3.png" title="Logical Address to Linear Address Translation" alt="segmentation translation" /></p>
+
+<p>段寻址，即给定一个logical address，将其转换为linear address，分为以下几步：</p>
+
+<ul>
+<li>第一，根据情况判断需要寻找的是什么类型的地址（代码？还是数据？由logical address中的segment selector获得）；</li>
+<li>第二，根据所需类型，得到相应的段寄存器（<code>cs</code>，或者<code>ds</code>等）；</li>
+<li>第三，通过段寄存处的第3位到底15位，得到一个特定的段描述符（segment descriptor）；</li>
+<li>第四，根据描述符中的信息（base, limit, access）等，对该logical address进行检查，并且获得对应的linear address（base+offset)；</li>
+</ul>
+
+
+<p>下图是段选择子的示意图：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-4.png" title="Segment selector" alt="segment selector" /></p>
+
+<p>段选择子会被存在段寄存器中，比如之前提到的<code>cs</code>，其中最低2位为RPL（Requested Privilege Level），不过要注意的是，<code>cs</code>段寄存器的最低位为CPL，其它的都是RPL。另外，第3位表示该从GDT还是LDT寻找对应的段描述符，后面的bits就是对应的index了。</p>
+
+<p>下图是段描述符的示意图：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-5.png" title="Segment descriptor" alt="segment descriptor" /></p>
+
+<p>这里不一一解释，可以直接去查Intel文档。总的来说，它就是定义了某个特定的段所对应的基地址，大小，以及相应的权限。这里最重要的权限位就是DPL（Descriptor privilege level），会在之后权限检查的时候使用。</p>
+
+<p>需要声明的是，段寻址主要应用在32位的系统中，在64位的系统上，已经不再采用段寻址了，logical address即为linear address。但是这并不意味着段机制被关闭，段机制是通过设置<code>CR0</code>上的<code>PE flag</code>来开启的，在<code>PE flag</code>开启之后，除非将其清空，否则是无法关闭段保护机制的。这里所说的不用段寻址是指将那些不需要的段描述符的base和limit都设为0，同时如果不需要段机制保护的话也将相应的权限位清空即可。虽然如此，在64位的系统中，关于CPL的信息依然还能通过<code>cs</code>寄存器读取，而且<code>gs</code>和<code>fg</code>两个段寄存器被用作了其他用途。</p>
+
+<p>关于段保护机制，主要是对前面提到的CPL，DPL和RPL进行检查，主要发生在以下三个场景中：</p>
+
+<ul>
+<li>当某个进程需要装载一个新的段选择子：</li>
+</ul>
+
+
+<p><img src="http://ytliu.info/images/2016-09-30-6.png" title="x86 Segment loading" alt="segment loading" /></p>
+
+<p>它会判断当前的CPL和RPL是否权限都比相应的DPL的权限高（Max(CPL, RPL) &lt;= DPL），如果是，则允许加载新的段选择子，否则产生GP。</p>
+
+<ul>
+<li>当某个进程需要访问某个段中的内容：</li>
+</ul>
+
+
+<p><img src="http://ytliu.info/images/2016-09-30-7.png" title="x86 Segmentation data access" alt="segmentation data" /></p>
+
+<p>该检查的逻辑同上。</p>
+
+<ul>
+<li>当某个进程中一个段的代码需要跳转到另外一个段的代码中。</li>
+</ul>
+
+
+<p>这个过程比较复杂，它的段描述符被称为门描述符（gate descriptor），一共有四种门描述符：<code>call-gate</code>，<code>interrupt-gate</code>，<code>trap-gate</code>，<code>task-gate</code>。每一种的检查都有一些细微的区别，但是总体的规则是差不多的，下图举了一个IDT（Interrupt Descriptor Table）的例子：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-8.png" title="Interrupt Descriptor with Privilege Check" alt="Interrupt-gate descriptor" /></p>
+
+<p>这里有两个DPL，一个是<code>interrupt-gate</code>描述符中的DPL，还有一个是该门描述符中指向的目标代码段的DPL，在这里为0。在发生一个interrupt的时候，它需要检查CPL是否比目标代码段的DPL更低权限（即CPL >= DPL），因为interrupt不允许高权限往低权限跳转。另外，对于软件产生的interrupt，比如<code>int n</code>，还要再检查一下CPL是否比<code>interrupt-gate</code>描述符的DPL更高（即CPL &lt;= gate DPL）。否则用户态就可以任意调用interrupt了。</p>
+
+<p>可以说，在64位系统上，关于数据访问的段保护机制已经完全由paging机制代替了，其它两个还会涉及到相应的检查。</p>
+
+<h4>RPL (Request Privilege Level)</h4>
+
+<p>最后来说一下为什么需要有<code>RPL</code>这个概念，它的主要作用是允许高特权级（比如内核态）的代码在为低特权级提供服务的时候，通过较低的权限来加载段。</p>
+
+<p><a href="https://iambvk.wordpress.com/2007/10/10/notes-on-cpl-dpl-and-rpl-terms/">这里</a>举了一个例子：</p>
+
+<p>假设有一个设备驱动跑在内核态，它为上层用户态进程提供了一个服务，即能够直接将一部分数据从磁盘拷贝到用户态进程的数据段。因此，用户态的进程需要将数据段的信息（如段选择子，地址和需要拷贝的数据大小）提供给该驱动。</p>
+
+<p>由于该驱动在内核态，因此一个用户态的进程能够通过伪造数据段的信息，欺骗该驱动将数据拷贝到另一个内核态的数据段中。这种攻击就被称为权限提升（privilege escalation）。</p>
+
+<p>那么，<code>RPL</code>是怎么解决这个问题的呢？</p>
+
+<p>还是上面的例子，当驱动加载目标段的段选择子的时候，将其<code>RPL</code>修改成用户态的权限（即3）。由于数据段的检查逻辑保证<code>CPL &lt;= DPL</code>和<code>RPL &lt;= DPL</code>两个条件同时满足，因此上面提到的权限提升的攻击就会因为<code>RPL（3） &lt;= DPL（0）</code>而造成protection-fault。</p>
+
+<p>所以说，这里的关键就是，当内核态的代码为用户态的进程提供服务的时候，应该要预先将其RPL所代表的权限暂时降低。</p>
+
+<h4>回答开头的那个问题</h4>
+
+<p>用户态的程序之所以不能访问内核的数据，不能执行内核的代码，同时不能执行一些特权指令，在32位系统中，这主要是由特权级、segmentation和paging机制共同决定的，而在64位系统中，这主要是由特权级和paging机制决定的。用户态的进程所能看到的页表，内核页对应页表项的权限位标记了S(upervisor)位，因此，当进程处于用户态时，<code>CPL</code>
+为3，当然就不能访问内核数据，执行内核代码，以及执行特权指令了。</p>
+
+<h3>总结</h3>
+
+<p>最后总结一下，在64位系统还没有出来的时候，段机制是被广泛应用的。当64位出现，能够访问的地址空间变得特别大，就不需要再将内存划分成多个段进行管理了（否则复杂度增加），转而采用一种扁平化的模型（Flat model），另外，页表机制的出现，也使得不同权限级别之间的数据访问保护和隔离也不再需要段保护机制来做，而是直接通过设置页表项中的<code>U/S</code>, <code>R/W</code>, <code>P</code>, <code>NX</code>等权限位即可达到原来的目的。因此，segmentation这套机制，在64位系统中的利用价值就不如以前了。不过，如之前所说，<code>cs</code>段选择子依然可以帮助软件了解当前运行的特权级，<code>gs</code>, <code>fs</code>两个段选择子也另寻用处，这个就是后话了。另外，对于不同特权级之间的控制流转换，包括不同门描述符的利用，这个还是和原来的机制一样。因此，可以说segmentation这套机制在64位系统中依然还有用武之地，甚至我觉得它们可以找到一些新的利用场景，来优化当前的系统。</p>
+
+<p>以上。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-09-30T13:49:00+08:00" pubdate data-updated="true">Sep 30<span>th</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/architecture/'>Architecture</a>, <a class='category' href='/blog/categories/system/'>System</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/09/16/tlbde-na-xie-shi-er/" title="Previous Post: TLB的那些事儿">&laquo; TLB的那些事儿</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/" title="Next Post: X86指令编码的那些事儿">X86指令编码的那些事儿 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2016/09/30/segmentation-protection-in-intel-processor/';
+        var disqus_url = 'http://ytliu.github.io/blog/2016/09/30/segmentation-protection-in-intel-processor/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

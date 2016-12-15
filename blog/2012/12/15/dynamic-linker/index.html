@@ -1,0 +1,533 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Dynamic Linker - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2012/12/15/dynamic-linker">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Dynamic Linker</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-15T13:03:00+08:00" pubdate data-updated="true">Dec 15<span>th</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>在了解dynamic linker之前，得先对ELF文件有一个初步的了解：</p>
+
+<p>在<a href="http://www.jollen.org/blog/2006/12/enabling_dynamic_loader_1.html" title="elf">jollen</a>的博客中有一断对ELF Session的表格:</p>
+
+<p><img src="http://ytliu.info/images/2012-12-09-1.png" title="elf section" alt="elf section" /></p>
+
+<p>很有参考价值。其中将会涉及到的sections有<em>.got</em>, <em>.plt</em>, <em>.interp</em>。</p>
+
+<p>另外在<a href="http://www.bottomupcs.com/" title="computer science from bottom up">Computer Science from the Bottom Up</a>中有一章对dynamic linker进行了详细的说明。</p>
+
+<p>以下的内容很多来自于该文档和俞甲子的《程序员的自我修养》一书第七章。</p>
+
+<!-- more -->
+
+
+<p>问题的产生是这样子的：当我们使用一段shared library的时候，它并没有指定说一定要把相应的代码放在哪个内存地址，而是由dynamic linker根据当前内存情况选择一段最合适的内存区域用于放置相应的code和data。那么dynamic linker是怎么做的呢？我们举一个很简单的例子来说明；</p>
+
+<p>首先，我们编写并编译一段动态链接库lib.c, lib.h：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &quot;lib.h&quot;;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="nf">test</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;in dynamic lib, i is %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">Char</span> <span class="o">*</span><span class="n">dylib</span> <span class="o">=</span> <span class="s">&quot;Test Dynamic Linker String&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="kt">void</span> <span class="n">test</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后将其编译为动态连接库libtest.so</p>
+
+<pre><code>$ gcc -fPIC -shared -o libtest.so lib.c
+</code></pre>
+
+<p>这里 &#8220;-shared&#8221;表示产生共享对象，&#8221;-fPIC&#8221;表示地址无关代码，这在后面会说。</p>
+
+<p>然后我们编写一段程序dytest.c来利用libtest.so:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &quot;lib.h&quot;;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">extern</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dylib</span><span class="p">;</span>
+</span><span class='line'><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello, %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">dylib</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">test</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后对其进行编译：</p>
+
+<pre><code>$ gcc -o dytest dytest.c ./libtest.so
+$ ./dytest
+Hello, Test Dynamic Linker String
+in dynamic lib, i is 5
+</code></pre>
+
+<p>就这么一段简单的测试代码中，动态链接是怎么完成的呢？它和静态链接有什么不同呢？</p>
+
+<p>在静态链接中，整个程序只有一个可执行文件，在这个可执行文件中，所有变量和函数的地址都已经固定好了（这是由linker在链接时从静态链接的文件中读出来并进行地址重定位），而在动态链接中，这些地址并不会进行地址重定位。那么，链接器怎么知道一个地址是静态符号还是动态符号呢？其实在我们编译dytest的时候也将libtest.so加进去进行编译了，而在libtest.so中保存了完整的符号信息，从而linker可以知道该符号是一个动态符号。</p>
+
+<p>既然动态链接库主要用于共享，那么有一个问题：共享对象在编译时不应该假设自己在进程虚拟地址空间中的位置。一种解决的方法是采用“装载时重定位”，但是这样有一个缺点，因为它要在程序装载时对指令部分进行修改，所以就无法使得指令部分在多个进程中共享，这样就失去了共享库的优势，另一种就是地址无关代码，它的基本想法就是把指令中那些需要修改的部分分离出来，和数据放在一起。</p>
+
+<p>我们把地址引用分为4个部分</p>
+
+<ul>
+<li>模块内部函数调用</li>
+<li>模块内部数据访问</li>
+<li>模块外部数据访问</li>
+<li>模块外部函数调用</li>
+</ul>
+
+
+<p>第一种情况应该是最简单的，因为在模块内部函数与调用者的位置是相对的，可以采取相对地址调用。</p>
+
+<p>第二种情况同样采用相对地址的访问，这里有一个trick，就是如何得到数据地址和当前地址的相对值，俞子甲的书中介绍了一种方法(7.3节)。另外，在处理共享库的全局变量的时候，编译器都把它当作定义在其它模块的全局变量，相当于后面讲的类型三，使用GOT表。</p>
+
+<p>第三种情况就复杂一点了，因为它要等到装载时才能决定。这里就要用到GOT（Global Offset Table）表了，ELF在数据段中建立一个指向相关地址的指针数组。对于数据变量a，在GOT表中有一个4bytes的地址项与之对应，在程序装载时，链接器会找到这个变量的地址，并将该项进行修改。</p>
+
+<p>第四种情况和第三种类似，只是地址为函数地址。</p>
+
+<p>其实还有第五中情况，就是模块间的全局变量，比如下面这个例子：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">extern</span> <span class="kt">int</span> <span class="n">global</span><span class="p">;</span>
+</span><span class='line'><span class="kt">int</span> <span class="nf">foo</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">global</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果一个定义在共享模块内部的全局变量，编译器并不知道它是否会被其它模块使用，所以当前编译器在遇到这种全局变量的时候都会把其当做定义在其它模块中的全局变量，即上面的第三种情况，使用GOT表进行访问。</p>
+
+<p>这里还要注意一点的是，在产生地址无关代码的时候参数-fpic和-fPIC的区别，-fpic产生的代码相对较小，而且较快，但是对于一些硬件平台有一些限制。另外，它也可以被用在可执行代码上，这时，就被称为PIE（using -fPIE or -fpie）。</p>
+
+<p>这里需要澄清的一点是，对于一个共享库lib.so来说，它在不同的进程中都有自己独立的副本，而在同个进程不同线程中则是共享的。而对于多进程共享全局变量使用的是“共享数据段”，而多线程访问不同全局变量则被称为“线程私有存储”。</p>
+
+<p>还有，对于数据段的绝对地址引用，可以用到装载时重定位的方法来解决，即对于共享对象来说，如果数据段中有绝对地址引用，如static int *p = &amp;a，编译器和链接器会产生一个重定位表，当动态链接器装载共享对象时若发现有重定位入口，则对其进行重定位。</p>
+
+<h4>延迟绑定（PLT）</h4>
+
+<p>在动态链接的程序开始运行的时候都会通过动态链接器寻找并装载共享对象，但是有些函数其实可能并不会被调用。为了增加性能，会采用一种被称为PLT（Procedure Linkage Table）的方式，它的基本思想就是当函数第一次被用到时才进行绑定。它采用了一些很精巧的指令来完成:</p>
+
+<p>每个外部函数都有一个在PLT对应的项（bar@plt)</p>
+
+<pre><code>bar@plt:
+jmp *(bar@GOT)
+push n
+push moduleID
+jmp _dl_runtime_resolve
+</code></pre>
+
+<p>在这里第一条指令跳转到bar在GOT中的项，该项中的初始地址即为这里第二条指令（push n）的地址，相当于没有效果，然后将bar的信息和其所在模块的信息压入栈，最后调用_dl_runtim_resolve将bar真正对的地址填入到bar@GOT中，当下次真正调用bar的时候就会跳转到真正的函数地址，并返回到调用者，而不会回到<em>push n</em>的地址了。</p>
+
+<p>ELF将GOT分成了两个表“.got&#8221;和&#8221;.got.plt&#8221;, &#8220;.got&#8221;用来保存全局变量引用地址，&#8221;.got.plt&#8221;用来保存函数引用的地址，在&#8221;.got.plt&#8221;中前三项是有特殊意义的：</p>
+
+<ul>
+<li>第一项保存&#8221;.dynamic&#8221;段的地址，这个段描述了本模块动态链接相关的信息；</li>
+<li>第二项保存的是本模块的ID；</li>
+<li>第三项保存的是_dl_runtime_resolve()的地址。</li>
+</ul>
+
+
+<p>而&#8221;.got.plt&#8221;的其余项分别对应每个外部函数的引用。</p>
+
+<h4>动态链接相关结构</h4>
+
+<p>在动态链接的情况下，在装载完可执行文件之后，操作系统会将控制权转交给动态链接器，动态链接器的路径在&#8221;.interp&#8221;下指定。</p>
+
+<p>和动态链接相关的段比如说：</p>
+
+<h5>.dynamic</h5>
+
+<p>动态链接器中最重要的结构就是&#8221;.dynamic&#8221;段，它就像动态链接下ELF文件的”文件头“。</p>
+
+<h5>.dynsym</h5>
+
+<p>&#8220;.dynsym&#8221;段是为了表示模块间动态链接相关符号的导入导出关系的，当然，和&#8221;.symtab&#8221;段类似，它也需要一些辅助的表，如&#8221;.dynstr&#8221;动态符号字符串表，&#8221;.hash&#8221;符号哈希表。</p>
+
+<h5>动态链接重定位表</h5>
+
+<p>&#8220;rel.dyn&#8221;和&#8221;rel.plt&#8221;相当于静态链接中的&#8221;rel.data&#8221;和&#8221;rel.text&#8221;。&#8221;rel.dyn&#8221;是对数据引用的修正，它所修正的位置即&#8221;.got&#8221;以及数据段，而&#8221;.rel.plt&#8221;则是对函数引用的修正，即&#8221;.got.plt&#8221;段。</p>
+
+<h4>动态链接的步骤和实现</h4>
+
+<p>主要分为三步：</p>
+
+<h5>动态链接器自举</h5>
+
+<p>这里有两个条件：</p>
+
+<ul>
+<li>本身不可以依赖于其它任何共享对象</li>
+<li>本身所需要的全局和静态变量的重定位工作由其本身完成——即“自举”</li>
+</ul>
+
+
+<h5>装载共享变量</h5>
+
+<p>从全局符号表中开始寻找其所依赖的共享变量，即&#8221;.dynamic&#8221;段中一个DT_NEEDED类型，将里面提到的所有共享对象的名字放入一个装载集合中，然后从集合中一个个读取共享变量名字，找到相对应的文件，读取里面的ELF文件头和&#8221;.dynamic&#8221;段，然后将相应的代码段和数据段映射到其地址空间中，并递归地做这件事。所以当所有共享变量都被装载进来后，全局符号表里面将包含所有动态链接所需要的符号。</p>
+
+<h4>重定向和初始化</h4>
+
+<p>装载完成后，链接器开始重新遍历可执行文件和每个共享对象的重定向表，将其GOT/PLT中需要重定向的进行修正，然后就将控制权转交给程序的入口了。由此，动态链接也就完成了。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-15T13:03:00+08:00" pubdate data-updated="true">Dec 15<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/linux/'>Linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/12/09/aslr-in-android/" title="Previous Post: ASLR in android">&laquo; ASLR in android</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/12/20/ru-guo-ming-tian-shi-shi-jie-mo-ri/" title="Next Post: 如果明天是世界末日">如果明天是世界末日 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2012/12/15/dynamic-linker/';
+        var disqus_url = 'http://ytliu.github.io/blog/2012/12/15/dynamic-linker/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

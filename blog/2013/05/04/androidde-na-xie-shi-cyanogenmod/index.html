@@ -1,0 +1,407 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Android的那些事 - CyanogenMod - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="cyanogenmod maguro">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Android的那些事 - CyanogenMod</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-04T22:07:00+08:00" pubdate data-updated="true">May 4<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>这个系列我想记录一些和Android相关但是和技术无关的东西，这次就从CyanogenMod开始讲起吧。</p>
+
+<p>今天要把一个源码编译到手机上（我的测试机是Samsung Galaxy Nexus），按照以前的经历，首先要把它<code>lunch</code>成maguro，然后再开始make，但是这次的lunch发现只有一个叫做cm_maguro的选项，而且关键是它说找不到相关的配置文件，而且<code>repo sync</code>也失败了。</p>
+
+<p>讲到这里，我就不想继续下去了，这个就是一个装机的过程，遇到各种错误，然后google，然后。。。这个过程我打算另开一篇，而这一篇是关于这个<strong>cm_maguro</strong>。</p>
+
+<p>明白人都知道，这个“cm”指的就是“CyanogenMod”，而这个maguro呢？据说是Samsung Galaxy Nexus的一个代号而已，名为金枪鱼。这些在我们平时刷ROM的时候经常会出现的字眼，说出来都不好意思，我从来就没有搞清楚过他们之间具体的关系是什么，直到今天，我感觉自己终于有了一点头绪。</p>
+
+<p>先声明下，以下的部分基本上都是从各种百科或者论坛或者wiki再或者是CyanogenMod的官方网站上撸下来之后进行整理的，可能会感觉似曾相识，不过没关系，就当看故事好了。</p>
+
+<hr />
+
+<h4>CyanogenMod</h4>
+
+<p><a href="http://wiki.cyanogenmod.org/w/About">CyanogenMod</a>，从人的角度来说，是一个由Android爱好者组成的团队，并且它是目前全球最大的Android第三方编译团队。而从系统的角度来说，它又是一个基于开源Android系统，供某些手机使用的二级市场固件，它提供了一些在官方Android系统或手机厂商没有提供的功能。</p>
+
+<p>那么为什么会出现CyanogenMod呢？</p>
+
+<p>原因很简单，我们知道Android系统从一开始发布就是一个开源的系统，当时Android有另外一个问题就是，代码是开源了，但是那么多机型Google就算再闲也某赖新菜（方言，表示没心情管它，请无视），就拿Android 2.3来说，Google开放的源码只支持Nexus S和Nexus One，而对于其它机型，比如HTC的xxx，LG的xxx，google只能说一声对不住了。虽然不同的手机制造厂商会花力气下去生产自己的ROM（简单来说，就是能把改过的代码跑在自己的机器上），但是作为一个Android用户，如果他想刷机怎么办？开源的代码不支持自己的机型，支持自己机型的ROM又由生产厂商封锁着，那些说好的“新功能”呢？那些说好的“随意刷机”呢？我觉得可以这么说，如果没有像CyanogenMod这样的团队，现在什么牛逼的第三方ROM，什么MIUI，估计都还在娘胎里没生出来吧，也就更不用说今天Android手机的千秋万代，一统江湖了。</p>
+
+<!-- more -->
+
+
+<p>那么，CyanogenMod这样的团队到底做了些什么呢？</p>
+
+<p>问得好！其实吧，我也只是一知半解。我只是知道，相比于Google只对少数的几款机型的支持，CyanogenMod增加了对很多其它机型的支持，而这些改动主要是在内核部分。这些内核源代码都是各厂商根据GPL协议共开出来的，CM会在上面作一些改动（比如增加收音机，720P录像等）。</p>
+
+<p>也就是说，CM基于Google官方发布的ASOP，每当google发布新版本的ASOP的时候，CM团队都会将它们port到不同的机型上，并且增加一些新的特性、功能和bug的修复等等。也正是因为这样，CM的ROM经常也会为ASOP带来很多好处，有时候CM加上的新特性会在ASOP的新版本中出现，CM对bug的修复也会贡献给ASOP。</p>
+
+<p>另外在<a href="http://wiki.cyanogenmod.org/index.php?title=Devices">这里</a>可以找到所有CM支持的机型和它们相对应的代号，非常牛逼！</p>
+
+<h5>ROM，firmware，operating system，distribution</h5>
+
+<p>在CM的<a href="http://wiki.cyanogenmod.org/w/About">官方介绍</a>中特别说明，这四个词对于CyanogenMod来说都是指的同一个意思，都是指你装在你手机设备上的一整套软件。</p>
+
+<h5>CM版本</h5>
+
+<p>我们经常会看到CM7，CM8等等，这些都是CM的版本号，从<a href="http://en.wikipedia.org/wiki/CyanogenMod#Version_history">wiki</a>上的一张图可以很清楚的看出这些版本都是代表些什么意思：</p>
+
+<p><img src="http://ytliu.info/images/2013-05-04-1.png" title="CM version" alt="CM version" /></p>
+
+<hr />
+
+<h4>maguro, toro, tuna</h4>
+
+<p>在刷Galaxy Nexus的时候，会碰到这些代号，简单来说，tuna是Samsung Galaxy Nexus的代号，名为金枪鱼（maguro也是金枪鱼的意思）。</p>
+
+<p>这里稍微跑题下，Android的很多机型都是采用和“鱼”相关的代号，比如Galaxy Nexus (tuna, 金枪鱼)，emulator (goldfish, 金鱼)，G1 (trout, 鲑鱼)， Nexus One (mahimahi, 海豚鱼)，Nexus S (herring, 鲱鱼)，Xoom (stingray, 黄貂鱼)等等。</p>
+
+<p>那么maguro和toro又是什么呢？</p>
+
+<p>事实上，Galaxy Nexus有两种类型的设备，一种是GSM/HSPA+的种类，代号为maguro，一种是CDMA/LTE的种类，代号为toro（还有一个它的变种叫toroplus）。对于maguro来说，在Galaxy Nexus的源码树中，一般会有两个目录，一个是<code>device/samsung/tuna</code>，一个是<code>device/samsung/maguro</code>。前者涵盖了所有maguro和toro共享的文件，而后者则存储和maguro特定相关的文件。</p>
+
+<h5>如何识别</h5>
+
+<p>有两种方法，一种是查看<code>Settings &gt; About phone &gt; Model number</code>，看看以下哪个匹配：</p>
+
+<ul>
+<li>Samsung Galaxy Nexus (Maguro; GSM/HSPA+) - GT-I9250</li>
+<li>Samsung Galaxy Nexus (Toro; Verizon; CDMA/LTE) - SGH-I515</li>
+<li>Samsung Galaxy Nexus (Toro Plus; Sprint; CDMA/LTE) - SPH-L700</li>
+</ul>
+
+
+<p>但是在我刷好的手机上，<code>Model number</code>显示的只有Galaxy Nexus，所以可以采用第二种更简单的办法，即看手机后盖上的图标，看看它是否有Verizon (toro) 或者 Sprint (toroplus)字样，如果都没有，那就是maguro了。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-04T22:07:00+08:00" pubdate data-updated="true">May 4<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>Android</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/04/30/xi-tong-diao-yong-xue-xi-bi-ji-ptrace/" title="Previous Post: 系统调用学习笔记 - ptrace和wait">&laquo; 系统调用学习笔记 - ptrace和wait</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/05/22/chinasysxiao-ji/" title="Next Post: ChinaSys小记（2013.5）">ChinaSys小记（2013.5） &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

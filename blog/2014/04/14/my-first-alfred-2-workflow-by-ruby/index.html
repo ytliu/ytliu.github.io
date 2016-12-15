@@ -1,0 +1,701 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>My first Alfred 2 Workflow by Ruby - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">My First Alfred 2 Workflow by Ruby</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-14T14:54:00+08:00" pubdate data-updated="true">Apr 14<span>th</span>, 2014</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>These two days I&#8217;m studying how to effiently use Alfred 2. Yesterday I bought its <a href="https://buy.alfredapp.com/">Powerpack Single License</a> (17 Euro), so that I can import or create my own Workflow!</p>
+
+<p>I should say it is really fun to do such things, it makes me believing that I can take more control over my own Mac Air.</p>
+
+<p>In this post I will show how to write a simple workflow using ruby. The code can be downloaded from my <a href="https://github.com/ytliu/alfred2-ascii-translator">github page</a>, it is a very simple program that can translate between each character and its corresponding ASCII code, just like this:</p>
+
+<p>You can translate from an array of decimal ASCII code to their characters:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-1.png" title="My Alfred 2 workflow - ascii translator 1" alt="ascii effect 1" /></p>
+
+<p>Or from hexadecimal ASCII code to their characters:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-2.png" title="My Alfred 2 workflow - ascii translator 2" alt="ascii effect 2" /></p>
+
+<p>Or from characters to their corresponding ASCII codes:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-3.png" title="My Alfred 2 workflow - ascii translator 3" alt="ascii effect 3" /></p>
+
+<p>So now let&#8217;s begin!</p>
+
+<!-- more -->
+
+
+<p>Firstly I should say why I use ruby is just because I like it! Thanks for <a href="https://github.com/zhaocai">zhaocai</a> who have implemented the <a href="http://zhaocai.github.io/alfred2-ruby-template/">alfred2-ruby-template</a>, which makes creating Alfred2 Workflow using ruby much more simpler.</p>
+
+<p>At first, you should download the <a href="https://github.com/zhaocai/alfred2-ruby-template">template</a> from github, and rename it whatever you like:</p>
+
+<pre><code>$ git clone https://github.com/zhaocai/alfred2-ruby-template.git
+$ mv alfred2-ruby-template alfred2-ascii-translator
+$ cd alfred2-ascii-translator
+</code></pre>
+
+<p>update the <code>domain</code>, <code>id</code>, <code>path</code> attribute in <code>config.yml</code> file:</p>
+
+<figure class='code'><figcaption><span>config.yml </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># bundle_id = &quot;domain.id&quot;</span>
+</span><span class='line'><span class="c1"># path is the relative path to the workflow in the project root</span>
+</span><span class='line'><span class="o">---</span>
+</span><span class='line'><span class="ss">path</span><span class="p">:</span> <span class="n">ascii</span>
+</span><span class='line'><span class="ss">domain</span><span class="p">:</span> <span class="n">me</span><span class="o">.</span><span class="n">ytliu</span>
+</span><span class='line'><span class="nb">id</span><span class="p">:</span> <span class="n">alfred2</span><span class="o">-</span><span class="n">ascii</span><span class="o">-</span><span class="n">translator</span>
+</span><span class='line'><span class="c1"># If you are using Alfred&#39;s advanced Dropbox sync, indicate the path shown in</span>
+</span><span class='line'><span class="c1"># Alfred Preferences &gt; Advanced &gt; Syncing:</span>
+</span><span class='line'><span class="ss">dropbox</span><span class="p">:</span> <span class="o">~</span><span class="sr">/Dropbox/</span><span class="no">Alfred</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>the last option: <code>dropbox</code> is when you use Alfred&#8217;s advance Dropbox sync, as explained above, you can find in <code>Alfred Preferences &gt; Advanced &gt; Syncing</code></p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-4.png" title="Alfred Dropbox Sync Option" alt="alfred dropbox sync" /></p>
+
+<p>After that, we can change the main folder to what we want it to be (actually here you can remain as before: <code>workflow</code>, but make sure the <code>path</code> attribute in <code>config.yml</code> should be consistent with it).</p>
+
+<pre><code>$ mv workflow ascii
+</code></pre>
+
+<p>Now we should setup our ruby environment.</p>
+
+<p>Firstly, we can create a new gemset (I&#8217;ve been stuck in the gemset problem for a long time, where there&#8217;re many versions of gem packages and make me confused. So here just create a new one, and make it clean).</p>
+
+<pre><code>$ rvm gemset create alfred_ruby_set
+$ rvm use 2.0.0@alfred_ruby_set
+</code></pre>
+
+<p>Note here the ruby version I&#8217;m using is 2.0.0, I think other version can also be ok.</p>
+
+<p>At the very beginning of installing all other gems, we should install the <code>plist</code> and <code>bundler</code> gem:</p>
+
+<pre><code>$ gem install plist
+$ gem install bundler
+</code></pre>
+
+<p>Then install other gems using <code>bundle:install</code>:</p>
+
+<pre><code>$ rake bundle:install
+</code></pre>
+
+<p>Normally it will install all the gems you need. The gems are list in the <code>Gemfile</code> file (e.g., here it is the <code>ascii/Gemfile</code>).</p>
+
+<pre><code>$ cat ascii/Gemfile
+</code></pre>
+
+<figure class='code'><figcaption><span>ascii/Gemfile </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">source</span> <span class="s2">&quot;https://rubygems.org&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">gem</span> <span class="s2">&quot;plist&quot;</span>
+</span><span class='line'><span class="n">gem</span> <span class="s2">&quot;alfred-workflow&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we can install the template workflow, we just type:</p>
+
+<pre><code>$ rake install
+</code></pre>
+
+<p>or if you are using Dropbox sync as mentioned before, you can type:</p>
+
+<pre><code>$ rake dbxinstall
+</code></pre>
+
+<p>this will create a soft link in the right place, for my case, it just execute:</p>
+
+<pre><code>ln -sf /Users/luisleo/Software/AlfredWorkflow/alfred2-ascii-translator/workflow /Users/luisleo/Dropbox/Alfred/Alfred.alfredpreferences/workflows/me.ytliu.alfred2-ascii-translator`
+</code></pre>
+
+<p>Then when you open the <code>Alfred Preference &gt; Workflow</code>, you can see a new workflow added:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-5.png" title="Alfred Workflow List" alt="alfred workflow list" /></p>
+
+<p>Here you can double click it to change some of the information like name, description and so on:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-6.png" title="Alfred Workflow 1" alt="alfred workflow 1" /></p>
+
+<p>You can also double click the panel with &#8220;test feedback&#8221;, to see the keywords which can trigger the workflow:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-7.png" title="Alfred Workflow 2" alt="alfred workflow 2" /></p>
+
+<p>You can also change the icon of your workflow. For my example, I just change it to what I need:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-8.png" title="Alfred Workflow" alt="my alfred workflow" /></p>
+
+<p>You can see that in the Script, the content is <code>/usr/bin/ruby ./main.rb {query}</code>, which means when triger this action, it will execute this script. Now let&#8217;s see what happens in the <code>main.rb</code> located in <code>ascii</code> folder:</p>
+
+<figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1">#!/usr/bin/env ruby</span>
+</span><span class='line'><span class="c1"># encoding: utf-8</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;./bundle/bundler/setup&quot;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;alfred&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Alfred</span><span class="o">.</span><span class="n">with_friendly_error</span> <span class="k">do</span> <span class="o">|</span><span class="n">alfred</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">fb</span> <span class="o">=</span> <span class="n">alfred</span><span class="o">.</span><span class="n">feedback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># add an arbitrary feedback</span>
+</span><span class='line'>  <span class="n">fb</span><span class="o">.</span><span class="n">add_item</span><span class="p">({</span>
+</span><span class='line'>    <span class="ss">:uid</span>      <span class="o">=&gt;</span> <span class="s2">&quot;&quot;</span>                     <span class="p">,</span>
+</span><span class='line'>    <span class="ss">:title</span>    <span class="o">=&gt;</span> <span class="s2">&quot;Just a Test&quot;</span>          <span class="p">,</span>
+</span><span class='line'>    <span class="ss">:subtitle</span> <span class="o">=&gt;</span> <span class="s2">&quot;feedback item&quot;</span>        <span class="p">,</span>
+</span><span class='line'>    <span class="ss">:arg</span>      <span class="o">=&gt;</span> <span class="s2">&quot;A test feedback Item&quot;</span> <span class="p">,</span>
+</span><span class='line'>    <span class="ss">:valid</span>    <span class="o">=&gt;</span> <span class="s2">&quot;yes&quot;</span>                  <span class="p">,</span>
+</span><span class='line'>  <span class="p">})</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">0</span><span class="o">].</span><span class="n">eql?</span> <span class="s2">&quot;failed&quot;</span>
+</span><span class='line'>    <span class="n">alfred</span><span class="o">.</span><span class="n">with_rescue_feedback</span> <span class="o">=</span> <span class="kp">true</span>
+</span><span class='line'>    <span class="k">raise</span> <span class="ss">Alfred</span><span class="p">:</span><span class="ss">:NoBundleIDError</span><span class="p">,</span> <span class="s2">&quot;Wrong Bundle ID Test!&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nb">puts</span> <span class="n">fb</span><span class="o">.</span><span class="n">to_xml</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>From this code, you can see that all code are put in the block:</p>
+
+<figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Alfred</span><span class="o">.</span><span class="n">with_friendly_error</span> <span class="k">do</span> <span class="o">|</span><span class="n">alfred</span><span class="o">|</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The input parameters can be retrieved from <code>ARGV</code>. If we want to output something, we can use the <code>fb.add_item</code> API:</p>
+
+<figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># add an arbitrary feedback</span>
+</span><span class='line'><span class="n">fb</span><span class="o">.</span><span class="n">add_item</span><span class="p">({</span>
+</span><span class='line'>  <span class="ss">:uid</span>      <span class="o">=&gt;</span> <span class="s2">&quot;&quot;</span>                     <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:title</span>    <span class="o">=&gt;</span> <span class="s2">&quot;Just a Test&quot;</span>          <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:subtitle</span> <span class="o">=&gt;</span> <span class="s2">&quot;feedback item&quot;</span>        <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:arg</span>      <span class="o">=&gt;</span> <span class="s2">&quot;A test feedback Item&quot;</span> <span class="p">,</span>
+</span><span class='line'>  <span class="ss">:valid</span>    <span class="o">=&gt;</span> <span class="s2">&quot;yes&quot;</span>                  <span class="p">,</span>
+</span><span class='line'><span class="p">})</span>
+</span><span class='line'><span class="nb">puts</span> <span class="n">fb</span><span class="o">.</span><span class="n">to_xml</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So when you open Alfred, input <code>test feedback</code>, you can see like this:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-9.png" title="test feedback example" alt="test feedback example" /></p>
+
+<p>That&#8217;s quite simple.</p>
+
+<p>So here come to my ASCII Translator:</p>
+
+<figure class='code'><figcaption><span>ascii/main.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1">#!/usr/bin/env ruby</span>
+</span><span class='line'><span class="c1"># encoding: utf-8</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">require</span> <span class="s1">&#39;rubygems&#39;</span> <span class="k">unless</span> <span class="n">defined?</span> <span class="no">Gem</span> <span class="c1"># rubygems is only needed in 1.8</span>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;./bundle/bundler/setup&quot;</span>
+</span><span class='line'><span class="nb">require</span> <span class="s2">&quot;alfred&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">show_chars</span><span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">fb</span><span class="o">.</span><span class="n">add_item</span><span class="p">({</span>
+</span><span class='line'>    <span class="ss">:uid</span>      <span class="o">=&gt;</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="ss">:title</span>    <span class="o">=&gt;</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="ss">:subtitle</span> <span class="o">=&gt;</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="ss">:arg</span>      <span class="o">=&gt;</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="ss">:valid</span>    <span class="o">=&gt;</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="p">})</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">special_ascii</span> <span class="o">=</span> <span class="o">[</span><span class="s1">&#39;NUL&#39;</span><span class="p">,</span> <span class="s1">&#39;SOH&#39;</span><span class="p">,</span> <span class="s1">&#39;STX&#39;</span><span class="p">,</span> <span class="s1">&#39;ETX&#39;</span><span class="p">,</span> <span class="s1">&#39;EOT&#39;</span><span class="p">,</span> <span class="s1">&#39;ENQ&#39;</span><span class="p">,</span> <span class="s1">&#39;ACK&#39;</span><span class="p">,</span> <span class="s1">&#39;BEL&#39;</span><span class="p">,</span> <span class="s1">&#39;BS&#39;</span><span class="p">,</span> <span class="s1">&#39;TAB&#39;</span><span class="p">,</span> <span class="s1">&#39;LF&#39;</span><span class="p">,</span> <span class="s1">&#39;VT&#39;</span><span class="p">,</span> <span class="s1">&#39;FF&#39;</span><span class="p">,</span> <span class="s1">&#39;CR&#39;</span><span class="p">,</span> <span class="s1">&#39;SO&#39;</span><span class="p">,</span> <span class="s1">&#39;SI&#39;</span><span class="p">,</span> <span class="s1">&#39;DLE&#39;</span><span class="p">,</span> <span class="s1">&#39;DC1&#39;</span><span class="p">,</span> <span class="s1">&#39;DC2&#39;</span><span class="p">,</span> <span class="s1">&#39;DC3&#39;</span><span class="p">,</span> <span class="s1">&#39;DC4&#39;</span><span class="p">,</span> <span class="s1">&#39;NAK&#39;</span><span class="p">,</span> <span class="s1">&#39;SYN&#39;</span><span class="p">,</span> <span class="s1">&#39;ETB&#39;</span><span class="p">,</span> <span class="s1">&#39;CAN&#39;</span><span class="p">,</span> <span class="s1">&#39;EM&#39;</span><span class="p">,</span> <span class="s1">&#39;SUB&#39;</span><span class="p">,</span> <span class="s1">&#39;ESC&#39;</span><span class="p">,</span> <span class="s1">&#39;FS&#39;</span><span class="p">,</span> <span class="s1">&#39;GS&#39;</span><span class="p">,</span> <span class="s1">&#39;RS&#39;</span><span class="p">,</span> <span class="s1">&#39;US&#39;</span><span class="o">]</span>
+</span><span class='line'><span class="n">special_ascii_7f</span> <span class="o">=</span> <span class="s1">&#39;del&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Alfred</span><span class="o">.</span><span class="n">with_friendly_error</span> <span class="k">do</span> <span class="o">|</span><span class="n">alfred</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">alfred</span><span class="o">.</span><span class="n">with_rescue_feedback</span> <span class="o">=</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="n">fb</span> <span class="o">=</span> <span class="n">alfred</span><span class="o">.</span><span class="n">feedback</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">type</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">type</span> <span class="o">=~</span> <span class="sr">/[d|h|c]/</span><span class="p">)</span> <span class="o">==</span> <span class="kp">nil</span>
+</span><span class='line'>    <span class="k">raise</span> <span class="ss">Alfred</span><span class="p">:</span><span class="ss">:InvalidFormat</span><span class="p">,</span> <span class="s2">&quot;Usage: ascii [d|h|c] args&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span>
+</span><span class='line'>    <span class="n">query</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">1</span><span class="o">.</span><span class="n">.</span><span class="o">-</span><span class="mi">1</span><span class="o">].</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_i</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">elsif</span> <span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;h&#39;</span>
+</span><span class='line'>    <span class="n">query</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">1</span><span class="o">.</span><span class="n">.</span><span class="o">-</span><span class="mi">1</span><span class="o">].</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:hex</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">query</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">1</span><span class="o">.</span><span class="n">.</span><span class="o">-</span><span class="mi">1</span><span class="o">].</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">result</span> <span class="o">=</span> <span class="nb">Array</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;c&#39;</span>
+</span><span class='line'>    <span class="n">result</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">bytes</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">c</span><span class="o">|</span> <span class="s2">&quot;0x</span><span class="si">#{</span><span class="n">c</span><span class="o">.</span><span class="n">to_s</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">}</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">query</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">q</span><span class="o">|</span>
+</span><span class='line'>      <span class="k">if</span> <span class="n">q</span> <span class="o">&lt;</span> <span class="mh">0x20</span>
+</span><span class='line'>        <span class="n">result</span> <span class="o">&lt;&lt;</span> <span class="n">special_ascii</span><span class="o">[</span><span class="n">q</span><span class="o">]</span>
+</span><span class='line'>      <span class="k">elsif</span> <span class="n">q</span> <span class="o">==</span> <span class="mh">0x7f</span>
+</span><span class='line'>        <span class="n">result</span> <span class="o">&lt;&lt;</span> <span class="n">special_ascii_7f</span>
+</span><span class='line'>      <span class="k">elsif</span> <span class="n">q</span> <span class="o">&lt;</span> <span class="mh">0x7f</span>
+</span><span class='line'>        <span class="n">result</span> <span class="o">&lt;&lt;</span> <span class="n">q</span><span class="o">.</span><span class="n">chr</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>        <span class="n">result</span> <span class="o">&lt;&lt;</span> <span class="s1">&#39;undefined&#39;</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">for</span> <span class="n">i</span> <span class="k">in</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="n">.result</span><span class="o">.</span><span class="n">size</span><span class="o">/</span><span class="mi">10</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">show_chars</span><span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="n">result</span><span class="o">[</span><span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">.</span><span class="n">.</span><span class="o">[</span><span class="n">result</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="o">*</span><span class="mi">10</span><span class="o">+</span><span class="mi">9</span><span class="o">].</span><span class="n">min</span><span class="o">].</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="nb">puts</span> <span class="n">fb</span><span class="o">.</span><span class="n">to_xml</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you can read ruby, you can surely read my code. Here I just don&#8217;t explain, you can see the README in <a href="https://github.com/ytliu/alfred2-ascii-translator">github page</a>, to have a idea of how to use it.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-14T14:54:00+08:00" pubdate data-updated="true">Apr 14<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/mac/'>Mac</a>, <a class='category' href='/blog/categories/ruby/'>Ruby</a>, <a class='category' href='/blog/categories/tool/'>Tool</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/04/01/has-many-through-relationship-in-ruby-on-rails/" title="Previous Post: Has many through relationship in Ruby on Rails">&laquo; Has many through relationship in Ruby on Rails</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/05/27/note-about-madvice/" title="Next Post: Note about madvice">Note about madvice &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby/';
+        var disqus_url = 'http://ytliu.github.io/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

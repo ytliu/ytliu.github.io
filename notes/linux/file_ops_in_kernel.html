@@ -1,0 +1,943 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Read/Write from/to File in Kernel - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/notes/linux/file_ops_in_kernel.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article role="article">
+  
+  <header>
+    <h1 class="entry-title">Read/Write From/to File in Kernel</h1>
+    <p class="meta">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-01-12T22:50:00+08:00" pubdate data-updated="true">Jan 12<span>th</span>, 2015</time></p>
+  </header>
+  
+  <p>Read/Write from/to File in Linux Kernel</p>
+
+<hr />
+
+<p>Excerpt from <a href="http://lkml.iu.edu/hypermail/linux/kernel/0005.3/0061.html">here</a></p>
+
+<ul>
+<li><strong>The kernel is not a process</strong>. A file-descriptor needs a process-context for it to mean anything. Otherwise how would the kernel keep your STDIN_FILENO separate from somebody else&#8217;s STDIN_FILENO?</li>
+<li>Coding a kernel module is not like coding a user-mode program. <strong>You should never write a module that requires reading or writing to any logical device</strong>.</li>
+<li>If you need to get &#8220;outside world&#8221; information into your module, it&#8217;s easy. Your module can have code for open(), read(), write(), ioctl(), and close(). <strong>A user-mode program can open() the device and perform any kind of device-specific ioctl() (or read or write or whatever) that it wants</strong>.</li>
+</ul>
+
+
+<p>That said, it is possible to do file I/O in the kernel, <strong>but doing so is a severe violation of standard practice</strong>. It is also complicated and can lead to races and crashes if, for instance, a file is removed while your module has it open.</p>
+
+<hr />
+
+<p>Excerpt from <a href="http://www.linuxjournal.com/article/8110">here</a></p>
+
+<p>The most common problem is <strong>interpreting the data</strong>. Writing a file interpreter from within the kernel is a process ripe for problems, <strong>and any errors in that interpreter can cause devastating crashes</strong>. Also, any errors in the interpreter could cause buffer overflows. These might allow unprivileged users to take over a machine or get access to protected data, such as password files.</p>
+
+<p>Another big issue with trying to read a file from within the kernel is <strong>trying to figure out exactly where the file is</strong>. Linux supports filesystem namespaces, which allow every process to contain its own view of the filesystem. This allows some programs to see only portions of the entire filesystem, while others see the filesystem in different locations. This is a powerful feature, and <strong>trying to determine that your module lives in the proper filesystem namespace is an impossible task.</strong></p>
+
+<h4>But How Do I Configure Things?</h4>
+
+<p>A common way of sending data to a specific kernel module is to</p>
+
+<blockquote><p>use a char device and the ioctl system call.</p></blockquote>
+
+<p>The ioctl command, however, has been determined to have a lot of nasty side affects, and creating new ioctls in the kernel generally is frowned on. Also, trying properly to handle a 32-bit user-space program making an ioctl call into a 64-bit kernel and converting all of the data types in the correct manner is a horrible task to undertake.</p>
+
+<p>Because ioctls are not allowed,</p>
+
+<blockquote><p>the /proc filesystem can be used to get configuration data into the kernel.</p></blockquote>
+
+<p>By writing data to a file in the filesystem created by the kernel module, the kernel module has direct access to it. Recently, though, the proc filesystem has been clamped down on by the kernel developers, as it was horribly abused by programmers over time to contain almost any type of data. Slowly this filesystem is being cleaned up to contain only process information, such as the names of filesystem states.</p>
+
+<p>For a more structured filesystem,</p>
+
+<blockquote><p>the sysfs filesystem provides a way for any device and any driver to create files to which configuration data may be sent.</p></blockquote>
+
+<p>This interface is preferred over ioctls and using /proc.</p>
+
+<h4>I Want to Do This Anyway</h4>
+
+<p>The common approach to reading a file is to try code that looks like the following:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">fd</span> <span class="o">=</span> <span class="n">sys_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">fd</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="cm">/* read the file here */</span>
+</span><span class='line'>  <span class="n">sys_close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, when this is tried within a kernel module, the sys_open() call usually returns the error -EFAULT.</p>
+
+<p>The main thing the author forgot to take into consideration is <strong>the kernel expects the pointer passed to the sys_open() function call to be coming from user space</strong>. So, it makes a check of the pointer to verify it is in the proper address space in order to try to convert it to a kernel pointer that the rest of the kernel can use. So, <strong>when we are trying to pass a kernel pointer to the function</strong>, the error -EFAULT occurs.
+Fixing the Address Space</p>
+
+<p>To handle this address space mismatch, use the functions get_fs() and set_fs(). <strong>These functions modify the current process address limits to whatever the caller wants</strong>. In the case of sys_open(), we want to tell the kernel that pointers from within the kernel address space are safe, so we call:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">set_fs</span><span class="p">(</span><span class="n">KERNEL_DS</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The only two valid options for the set_fs() function are <strong>KERNEL_DS and USER_DS</strong>, roughly standing for kernel data segment and user data segment, respectively.</p>
+
+<p>So, with this knowledge, the proper way to write the above code snippet is:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">old_fs</span> <span class="o">=</span> <span class="n">get_fs</span><span class="p">();</span>
+</span><span class='line'><span class="n">set_fs</span><span class="p">(</span><span class="n">KERNEL_DS</span><span class="p">);</span>
+</span><span class='line'><span class="n">fd</span> <span class="o">=</span> <span class="n">sys_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">fd</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="cm">/* read the file here */</span>
+</span><span class='line'>  <span class="n">sys_close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="n">set_fs</span><span class="p">(</span><span class="n">old_fs</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &lt;linux/kernel.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/init.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/module.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/syscalls.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/fcntl.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;asm/uaccess.h&gt; </span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">read_file</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">filename</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">mm_segment_t</span> <span class="n">old_fs</span> <span class="o">=</span> <span class="n">get_fs</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">KERNEL_DS</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">fd</span> <span class="o">=</span> <span class="n">sys_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">fd</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">printk</span><span class="p">(</span><span class="n">KERN_DEBUG</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">while</span> <span class="p">(</span><span class="n">sys_read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">printk</span><span class="p">(</span><span class="s">&quot;%c&quot;</span><span class="p">,</span> <span class="n">buf</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span><span class='line'>    <span class="n">printk</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">sys_close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">old_fs</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">int</span> <span class="n">__init</span> <span class="nf">init</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">read_file</span><span class="p">(</span><span class="s">&quot;/etc/shadow&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="n">__exit</span> <span class="nf">exit</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">MODULE_LICENSE</span><span class="p">(</span><span class="s">&quot;GPL&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">module_init</span><span class="p">(</span><span class="n">init</span><span class="p">);</span>
+</span><span class='line'><span class="n">module_exit</span><span class="p">(</span><span class="n">exit</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h4>But What about Writing?</h4>
+
+<p>Now, armed with this newfound knowledge of how to abuse the kernel system call API and annoy a kernel programmer at the drop of a hat, you really can push your luck and write to a file from within the kernel. Fire up your favorite editor, and pound out something like the following:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">old_fs</span> <span class="o">=</span> <span class="n">get_fs</span><span class="p">();</span>
+</span><span class='line'><span class="n">set_fs</span><span class="p">(</span><span class="n">KERNEL_DS</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">fd</span> <span class="o">=</span> <span class="n">sys_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="o">|</span><span class="n">O_CREAT</span><span class="p">,</span> <span class="mo">0644</span><span class="p">);</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">fd</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">sys_write</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">sys_close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="n">set_fs</span><span class="p">(</span><span class="n">old_fs</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The code seems to build properly, with no compile time warnings, but when you try to load the module, you get this odd error:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="nl">insmod:</span> <span class="n">error</span> <span class="n">inserting</span> <span class="err">&#39;</span><span class="n">evil</span><span class="p">.</span><span class="n">ko</span><span class="err">&#39;</span><span class="o">:</span> <span class="o">-</span><span class="mi">1</span> <span class="n">Unknown</span> <span class="n">symbol</span> <span class="n">in</span> <span class="n">module</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>his means that a symbol your module is trying to use has not been exported and is not available in the kernel. By looking at the kernel log, you can determine what symbol that is:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="nl">evil:</span> <span class="n">Unknown</span> <span class="n">symbol</span> <span class="n">sys_write</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>So, even though the function sys_write is present in the syscalls.h header file, it is not exported for use in a kernel module.</strong></p>
+
+<p>By reading the code of how the sys_write function is implemented, the lack of the exported symbol can be thwarted. The following kernel module shows how this can be done by not using the sys_write call:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &lt;linux/kernel.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/init.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/module.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/syscalls.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/file.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/fs.h&gt;</span>
+</span><span class='line'><span class="cp">#include &lt;linux/fcntl.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;asm/uaccess.h&gt; </span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">write_file</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">filename</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">data</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">loff_t</span> <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">mm_segment_t</span> <span class="n">old_fs</span> <span class="o">=</span> <span class="n">get_fs</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">KERNEL_DS</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">fd</span> <span class="o">=</span> <span class="n">sys_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="o">|</span><span class="n">O_CREAT</span><span class="p">,</span> <span class="mo">0644</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">fd</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">sys_write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">data</span><span class="p">));</span>
+</span><span class='line'>    <span class="n">file</span> <span class="o">=</span> <span class="n">fget</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="n">vfs_write</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">pos</span><span class="p">);</span>
+</span><span class='line'>      <span class="n">fput</span><span class="p">(</span><span class="n">file</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">sys_close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">old_fs</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">int</span> <span class="n">__init</span> <span class="nf">init</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">write_file</span><span class="p">(</span><span class="s">&quot;/tmp/test&quot;</span><span class="p">,</span> <span class="s">&quot;Evil file.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="n">__exit</span> <span class="nf">exit</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">MODULE_LICENSE</span><span class="p">(</span><span class="s">&quot;GPL&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">module_init</span><span class="p">(</span><span class="n">init</span><span class="p">);</span>
+</span><span class='line'><span class="n">module_exit</span><span class="p">(</span><span class="n">exit</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see, by using the functions fget, fput and vfs_write, we can implement our own sys_write functionality.</p>
+
+<hr />
+
+<p>Example from <a href="http://bbs.chinaunix.net/thread-1945223-1-1.html">here</a></p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &lt;linux/kernel.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/module.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/fs.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;asm/uaccess.h&gt; </span>
+</span><span class='line'><span class="cp">#include &lt;linux/mm.h&gt; </span>
+</span><span class='line'>
+</span><span class='line'><span class="n">module_author</span><span class="p">(</span><span class="s">&quot;kenthy@163.com.&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">module_description</span><span class="p">(</span><span class="s">&quot;kernel study and test.&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="nf">fileread</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">inode</span> <span class="o">*</span><span class="n">inode</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">mm_segment_t</span> <span class="n">fs</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">off_t</span> <span class="n">fsize</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">magic</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;start....</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">filp</span><span class="o">=</span><span class="n">filp_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">o_rdonly</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">inode</span><span class="o">=</span><span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_dentry</span><span class="o">-&gt;</span><span class="n">d_inode</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">magic</span><span class="o">=</span><span class="n">inode</span><span class="o">-&gt;</span><span class="n">i_sb</span><span class="o">-&gt;</span><span class="n">s_magic</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;file system magic:%li </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">magic</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;super blocksize:%li </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">inode</span><span class="o">-&gt;</span><span class="n">i_sb</span><span class="o">-&gt;</span><span class="n">s_blocksize</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;inode %li </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">inode</span><span class="o">-&gt;</span><span class="n">i_ino</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">fsize</span><span class="o">=</span><span class="n">inode</span><span class="o">-&gt;</span><span class="n">i_size</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;file size:%i </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,(</span><span class="kt">int</span><span class="p">)</span><span class="n">fsize</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">buf</span><span class="o">=</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">kmalloc</span><span class="p">(</span><span class="n">fsize</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">gfp_atomic</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">fs</span><span class="o">=</span><span class="n">get_fs</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">kernel_ds</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_op</span><span class="o">-&gt;</span><span class="n">read</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="n">fsize</span><span class="p">,</span><span class="o">&amp;</span><span class="p">(</span><span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_pos</span><span class="p">));</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">fs</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">buf</span><span class="p">[</span><span class="n">fsize</span><span class="p">]</span><span class="o">=</span><span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;the file content is:</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;%s&quot;</span><span class="p">,</span><span class="n">buf</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">filp_close</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span><span class="n">null</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="nf">filewrite</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">filename</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">data</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">mm_segment_t</span> <span class="n">fs</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">filp</span> <span class="o">=</span> <span class="n">filp_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">o_rdwr</span><span class="o">|</span><span class="n">o_append</span><span class="p">,</span> <span class="mo">0644</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span><span class="p">(</span><span class="n">is_err</span><span class="p">(</span><span class="n">filp</span><span class="p">))</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>    <span class="n">printk</span><span class="p">(</span><span class="s">&quot;open error...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">fs</span><span class="o">=</span><span class="n">get_fs</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">kernel_ds</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_op</span><span class="o">-&gt;</span><span class="n">write</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">data</span><span class="p">),</span><span class="o">&amp;</span><span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_pos</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">fs</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">filp_close</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span><span class="n">null</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">int</span> <span class="nf">init_module</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;/root/test1.c&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;read file from kernel.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">fileread</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">filewrite</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;kernel write test</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="nf">cleanup_module</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;good,bye!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include&lt;linux/module.h&gt;</span>
+</span><span class='line'><span class="cp">#include&lt;linux/kernel.h&gt;</span>
+</span><span class='line'><span class="cp">#include&lt;linux/init.h&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#include&lt;linux/types.h&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#include&lt;linux/fs.h&gt;</span>
+</span><span class='line'><span class="cp">#include&lt;linux/string.h&gt;</span>
+</span><span class='line'><span class="cp">#include&lt;asm/uaccess.h&gt; </span><span class="cm">/* get_fs(),set_fs(),get_ds() */</span><span class="cp"></span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define FILE_DIR &quot;/root/test.txt&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">MODULE_LICENSE</span><span class="p">(</span><span class="s">&quot;GPL&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="n">MODULE_AUTHOR</span><span class="p">(</span><span class="s">&quot;kenthy@163.com&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">char</span> <span class="o">*</span><span class="n">buff</span> <span class="o">=</span> <span class="s">&quot;module read/write test&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="kt">char</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">int</span> <span class="n">__init</span> <span class="nf">wr_test_init</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">mm_segment_t</span> <span class="n">old_fs</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">ssize_t</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">filp</span> <span class="o">=</span> <span class="n">filp_open</span><span class="p">(</span><span class="n">FILE_DIR</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">,</span> <span class="mo">0644</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1">//    if(!filp)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span><span class="p">(</span><span class="n">IS_ERR</span><span class="p">(</span><span class="n">filp</span><span class="p">))</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;open error...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">old_fs</span> <span class="o">=</span> <span class="n">get_fs</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">get_ds</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_op</span><span class="o">-&gt;</span><span class="n">write</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_pos</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_op</span><span class="o">-&gt;</span><span class="n">llseek</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_op</span><span class="o">-&gt;</span><span class="n">read</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">filp</span><span class="o">-&gt;</span><span class="n">f_pos</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">set_fs</span><span class="p">(</span><span class="n">old_fs</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span><span class="p">(</span><span class="n">ret</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">tmp</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">printk</span><span class="p">(</span><span class="s">&quot;read nothing.............</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>    <span class="n">printk</span><span class="p">(</span><span class="s">&quot;read error</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="n">__exit</span> <span class="nf">wr_test_exit</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">if</span><span class="p">(</span><span class="n">filp</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">filp_close</span><span class="p">(</span><span class="n">filp</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">module_init</span><span class="p">(</span><span class="n">wr_test_init</span><span class="p">);</span>
+</span><span class='line'><span class="n">module_exit</span><span class="p">(</span><span class="n">wr_test_exit</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>Makefile </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>obj-m :<span class="o">=</span> os_attack.o
+</span><span class='line'>
+</span><span class='line'>KDIR :<span class="o">=</span> /lib/modules/<span class="k">$(</span>uname -r<span class="k">)</span>/build/
+</span><span class='line'>PWD :<span class="o">=</span> <span class="k">$(</span>shell <span class="nb">pwd</span><span class="k">)</span>
+</span><span class='line'>
+</span><span class='line'>all:module
+</span><span class='line'>
+</span><span class='line'>module:
+</span><span class='line'><span class="k">$(</span>MAKE<span class="k">)</span> -C <span class="k">$(</span>KDIR<span class="k">)</span> <span class="nv">M</span><span class="o">=</span><span class="k">$(</span>PWD<span class="k">)</span> modules
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>clean:
+</span><span class='line'>rm -rf *.ko *.mod.c *.o Module.* modules.* .*.cmd .tmp_versions
+</span></code></pre></td></tr></table></div></figure>
+
+
+  
+    <footer>
+      <p class="meta">
+        
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-01-12T22:50:00+08:00" pubdate data-updated="true">Jan 12<span>th</span>, 2015</time>
+        
+      </p>
+      
+        <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+      
+    </footer>
+  
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/notes/linux/file_ops_in_kernel.html';
+        var disqus_url = 'http://ytliu.github.io/notes/linux/file_ops_in_kernel.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

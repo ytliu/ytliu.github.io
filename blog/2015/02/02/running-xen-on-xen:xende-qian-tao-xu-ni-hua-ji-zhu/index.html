@@ -1,0 +1,667 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Running Xen on Xen：Xen的嵌套虚拟化技术 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Xen Nested-virtualization">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Running Xen on Xen：Xen的嵌套虚拟化技术</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-02T18:41:00+08:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2015</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>这篇博文是一个简单的教程，介绍如何在Xen的虚拟机中运行另外一个虚拟机，说白了，就是Xen的嵌套虚拟化技术。</p>
+
+<!-- more -->
+
+
+<h3>安装Xen</h3>
+
+<p>关于如何安装Xen，首选的是看<a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen的官方教程</a>。</p>
+
+<p>不过由于里面说的比较复杂，所以本教程就简单的把几个步骤列一下：</p>
+
+<h4>直接安装</h4>
+
+<p>这个我没试过，因为我都是用源码安装的。不过据说很简单，只要</p>
+
+<pre><code>$ sudo aptitude -P install xen-linux-system
+$ sudo dpkg-divert --divert /etc/grub.d/08_linux_xen --rename /etc/grub.d/20_linux_xen # change the order of the operating systems so that Xen is the default option.
+$ sudo update-grub # regenerate the /boot/grub/grub.cfg file
+</code></pre>
+
+<p>就行了。如果不行再自己网上搜下吧，毕竟这个不是今天的重点。</p>
+
+<h4>源码安装</h4>
+
+<p>具体的参阅<a href="http://wiki.xenproject.org/wiki/Compiling_Xen_From_Source">这里</a>：</p>
+
+<pre><code>$ sudo aptitude build-dep xen
+$ git clone git://xenbits.xen.org/xen.git
+$ cd xen
+$ ./configure
+$ make xen
+$ make tools
+$ make install-xen
+$ make install-tools
+$ sudo dpkg-divert --divert /etc/grub.d/08_linux_xen --rename /etc/grub.d/20_linux_xen
+$ sudo update-grub
+</code></pre>
+
+<p>至于每一句话什么意思，这里就不阐述了，不懂的自己去google，另外还有一些别的需求的还是自己去看文档吧，这里就负责最基本的配置。</p>
+
+<p>在这之后，在系统的<code>/boot</code>目录下会有几个<code>xen.*.gz</code>的镜像文件，如果看<code>/boot/grub/grub.cfg</code>，能够看到诸如这样的项：</p>
+
+<figure class='code'><figcaption><span>/boot/grub/grub.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>menuentry <span class="s1">&#39;Debian GNU/Linux, with Xen xen and Linux 3.13.7+&#39;</span> --class debian --class gnu-linux --class gnu -ass os --class xen <span class="o">{</span>
+</span><span class='line'>    insmod part_msdos
+</span><span class='line'>    insmod ext2
+</span><span class='line'>    <span class="nb">set </span><span class="nv">root</span><span class="o">=</span><span class="s1">&#39;(hd0,msdos1)&#39;</span>
+</span><span class='line'>    search --no-floppy --fs-uuid --set<span class="o">=</span>root 23292666-0022-4e4b-8b4b-4ffcec168ee8
+</span><span class='line'>    <span class="nb">echo</span>    <span class="s1">&#39;Loading Xen xen ...&#39;</span>
+</span><span class='line'>    multiboot   /boot/xen.gz placeholder
+</span><span class='line'>    <span class="nb">echo</span>    <span class="s1">&#39;Loading Linux 3.13.7+ ...&#39;</span>
+</span><span class='line'>    module  /boot/vmlinuz-3.13.7+ placeholder <span class="nv">root</span><span class="o">=</span><span class="nv">UUID</span><span class="o">=</span>23292666-0022-4e4b-8b4b-4ffcec168ee8 ro nopat quiet
+</span><span class='line'>    <span class="nb">echo</span>    <span class="s1">&#39;Loading initial ramdisk ...&#39;</span>
+</span><span class='line'>    module  /boot/initrd.img-3.13.7+
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在这里，<code>multiboot   /boot/xen.gz placeholder</code>是xen的镜像，<code>module  /boot/vmlinuz-3.13.7+</code>是domain 0的镜像，<code>module  /boot/initrd.img-3.13.7+</code>是initrd。</p>
+
+<p>重启之后，由于我们之前改了grub的顺序，所以会默认起Xen，domain的内核就是系统最新的内核。当然这些都是可以配置的，这里就不多说了。</p>
+
+<p>另外一点，由于我们在编译源码的时候同样编译安装了xen-tools，所以当Xen启动之后，就可以运行如下命令：</p>
+
+<pre><code>$ sudo xl list
+</code></pre>
+
+<p>来看当前的虚拟机。如果出现问题，很可能是一些相关的daemon没有跑起来，这个时候只需要运行：</p>
+
+<pre><code>$ sudo /etc/init.d/xendomains start
+$ sudo /etc/init.d/xencommons start
+</code></pre>
+
+<p>就可以了。这个时候再运行<code>xl list</code>，就可以看到：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-02-1.png" title="xl list" alt="xl list" /></p>
+
+<p>这就表明xen正常起来了。其中<code>Domain-0</code>表示的就是Xen里面的特权虚拟机，也就是当前的操作系统。</p>
+
+<h3>启动虚拟机</h3>
+
+<p>当Xen安装起来之后，就可以启动虚拟机了，Xen的虚拟机的管理也是通过刚刚提到的<code>xl</code>那一套工具。如果你已经有一个虚拟机的镜像，那你只需要准备一个配置文件配置好相应的镜像路径就行了，如果没有虚拟机镜像，那么准备一个<code>iso</code>文件，来安装一个镜像。具体如何做会在后面说明。</p>
+
+<p>在Xen中有两种虚拟化的模式：半虚拟化（para-virtualization）和全虚拟化（full virtualization）。关于这两个虚拟化的概念，以及它们的发展历史，我强烈推荐这两篇博客：</p>
+
+<p><a href="https://blog.xenproject.org/2012/10/23/the-paravirtualization-spectrum-part-1-the-ends-of-the-spectrum/">The Paravirtualization Spectrum, part 1: The Ends of the Spectrum</a></p>
+
+<p><a href="https://blog.xenproject.org/2012/10/31/the-paravirtualization-spectrum-part-2-from-poles-to-a-spectrum/">The Paravirtualization Spectrum, Part 2: From poles to a spectrum</a></p>
+
+<p>如果用一张图来表示的话，我选择里面的这张图：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-02-2.png" title="virtualization spectrum" alt="virtualization spectrum" /></p>
+
+<p>由于到目前为止，Intel的VT-x硬件虚拟化技术已经能将CPU和内存的性能提高到真机的水平，但是由于设备（如磁盘、网卡）是有数目限制的，虽然VT-d技术已经可以做到一部分的硬件隔离，但是大部分情况下还是需要软件来对其进行模拟，在全虚拟化的情况下，是通过Qemu进行设备模拟的，而半虚拟化技术则可以通过虚拟机之间共享内存的方式利用特权级虚拟机的设备驱动直接访问硬件，从而达到更高效的性能水平。</p>
+
+<p>当然不管怎么样，在虚拟机启动的时候我们还是可以指定要采用哪种方法来启动，如果采用半虚拟化的方法，那么起来的虚拟机的I/O、CPU和内存都是通过半虚拟化的机制。如果采用的是全虚拟化的方法，那么I/O应该用的就是Qemu的软件模拟了，而CPU和内存采用的是硬件虚拟化VT-x技术。</p>
+
+<p>这里可以看到，如果我们采用PVHVM的方式，即CPU和内存采用VT-x技术，而I/O采用半虚拟化技术，那么性能就是最优的。其实现在linux的mainstream已经将其整合进去啦，默认情况下就可以在HVM里面采用半虚拟化的驱动，具体的可以看<a href="http://wiki.xen.org/wiki/Xen_Linux_PV_on_HVM_drivers">这篇文档</a>。其实主要就是在启动配置文件里面加上这句话：</p>
+
+<figure class='code'><figcaption><span>pv.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">xen_platform_pci</span><span class="o">=</span>1
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>那么虚拟机启动的时候就会将Qemu的设备unplug，然后匹配半虚拟化的设备，如<code>xen-netfront</code>等。</p>
+
+<h4>半虚拟化启动虚拟机</h4>
+
+<p>准备配置文件：</p>
+
+<figure class='code'><figcaption><span>pv.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">kernel</span> <span class="o">=</span> <span class="s2">&quot;/path/to/vmlinuz&quot;</span>
+</span><span class='line'><span class="nv">ramdisk</span> <span class="o">=</span> <span class="s2">&quot;/path/to/initrd.img&quot;</span>
+</span><span class='line'><span class="nv">extra</span> <span class="o">=</span> <span class="s2">&quot;root=/dev/xvda1&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">name</span> <span class="o">=</span> <span class="s2">&quot;pv-vm&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">memory</span> <span class="o">=</span> 1024
+</span><span class='line'><span class="nv">vcpus</span> <span class="o">=</span> 2
+</span><span class='line'>
+</span><span class='line'><span class="nv">disk</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">&#39;file:/path/to/vm.img,xvda,rw&#39;</span> <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># boot on floppy (a), hard disk (c), Network (n) or CD-ROM (d) </span>
+</span><span class='line'><span class="nv">boot</span><span class="o">=</span><span class="s2">&quot;cd&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中<code>kernel</code>和<code>ramdisk</code>是自己编译出来的内核镜像和initrd镜像，这个最好在虚拟机里面编译，然后再拷贝出来，当然我也试过用在主机上编译生成的镜像，可以启动，但是会有一些其他的问题，这里就不展开了。</p>
+
+<p>之后，就可以运行：</p>
+
+<pre><code>$ sudo xl create -c pv.cfg
+</code></pre>
+
+<p>来启动虚拟机了，其中<code>-c</code>表示将虚拟机的输出打在console上，这样我们就可以直接看到虚拟机启动的信息了，然后登录进去，就可以操作虚拟机啦：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-02-3.png" title="pv vm" alt="pv vm" /></p>
+
+<h4>全虚拟化启动虚拟机</h4>
+
+<p>准备配置文件：</p>
+
+<figure class='code'><figcaption><span>hvm.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">kernel</span> <span class="o">=</span> <span class="s2">&quot;hvmloader&quot;</span>
+</span><span class='line'><span class="nv">builder</span><span class="o">=</span><span class="s2">&quot;hvm&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">name</span> <span class="o">=</span> <span class="s2">&quot;hvm-vm&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">memory</span> <span class="o">=</span> 1024
+</span><span class='line'><span class="nv">vcpus</span> <span class="o">=</span> 2
+</span><span class='line'>
+</span><span class='line'><span class="nv">disk</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">&#39;file:/path/to/vm.img,xvda,rw&#39;</span> <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># boot on floppy (a), hard disk (c), Network (n) or CD-ROM (d) </span>
+</span><span class='line'><span class="nv">boot</span><span class="o">=</span><span class="s2">&quot;cd&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>和半虚拟化的配置文件一样，除了<code>kernel</code>直接填写“hvmloader”，再增加一个<code>builder</code>，填上“hvm“就可以了。</p>
+
+<p>之后，运行：</p>
+
+<pre><code>$ sudo xl create hvm.cfg
+</code></pre>
+
+<p>来启动虚拟机，然后利用vnc来控制虚拟机：</p>
+
+<pre><code>$ vncviewer localhost:0
+</code></pre>
+
+<p><img src="http://ytliu.info/images/2015-02-02-4.png" title="hvm vm" alt="hvm vm" /></p>
+
+<h4>利用iso镜像安装虚拟机</h4>
+
+<p>如果你没有虚拟机镜像，那么先用dd生成一个空的镜像，设置文件系统格式：</p>
+
+<pre><code>$ dd if=/dev/zero of=/path/to/vm.img bs=1M count=10000
+$ mkfs.ext4 /path/to/vm.img
+</code></pre>
+
+<p>这就相当于格式化了一个10G的ext4格式的硬盘，然后下载一个iso镜像，利用之前的配置文件，只需要多加一个disk选项，并将boot启动顺序做一个修改：</p>
+
+<figure class='code'><figcaption><span>*.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>...
+</span><span class='line'><span class="nv">disk</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">&#39;file:/path/to/vm.img,xvda,rw&#39;</span>, <span class="s1">&#39;file:/path/to/iso,hdc:cdrom,r&#39;</span> <span class="o">]</span>
+</span><span class='line'>...
+</span><span class='line'><span class="c"># boot on floppy (a), hard disk (c), Network (n) or CD-ROM (d) </span>
+</span><span class='line'><span class="nv">boot</span><span class="o">=</span><span class="s2">&quot;dc&quot;</span>
+</span><span class='line'>...
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后启动，安装镜像就好了。</p>
+
+<h3>运行嵌套虚拟机</h3>
+
+<p>这个是这篇博文的重点。其实在当前最新的Xen的版本中，这个功能是默认就开启的，具体的参看<a href="http://wiki.xenproject.org/wiki/Nested_Virtualization_in_Xen">这个链接</a>。</p>
+
+<p>在一般的嵌套虚拟化中，整个架构是这样子的：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-02-5.png" title="nested virtualization" alt="nested virtualization" /></p>
+
+<p>其中，L1是第一层虚拟机，在这个虚拟机中会再运行一个hypervisor，里面运行嵌套的那个虚拟机，被称为L2层。由于我们在L1和L2层运行的都是Xen hypervisor，所以整个架构看起来是这样子的：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-02-6.png" title="xen nested virtualization" alt="xen nested virtualization" /></p>
+
+<p>当然，在这种情况下，还可以分成4个子情况：</p>
+
+<ul>
+<li>L1运行PV Xen，L2运行PV Xen</li>
+<li>L1运行PV Xen，L2运行HVM Xen</li>
+<li>L1运行HVM Xen，L2运行PV Xen</li>
+<li>L1运行HVM Xen，L2运行HVM Xen</li>
+</ul>
+
+
+<p>其实方法都大同小异，我就介绍最简单的一种吧：</p>
+
+<h4>L1运行HVM Xen，L2运行PV Xen</h4>
+
+<p>按照之前“全虚拟化启动虚拟机”的步骤做下来，在启动虚拟机的时候加两个选项<code>hap=1</code>和<code>nestedhvm=1</code>：</p>
+
+<figure class='code'><figcaption><span>l1-guest.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">kernel</span> <span class="o">=</span> <span class="s2">&quot;hvmloader&quot;</span>
+</span><span class='line'><span class="nv">builder</span><span class="o">=</span><span class="s2">&quot;hvm&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">name</span> <span class="o">=</span> <span class="s2">&quot;l1-guest&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">memory</span> <span class="o">=</span> 1024
+</span><span class='line'><span class="nv">vcpus</span> <span class="o">=</span> 2
+</span><span class='line'>
+</span><span class='line'><span class="nv">disk</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">&#39;file:/path/to/vm.img,xvda,rw&#39;</span> <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># boot on floppy (a), hard disk (c), Network (n) or CD-ROM (d) </span>
+</span><span class='line'><span class="nv">boot</span><span class="o">=</span><span class="s2">&quot;cd&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nv">hap</span><span class="o">=</span>1
+</span><span class='line'><span class="nv">nestedhvm</span><span class="o">=</span>1
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>进入虚拟机之后，按照和之前一样的步骤：</p>
+
+<ul>
+<li>编译和安装xen和xen-tools</li>
+<li>运行：sudo dpkg-divert &#8211;divert /etc/grub.d/08_linux_xen &#8211;rename /etc/grub.d/20_linux_xen</li>
+<li>运行<code>update-grub</code>更新grub</li>
+<li>重启虚拟机，进入Xen的镜像</li>
+</ul>
+
+
+<p>这个时候按照前面说的步骤启动L2虚拟机：</p>
+
+<ul>
+<li>准备虚拟机镜像；</li>
+<li>启动<code>xendomains</code>和<code>xencommons</code>两个服务；</li>
+<li>准备“半虚拟化启动虚拟机”的配置文件</li>
+<li>利用<code>xl</code>启动虚拟机镜像</li>
+</ul>
+
+
+<p>就能成功在L1的HVM虚拟机里面启动L2的PV虚拟机了：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-02-7.png" title="l2 run in l1" alt="l2 run in l1" /></p>
+
+<p>另外推荐大家看一个人的<a href="http://www2.math.technion.ac.il/~nyh/nested/Thesis_OlivierBerghmans_FinalVersion.pdf">毕业论文</a>，讲的是在不同的平台上运行嵌套虚拟化的虚拟机，以及相关的性能比较。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-02T18:41:00+08:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/system/'>System</a>, <a class='category' href='/blog/categories/tutorial/'>Tutorial</a>, <a class='category' href='/blog/categories/virtualization/'>Virtualization</a>, <a class='category' href='/blog/categories/xen/'>Xen</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/02/01/xiao-ai-de-chu-fang-shang-xian-la/" title="Previous Post: 小呆的厨房上线啦">&laquo; 小呆的厨房上线啦</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/02/04/running-driver-domain-on-xen/" title="Next Post: Running Driver Domain on Xen">Running Driver Domain on Xen &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/';
+        var disqus_url = 'http://ytliu.github.io/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

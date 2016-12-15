@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Qemu | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/qemu/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Qemu中的设备注册]]></title>
+    <link href="http://ytliu.github.io/blog/2015/01/10/qemushe-bei-chu-shi-hua/"/>
+    <updated>2015-01-10T15:38:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/01/10/qemushe-bei-chu-shi-hua</id>
+    <content type="html"><![CDATA[<p>这两天在看KVM网络虚拟化相关的内容，找了很多相关的资料，也吭哧吭哧地读了那些简直无法直视的代码，终于感觉渐渐理出点头绪了。之后如果有时间的话会慢慢将这些知识整理出来，当然也包括推荐一些比较靠谱的博客和文档吧。</p>
+
+<p>今天要写的内容是关于“Qemu设备注册”，和KVM网络虚拟化没有太大的关系。其实这篇博文很简单，主要就是解决了一个我之前一直没有搞懂的最基本的问题：</p>
+
+<blockquote><p>Qemu里面的设备注册函数是如何被调用的？</p></blockquote>
+
+<p>废话不说，直接进入正篇。</p>
+
+<!-- more -->
+
+
+<p>其实在很多设备相关的文件中都会看到代码的最后部分是这样的（比如在virtio的代码中）：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>hw/virtio/virtio.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">type_init</span><span class="p">(</span><span class="n">virtio_register_types</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>问题是这个<code>type_init</code>是个什么东西？virtio_register_types是如何被调用的？</p>
+
+<p>如果把<code>type_init</code>展开的话：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>include/qemu/module.h </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">module_init</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">type</span><span class="p">)</span>                                         <span class="err">\</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">static</span> <span class="kt">void</span> <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">attribute</span><span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="p">((</span><span class="n">constructor</span><span class="p">))</span> <span class="n">do_qemu_init_</span> <span class="err">##</span> <span class="n">function</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>    \
+</span><span class='line'><span class="p">{</span>                                                                           <span class="err">\</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">register_module_init</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">type</span><span class="p">);</span>                                   \
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">type_init</span><span class="p">(</span><span class="n">function</span><span class="p">)</span> <span class="n">module_init</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">MODULE_INIT_QOM</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>可以看到这个函数前面加了一个gcc的attribute：<code>__attribute__((constructor))</code>，这个表示说该函数会在整个程序的<code>main</code>函数执行之前被执行，于是我们继续追踪这个会在<code>main</code>函数执行之前执行的<code>register_module_init</code>:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>util/module.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="n">ModuleTypeList</span> <span class="n">init_type_list</span><span class="p">[</span><span class="n">MODULE_INIT_MAX</span><span class="p">];</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="k">static</span> <span class="n">ModuleTypeList</span> <span class="o">*</span><span class="n">find_type</span><span class="p">(</span><span class="n">module_init_type</span> <span class="n">type</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">ModuleTypeList</span> <span class="o">*</span><span class="n">l</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">init_lists</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">l</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">init_type_list</span><span class="p">[</span><span class="n">type</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">return</span> <span class="n">l</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="kt">void</span> <span class="n">register_module_init</span><span class="p">(</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">fn</span><span class="p">)(</span><span class="kt">void</span><span class="p">),</span> <span class="n">module_init_type</span> <span class="n">type</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">ModuleEntry</span> <span class="o">*</span><span class="n">e</span><span class="p">;</span>
+</span><span class='line'><span class="n">ModuleTypeList</span> <span class="o">*</span><span class="n">l</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">e</span> <span class="o">=</span> <span class="n">g_malloc0</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">e</span><span class="p">));</span>
+</span><span class='line'><span class="n">e</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">init</span> <span class="o">=</span> <span class="n">fn</span><span class="p">;</span>
+</span><span class='line'><span class="n">e</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">type</span> <span class="o">=</span> <span class="n">type</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">l</span> <span class="o">=</span> <span class="n">find_type</span><span class="p">(</span><span class="n">type</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">QTAILQ_INSERT_TAIL</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">node</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>可以看到，它把传进来的<code>fn</code>函数指针传递给了一个<code>ModuleEntry</code>变量的<code>init</code>参数，并将其插入一个叫做<code>init_type_list</code>的列表里面。</p>
+
+<p>另外在<code>module_init</code>的时候我们还传了一个参数叫做<code>MODULE_INIT_QOM</code>，这个参数也和<code>init_type_list</code>似乎有着千丝万缕的关系，那么问题来了：</p>
+
+<blockquote><p>这个MODULE_INIT_QOM又是个什么东西？</p></blockquote>
+
+<p>好了，实在忍不住就讲了一堆废话，从现在开始不再卖关子了，开始正常地表达人话吧，揭晓答案的一刻开始了：</p>
+
+<p><code>QOM</code>，全称<code>Qemu Object Model</code>，它是Qemu最新的设备相关的模型，具体可以参看<a href="http://wiki.qemu.org/Features/QOM">这里</a>和<a href="http://www.linux-kvm.org/wiki/images/0/0b/Kvm-forum-2013-Modern-QEMU-devices.pdf">这里</a>。纵观Qemu的设备模型发展历史，可以用下面这张图（摘自<a href="http://www.linux-kvm.org/wiki/images/0/0b/Kvm-forum-2013-Modern-QEMU-devices.pdf">这里</a>)描述：</p>
+
+<p><img src="http://ytliu.info/images/2015-01-10-1.png" title="qemu device evolution" alt="qemu device evolution" /></p>
+
+<p>最开始的Qemu采用的是很混乱的<code>ad hoc</code>模式，每种设备都有不同的表示方式，杂乱无章，于是在2009年Paul Brook一票人实在忍不下去了，开发了<code>QDev</code>的设备模型，将所有的模拟设备进行了整合，变成了一种单根结点（SysBus）的树状形式，并且增加了hotplug的功能。</p>
+
+<p>但是后来由于某些原因（具体是什么我也不是很清楚，似乎是因为<code>QDev</code>的这种单根结点树状组织方式还是不太令人满意，特别是Device和Bus之间缠绕不清的关系），在2012年Anthony Liguori一票人又开发了一套<code>QOM</code>的设备模型，将原来的<code>QDev</code>给换掉了。</p>
+
+<p><code>QDev</code>和<code>QOM</code>的差别主要可以参看<a href="http://wiki.qemu.org/Features/QOM">这里</a>，从<code>Device Relationship</code>，<code>Naming</code>和<code>Properties</code>三个角度来进行区分，我看下来觉得主要就是集中在<code>Bus</code>这么个角色里面，在<code>QDev</code>里面，<code>Bus</code>和<code>Device</code>好像是一种平级的关系，而在<code>QOM</code>里面，<code>Bus</code>只是<code>Device</code>的接口。具体的差别这里就不详说了，有兴趣的看之前的那个文档就好了。</p>
+
+<p>总之，现在Qemu采用的是<code>QOM</code>这种设备模型。既然如此，<code>MODULE_INIT_QOM</code>就是用于初始化这些相关的设备咯。</p>
+
+<p>我们可以看到，在Qemu的主函数中，一开始就有这么一句话：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>vl.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">module_call_init</span><span class="p">(</span><span class="n">MODULE_INIT_QOM</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>util/module.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="nf">module_call_init</span><span class="p">(</span><span class="n">module_init_type</span> <span class="n">type</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">ModuleTypeList</span> <span class="o">*</span><span class="n">l</span><span class="p">;</span>
+</span><span class='line'><span class="n">ModuleEntry</span> <span class="o">*</span><span class="n">e</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">module_load</span><span class="p">(</span><span class="n">type</span><span class="p">);</span>
+</span><span class='line'><span class="n">l</span> <span class="o">=</span> <span class="n">find_type</span><span class="p">(</span><span class="n">type</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">QTAILQ_FOREACH</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">e</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">init</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>回顾下之前的<code>type_init</code>，也就是说，在<code>main</code>函数开始之前，这些设备会新建一个<code>ModuleEntry</code>，插入<code>init_type_list</code>的<code>MODULE_INIT_QOM</code>的项中：</p>
+
+<p><img src="http://ytliu.info/images/2015-01-10-2.png" title="qom init" alt="qom init" /></p>
+
+<p>之后在<code>module_call_init</code>中遍历链表中所有的entry，调用其对应的<code>init</code>函数，比如在我们的例子中，调用<code>virtio_register_types</code>函数：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>hw/virtio/virtio.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="k">const</span> <span class="n">TypeInfo</span> <span class="n">virtio_device_info</span> <span class="o">=</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">TYPE_VIRTIO_DEVICE</span><span class="p">,</span>
+</span><span class='line'><span class="p">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">TYPE_DEVICE</span><span class="p">,</span>
+</span><span class='line'><span class="p">.</span><span class="n">instance_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">VirtIODevice</span><span class="p">),</span>
+</span><span class='line'><span class="p">.</span><span class="n">class_init</span> <span class="o">=</span> <span class="n">virtio_device_class_init</span><span class="p">,</span>
+</span><span class='line'><span class="p">.</span><span class="n">abstract</span> <span class="o">=</span> <span class="nb">true</span><span class="p">,</span>
+</span><span class='line'><span class="p">.</span><span class="n">class_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">VirtioDeviceClass</span><span class="p">),</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">static</span> <span class="kt">void</span> <span class="n">virtio_register_types</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">type_register_static</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">virtio_device_info</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>将<code>virtio_device_info</code>注册到系统中。</p>
+
+<p>以上就是Qemu中的设备如何通过<code>type_init</code>和<code>main</code>函数中的<code>module_call_init</code>进行注册的过程。这里再向大家推荐一个文档：</p>
+
+<p><a href="http://mnstory.net/wp-content/uploads/2014/10/qemu-device-simulation/qemu-device-simulation.pdf">Qemu设备模拟</a></p>
+
+<p>这篇文章讲的还蛮清楚的。</p>
+
+<p>至于<code>virtio_device_info</code>中的<code>.class_init</code>等函数何时被调用，则是之后的内容了，等我有心情的时候再写吧。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Qemu study for Android emulator]]></title>
+    <link href="http://ytliu.github.io/blog/2012/12/30/qemu-study-for-android-emulator/"/>
+    <updated>2012-12-30T19:10:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2012/12/30/qemu-study-for-android-emulator</id>
+    <content type="html"><![CDATA[<p>这两天看了下android emulator的源代码，位置在<code>android-src/external/qemu</code>里面，</p>
+
+<p>编译和启动的方式很简单；</p>
+
+<pre><code>$ ./android-configure.sh
+$ make
+$ export ANDROID_SDK_ROOT=/path/to/androdi-sdk
+$ emulator-arm @4.2
+</code></pre>
+
+<p>你可以对源码进行修改，然后重新编译、使用，而这里主要要讲的是qemu的运行原理，资料来源是<a href="http://lists.gnu.org/archive/html/qemu-devel/2011-04/pdfhC5rVdz7U8.pdf">Qemu detailed study</a>。要说明的一点是，android emulator原理基本上是和qemu一样的，只是加了一些android specific的东西在里面。</p>
+
+<!-- more -->
+
+
+<p>首先是qemu整体流程：</p>
+
+<p><img src="http://ytliu.info/images/2012-12-30-1.png" title="qemu process" alt="qemu process" /></p>
+
+<p>首先将guest code（这里即为arm code）被TCG（Tiny Code Generator)转换成一个中间表达，然后再转换成host code（这里即为x86 code），具体来说分为两步：</p>
+
+<ul>
+<li>一个TB（Translation Block）被翻译成TCG ops</li>
+<li>TCG ops被翻译成host code</li>
+</ul>
+
+
+<p>我们先来看下qemu的code base：</p>
+
+<p><img src="http://ytliu.info/images/2012-12-30-2.png" title="qemu code base" alt="qemu code base" /></p>
+
+<ul>
+<li><code>vl.c/vl-android.c</code>: 这个是整个qemu的入口函数，主要是初始化qemu环境，然后进入<code>main_loop</code>；</li>
+<li><code>target-xyz/translate.c</code>: 将guest code翻译成TCG ops；</li>
+<li><code>tcg/*/tcg-target.c</code>: 将TCG ops翻译成host code；</li>
+<li><code>tcg/tcg.c</code>: TCG的主函数；</li>
+<li><code>cpu-exec.c</code>: 寻找下一个TB（如果没找到则调用tcg.c生成TB），然后执行。</li>
+</ul>
+
+
+<p>在qemu中也很好地利用了locality，即没产生一段code（TCG ops或host code），就将其存在一个code cache中，然后用LRU进行替换。</p>
+
+<h4>运行流程（code perspective）</h4>
+
+<p>主要分为两部分： <em>代码生成</em>和<em>代码运行</em></p>
+
+<h5>代码生成</h5>
+
+<p>这是主要部分，流程是这样的：</p>
+
+<p><img src="http://ytliu.info/images/2012-12-30-3.png" title="qemu process from code perspective" alt="qemu process from code perspective" /></p>
+
+<p>其中函数<code>cpu_exec()</code>相当于主要的执行循环函数，它将TB第一次初始化，在两个嵌套无限for循环中通过<code>tb_find_fast()</code>来获得host code TB，然后通过<code>tcg_qemu_tb_exec()</code>来执行相应代码。</p>
+
+<p><code>tb_find_fast</code>会首先查看code cache中是否有TB存在了，有则直接执行<code>tcg_qemu_tb_exec()</code>，否则通过<code>tb_find_slow()</code>来查找或者生成TB，后者通过一系列调用，最后到达<code>disas_insn()</code>，该函数执行了实际的guest code到TCG ops的翻译，并将其加入TCG ops的code buffer，最后调用<code>tcg_gen_code()</code>来生成host code。</p>
+
+<h5>代码运行</h5>
+
+<p>代码运行就是通过<code>tcg_qem_tb_exec()</code>来实现的，可以看到，其实这是一个宏，定义在<code>tcg/tcg.h</code>里面：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">tcg_qemu_tb_exec</span><span class="p">(</span><span class="n">tb_ptr</span><span class="p">)</span> <span class="err">\</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">((</span><span class="kt">long</span> <span class="n">REGPARM</span> <span class="n">__attribute__</span> <span class="p">((</span><span class="n">longcall</span><span class="p">))</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">))</span><span class="n">code_gen_prologue</span><span class="p">)(</span><span class="n">tb_ptr</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这是一个感觉非常复杂的调用，我们知道， <code>((long REGPARM (*)(void *))</code> 是一个指向函数的指针，<code>void *</code>是它的参数，返回值为<code>long</code>；而在这里 <code>REGPARAM(*)</code>是一个GCC选项，表示函数是通过寄存器传参而不是通过栈传参的。</p>
+
+<p>而一个数组的名字表示的是指向这个数组的基地址，于是，<code>(function_pointer) array_name</code>则会将这个基地址cast成一个函数地址。</p>
+
+<p>另外，一个函数可以通过<code>(*pointer_to_func)(args)</code>被调用，所以<code>((long REGPARM (*)(void *))code_gen_prologue)(tc_ptr)</code>进行了一次函数调用，似乎在这里少了一个<code>*</code>号，不过其实只要测试下可以发现 <code>(*pointer_to_func)(args)</code>和<code>(pointer_to_func)(args)</code>是一样的。</p>
+
+<p>所以上面<code>tcg_qemu_tb_exec(tb_ptr)</code>翻译的宏可以表示为一个数组<code>code_gen_prologue</code>被cast成一个函数指针，参数为<code>tc_ptr</code>，返回值为<code>long</code>（指向下一个TB），并且被调用。其实，被<code>code_gen_prologue</code>指向的函数就是<code>Function Prologue</code>，将控制流转到<code>tc_ptr</code>指向的host code开头部分。</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,1046 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>KVM Notes - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/notes/kvm_notes.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article role="article">
+  
+  <header>
+    <h1 class="entry-title">KVM Notes</h1>
+    <p class="meta">
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-26T19:50:00+08:00" pubdate data-updated="true">May 26<span>th</span>, 2013</time></p>
+  </header>
+  
+  <p>Notes about KVM study:</p>
+
+<hr />
+
+<h2>KVM核心基础功能</h2>
+
+<h3>CPU配置</h3>
+
+<p>-smp n[,maxcpus=cpus][,cores=cores][,threads=threads][,sockets=sockets]</p>
+
+<pre><code>n：逻辑cpu数量
+cores：每个cpu socket上的core数量
+threads：每个core上的线程数量
+sockets：cpu socket数量
+</code></pre>
+
+<p>-cpu help：列举qemu支持的cpu模型，默认qemu64 - QEMU Virtual CPU version 1.1.0，可以通过-cpu指定，如：</p>
+
+<pre><code>-cpu SandyBridge
+</code></pre>
+
+<h5>processor affinity</h5>
+
+<p>两个步骤：</p>
+
+<ul>
+<li>在Linux内核启动是加上<code>isolcpus=</code>参数，使得在系统启动后普通进程默认都不会调度到被隔离的cpu上执行。比如，隔离了cpu2和cpu3的grub配置文件：</li>
+</ul>
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>   ...
+</span><span class='line'>  <span class="nv">root</span><span class="o">=</span><span class="nv">UUID</span><span class="o">=</span>xxxx <span class="nv">isolcpus</span><span class="o">=</span>2,3
+</span><span class='line'>  ...
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>系统启动后，检查是否隔离成功：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nv">$ </span>ps -eLo psr | grep 2 | wc -l
+</span><span class='line'>4
+</span><span class='line'><span class="nv">$ </span>ps -eLo psr | grep 3 | wc -l
+</span><span class='line'>4
+</span><span class='line'><span class="nv">$ </span>ps -eLo ruser,pid,ppid,lwp,psr,args | awk <span class="s1">&#39;{if($5==2) print $0}&#39;</span>
+</span><span class='line'>root  10  2   10  2 <span class="o">[</span>migration/2<span class="o">]</span>
+</span><span class='line'>root  11  2   11  2 <span class="o">[</span>kworker/2:0<span class="o">]</span>
+</span><span class='line'>root  12  2   12  2 <span class="o">[</span>ksoftirqd/2<span class="o">]</span>
+</span><span class='line'>root  245 2   245 2 <span class="o">[</span>kworker/2:1<span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h5>解释</h5>
+
+<p><code>-e</code>显示所有进程，<code>-L</code>将线程（LWP）显示出来，<code>-o</code>按自定义格式输出（<code>psr</code>表示分配给进程的处理器编号，<code>lwp</code>表示线程ID，<code>rusr</code>表示运行进程的用户，<code>args</code>表示运行的命令和参数。</p>
+
+<p>migration：用于进程在不同CPU间迁移，kworker：用于处理workqueues，ksoftirqd：用于调度CPU软中断。</p>
+
+<ul>
+<li>启动一个拥有两个vCPU的客户机并将它们绑定到host的两个cpu上。</li>
+</ul>
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="c"># 启动虚拟机</span>
+</span><span class='line'><span class="nv">$ </span>qemu-system-x86_64 vm.img -smp 2 -m 512 -daemonize
+</span><span class='line'>
+</span><span class='line'><span class="c"># 查看代表vCPU的QEMU线程</span>
+</span><span class='line'><span class="nv">$ </span>ps -eLo ruser,pid,ppid,lwp,psr,args | grep qemu
+</span><span class='line'>root  3963    1   3963    0   qemu-system-x86_64 -smp 2 -m 512 vm.img -daemonize
+</span><span class='line'>root  3963    1   3967    0   qemu-system-x86_64 -smp 2 -m 512 vm.img -daemonize
+</span><span class='line'>root  3963    1   3968    1   qemu-system-x86_64 -smp 2 -m 512 vm.img -daemonize
+</span><span class='line'>
+</span><span class='line'><span class="c"># 绑定QEMU进程到cpu2上</span>
+</span><span class='line'>taskset -p 0x4 3963
+</span><span class='line'>
+</span><span class='line'><span class="c"># 绑定第一个vCPU的线程到cpu2上</span>
+</span><span class='line'>taskset -p 0x4 3967
+</span><span class='line'>
+</span><span class='line'><span class="c"># 绑定第二个vCPU的线程到cpu3上</span>
+</span><span class='line'>taskset -p 0x8 3968
+</span><span class='line'>
+</span><span class='line'><span class="c"># 之后可以查看绑定是否生效</span>
+</span><span class='line'><span class="nv">$ </span>ps -eLo ruser,pid,ppid,lwp,psr,args | grep qemu
+</span><span class='line'><span class="nv">$ </span>ps -eLo ruser,pid,ppid,lwp,psr,args | awk <span class="s1">&#39;{if($5==2) print $0}&#39;</span>
+</span><span class='line'><span class="nv">$ </span>ps -eLo ruser,pid,ppid,lwp,psr,args | awk <span class="s1">&#39;{if($5==3) print $0}&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>taskset使用：</p>
+
+<pre><code>taskset -p [mask] pid
+</code></pre>
+
+<h3>内存配置</h3>
+
+<pre><code>-m megs
+</code></pre>
+
+<p>默认值128MB</p>
+
+<p><code>-mem-path FILE</code>参数选项用于使用huge page，<code>-mem-prealloc</code>在虚拟机启动时就分配好虚拟机内存</p>
+
+<h5>使用huge page</h5>
+
+<pre><code>$ sudo mkdir /dev/hugepages
+$ sudo mount -t hugetlbfs hugetlbfs /dev/hugepages
+$ sysctl vm.nr_hugepages=1024
+$ qemu-system-x86_64 -m 1024 -smp 2 vm.img -mem-path /dev/hugepages
+</code></pre>
+
+<h3>存储配置</h3>
+
+<h4>基本配置</h4>
+
+<ul>
+<li>-hda file (hdb, hdc, hdd)</li>
+</ul>
+
+
+<p>默认选项，将file镜像作为客户机中的第一个IDE设备（序号0）：<code>/dev/hda</code>（如果客户机使用PIIX_IDE驱动）或者<code>/dev/sda</code>（如果客户机使用ata_piix）设备。也可以将host的<code>/dev/sdb</code>作为<code>-hda</code>的file参数来使用。</p>
+
+<ul>
+<li>-fda file (fdb)</li>
+</ul>
+
+
+<p>将file镜像作为客户机中的第一个软盘设备（序号0）：<code>/dev/fd0</code>。也可以将host的<code>/dev/fd0</code>作为<code>-fda</code>的file参数来使用。</p>
+
+<ul>
+<li>-cdrom file</li>
+</ul>
+
+
+<p>将file作为客户机中的光盘CD-ROM：<code>/dev/cdrom</code>。也可以将host的<code>/dev/cdrom</code>作为<code>-cdrom</code>的file参数来使用。注意，<code>-cdrom</code>不能和<code>-hdc</code>同时使用，因为<code>-cdrom</code>就是客户机中的第三个IDE设备。</p>
+
+<ul>
+<li>-mtdblock file</li>
+</ul>
+
+
+<p>将file作为客户机中的一个闪存。</p>
+
+<ul>
+<li>-sd file</li>
+</ul>
+
+
+<p>将file作为客户机中的SD卡。</p>
+
+<ul>
+<li>-pflash file</li>
+</ul>
+
+
+<p>将file作为客户机中的平行Flash存储器。</p>
+
+<h4>详细配置 -drive参数</h4>
+
+<p>具体形式：</p>
+
+<pre><code>-drive option[,option[,option[,...]]]
+</code></pre>
+
+<ul>
+<li>file=<em>file</em></li>
+<li>if=interface (ide, scsi, sd, mtd, floopy, pflash, virtio)</li>
+<li>bus=bus, unit=unit (驱动器的总线编号和单元编号)</li>
+<li>index=index（同一接口的驱动器中的索引编号）</li>
+<li>media=media（disk, cdrom）</li>
+<li>snapshot=on|off（on表示QEMU不会把数据的修改写回镜像文件，而是写在一个临时文件中，可以在QEMU monitor中使用“commit”强行写回）</li>
+<li>cache=none|writeback|writethrough（默认为“writethrough”，qcow2最好使用writeback，用writethrough太慢）</li>
+<li>aio=threads|native（native只适用于“cache=none”，即用Linux的原生AIO</li>
+<li>format=format（QEMU会自动检测）</li>
+<li>serial=serial（分配给设备的序列号）</li>
+<li>addr=addr（virtio才适用）</li>
+<li>id=name（驱动器的ID，可以在QEMU monitor中用“info block”看到）</li>
+<li>readonly=on|off（设置驱动器是否只读）</li>
+</ul>
+
+
+<h4>客户机启动顺序设置</h4>
+
+<pre><code>-boot [order=drives],once=drives][,menu=on|off][,splash=splashfile][,splash-time=sp-time]
+</code></pre>
+
+<h5>解释：</h5>
+
+<ul>
+<li><code>a</code>, <code>b</code>表示第一和第二个软驱，<code>c</code>表示第一个硬盘，<code>d</code>表示CD-ROM，<code>n</code>表示从网络启动，默认为<code>c</code>，要从光盘启动可设置<code>-boot order=d</code>。</li>
+<li><code>once</code>表示第一次启动顺序，重启后恢复默认值。</li>
+<li><code>menu=on|off</code>用于设置交互式的启动菜单选项，默认为<code>off</code>，需要客户机的BIOS支持。</li>
+<li><code>splash=splashfile</code>和<code>splash-time=sp-time</code>，在<code>menu=on</code>时，设置BIOS的splash的logo图片splashfile和时间sp-time（ms）</li>
+</ul>
+
+
+<h4>qemu-img命令</h4>
+
+<ul>
+<li>check [-f fmt] filename（一致性检查）</li>
+</ul>
+
+
+<p>只支持qcow2, qed, vdi格式文件的检查。</p>
+
+<ul>
+<li>create [-f fmt] [-o options] filename [size]</li>
+</ul>
+
+
+<p><code>-o</code>可以使用backing_file这个选项来指定后端镜像，其中<code>-o backing_file=backfile</code>和<code>-b backfile</code>是一样的效果。</p>
+
+<ul>
+<li>commit [-f fmt] filename (提交修改到后端镜像中（之前通过backing_file指定)</li>
+<li>convert [-c] [-f fmt] [-O output_fmt] [-o options] filename [filename2 [&#8230;]] output_filename</li>
+</ul>
+
+
+<p>将fmt格式的filename镜像根据options选项转换为output_fmt的名为output_filename的镜像文件，其中<code>-c</code>表示对输出镜像进行压缩（只支持qcow2和qcow格式文件，并且压缩是只读的）。比如可以把VMWare使用的vmdk格式文件转换为qcow2文件：</p>
+
+<pre><code>$ qemu-img convert -O qcow2 vm.vmdk vm.qcow2
+</code></pre>
+
+<ul>
+<li>info [-f fmt] filename</li>
+<li>snapshot [-l | -a snapshot | -c snapshot | -d snapshot] filename</li>
+</ul>
+
+
+<p><code>-l</code>表示列出镜像文件中的所有快照；<code>-a snapshot</code>表示让镜像文件使用某个快照；<code>-c snapshot</code>表示创建一个快照；<code>-d</code>表示删除快照。</p>
+
+<ul>
+<li>rebase [-f fmt] [-t cache] [-p] [-u] -b backing_file [-F backing_fmt] filename</li>
+</ul>
+
+
+<p>改变镜像文件的后端镜像，只支持qcow2和qed格式文件镜像。</p>
+
+<ul>
+<li>resize filename [+|-]size</li>
+</ul>
+
+
+<p>qcow2不支持缩小镜像操作，在增加大小后，需要使用“fdisk”等分区工具进行相应操作。</p>
+
+<h4>qcow2支持的选项：</h4>
+
+<ul>
+<li>backing_file, backing_fmt</li>
+<li>cluster_size (512B - 2MB)</li>
+<li>preallocation (off|metadata|full)</li>
+<li>encryption (on|off)</li>
+</ul>
+
+
+<p>用<code>qemu-img convert</code>命令是使用<code>-o encryption</code>可对镜像镜像加密，使用加密镜像时，要在QEMU monitor中输入&#8221;cont&#8221;或&#8221;c&#8221;命令唤醒客户机输入密码后才能继续执行。</p>
+
+<h3>网络配置</h3>
+
+<p>四种模式：bridge，nat，user mode，vt-d/SR-IOV</p>
+
+<p>默认 <code>-net nic -net user</code></p>
+
+<p>“-net”参数的细节如下：</p>
+
+<pre><code>-net nic[,vlan=n][,macaddr=mac][,model=type][,name=name][,addr=addr][,vectors=v]
+</code></pre>
+
+<h4>网桥模式</h4>
+
+<p>网络参数：</p>
+
+<pre><code>-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,helper=helper][,sndbuf=nbytes][,vnet_hdr=on|off][,vhost=on|off][,vhostfd=h][,vhostforce=on|off]
+</code></pre>
+
+<ul>
+<li>tap：仿真链路层的虚拟网络设备，用于创建一个网络桥；tun：仿真网络层的虚拟网络设备，与路由相关。</li>
+<li>sndbuf=nbytes：限制tap设备的发送缓冲区大小为n字节；默认值为0，即无限制。</li>
+</ul>
+
+
+<h4>设置网桥链接：</h4>
+
+<ul>
+<li>安装bridge-utils和tunctl；</li>
+<li>查看tun是否被加载：<code>lsmod | grep tun</code>，若没有则加载tun：<code>modprobe tun</code>；</li>
+<li>查看<code>/dev/net/tun</code>是否有可读写权限：<code>ll /dev/net/tun</code>；</li>
+<li>创建tap1: <code>$ tunctl -t tap1</code></li>
+<li>建立bridge，修改<code>/etc/network/interface</code>：</li>
+<li>把eth0设成混杂模式：<code>$ ifconfig eth0 0.0.0.0 promisc</code></li>
+</ul>
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>auto br0
+</span><span class='line'>iface br0 inet dhcp
+</span><span class='line'>  bridge_ports eth0
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>准备<code>my-qemu-ifup</code>和<code>my-qemu-ifdown</code>脚本：</li>
+</ul>
+
+
+<p>$ cat /etc/my-qemu-ifup</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="c">#!/bin/bash</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># set your bridge name</span>
+</span><span class='line'><span class="nv">switch</span><span class="o">=</span>br0
+</span><span class='line'>
+</span><span class='line'><span class="c"># $1 is the name of tap: tap1 here</span>
+</span><span class='line'><span class="k">if</span> <span class="o">[</span> -n <span class="s2">&quot;$1&quot;</span> <span class="o">]</span>; <span class="k">then</span>
+</span><span class='line'>  <span class="c"># start up the TAP interface</span>
+</span><span class='line'>  ip link <span class="nb">set</span> <span class="nv">$1</span> up
+</span><span class='line'>  sleep 1
+</span><span class='line'>  <span class="c"># add TAP interface to the bridge</span>
+</span><span class='line'>  brctl addif <span class="k">${</span><span class="nv">switch</span><span class="k">}</span> <span class="nv">$1</span>
+</span><span class='line'>  <span class="nb">exit </span>0
+</span><span class='line'><span class="k">else</span>
+</span><span class='line'><span class="k">  </span><span class="nb">echo</span> <span class="s2">&quot;Error: no interface specified&quot;</span>
+</span><span class='line'>  <span class="nb">exit </span>1
+</span><span class='line'><span class="k">fi</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="c">#!/bin/bash</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># set your bridge name</span>
+</span><span class='line'><span class="nv">switch</span><span class="o">=</span>br0
+</span><span class='line'>
+</span><span class='line'><span class="c"># $1 is the name of tap: tap1 here</span>
+</span><span class='line'><span class="k">if</span> <span class="o">[</span> -n <span class="s2">&quot;$1&quot;</span> <span class="o">]</span>; <span class="k">then</span>
+</span><span class='line'>  <span class="c"># delete TAP interface from bridge</span>
+</span><span class='line'>  brctl delif <span class="k">${</span><span class="nv">switch</span><span class="k">}</span> <span class="nv">$1</span>
+</span><span class='line'>  <span class="c"># shutdown the TAP interface</span>
+</span><span class='line'>  ip link <span class="nb">set</span> <span class="nv">$1</span> down
+</span><span class='line'>  sleep 1
+</span><span class='line'>  <span class="nb">exit </span>0
+</span><span class='line'><span class="k">else</span>
+</span><span class='line'><span class="k">  </span><span class="nb">echo</span> <span class="s2">&quot;Error: no interface specified&quot;</span>
+</span><span class='line'>  <span class="nb">exit </span>1
+</span><span class='line'><span class="k">fi</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li><p>启动bridge模式的虚拟机</p>
+
+<p>  qemu-system-x86_64 -enable-kvm -drive file=./vm.qcow2 -m 1024 -net nic -net tap,ifname=tap1,script=/etc/my-qemu-ifup,downscript=/etc/my-qemu-ifdown</p></li>
+</ul>
+
+
+<h3>图形显示</h3>
+
+<h4>vnc</h4>
+
+<ul>
+<li>-vnc display,option</li>
+</ul>
+
+
+<p>display参数选项：</p>
+
+<ol>
+<li>host:N（host表示哪台主机可以连接，不填表示任何主机都可以连接；N表示端口号，QEMU会建立相应的TCP端口——<code>5900+N</code>）</li>
+<li>unix:path</li>
+<li>none（表示VNC已经初始化，但是不在开始时启动，可在QEMU monitor中来启动：<code>change vnc :2</code></li>
+</ol>
+
+
+<p>options可选项：</p>
+
+<ol>
+<li>reverse（反向链接vnc客户端，需要现在客户端开启监听：<code>vncviewer -listen :2</code>，这时可以看到开启的端口为5500，虚拟机开启式就需要<code>-vnc IP:5500,reverse</code>）</li>
+<li>password（具体的密码要在QEMU monitor中用change来设置：<code>change vnc password</code>）</li>
+<li>tls, x509=/path/to/certificate/dir, x509verify=/path/to/certificate/dir, sasl, acl（和安全认证相关）</li>
+</ol>
+
+
+<h4>鼠标偏移问题</h4>
+
+<p>开启<code>-usb</code>和<code>-usbdevice tablet</code>选项，前者开启为客户机USB驱动的支持（默认已生效，可省略），后者表示添加一个“tablet”类型的USB设备，其是一个使用绝对坐标定位的指针设备，可以让QEMU能够在客户机不抢占鼠标的情况下获得鼠标的定位信息。</p>
+
+<p>也可以用<code>-device piix3-usb-uhci -device usb-tablet</code>来代替<code>-usb -usbdevice tablet</code>。</p>
+
+<h4>非图形模式</h4>
+
+<p><code>-nographic</code>，串口被重定向到当前控制台，grub中需要添加<code>console=ttyS0</code>.</p>
+
+<hr />
+
+<h2>KVM高级功能</h2>
+
+<h3>半虚拟化驱动virtio</h3>
+
+<p>virtio前端驱动（客户机） -> virtio虚拟队列 -> virtio-ring（环形缓冲区） -> virtio后端驱动（qemu）</p>
+
+<h4>安装virtio驱动</h4>
+
+<ul>
+<li><p>客户机（linux）</p>
+
+<p>  $ find /lib/modules/2.6.xx/ -name &#8220;virtio*.ko&#8221;
+  $ lsmod | grep virtio</p></li>
+</ul>
+
+
+<p>加载顺序：virtio，virtio_ring，virtio_pci，virtio_net/virtio_blk&#8230;</p>
+
+<ul>
+<li>客户机（windows）</li>
+</ul>
+
+
+<p>下载virtio-win.iso，通过<code>-cdrom</code>加入客户虚拟机。通过如下命令启动虚拟机：</p>
+
+<pre><code>$ qemu-system-x86_64 win7.img -smp 2 -m 2048 -cdrom /path/to/virtio-win.iso -net nic,model=virtio -net tap -balloon virtio -device virtio-serial-pci
+</code></pre>
+
+<p>然后在Windows的Device Manager中的Other devices会有3个设备没有合适的驱动，update driver software，找到virtio-win.iso相应的项装上驱动就好了。</p>
+
+<p>而对于virtio_scsi来说，如果没有这个驱动硬盘就起不起来。方法：建立一个非启动盘，设置为使用virtio启动，起来以后装好驱动，重启启动盘即可：</p>
+
+<pre><code>$ qemu-img create -f qcow2 fake.qcow2 10M
+$ qemu-system-x86_64 win7.img -drive file=fake.qcow2,if=virtio -smp 2 -m 2048 -cdrom /path/to/virtio_win.iso
+</code></pre>
+
+<p>然后在Windows的Device Manager中的Other devices中有一个没有驱动的”SCSI Controller“，用virtio_win.iso中的镜像装好驱动就好了，然后重启系统：</p>
+
+<pre><code>$ qemu-system-x86_64 -drive file=win7.img,if=virtio -smp 2 -m 2048
+</code></pre>
+
+<h4>使用virtio_balloon</h4>
+
+<p>客户机中存在ballon（客户机不能访问或使用），宿主机请求内存 -> 客户机释放空余内存 -> 客户机空余内存不足 -> 内存换出swap中，气球膨胀 -> 宿主机回收气球中的内存。</p>
+
+<p>KVM ballooning过程：</p>
+
+<ul>
+<li>KVM发送请求给客户机要求归还部分内存</li>
+<li>客户机virtio_balloon驱动接收到请求</li>
+<li>virtio_balloon驱动使内存气球膨胀</li>
+<li>将内存气球给KVM</li>
+<li>KVM将得到的内存分配给其它进程</li>
+<li>反之，则返回内存气球</li>
+</ul>
+
+
+<h5>ballooning使用</h5>
+
+<ul>
+<li>命令行通过 <code>-balloon virtio[,addr=addr]</code>来使得virtio_balloon驱动加载</li>
+<li>在QEMU monitor中可以使用<code>info balloon</code>和<code>balloon num</code>来查看和设置客户机内存大小（<code>balloon num</code>将客户机内存设置成512，最大只能设置成客户机启动时用<code>-m</code>设置的值）</li>
+<li>virsh中有<code>setmem</code>命令来动态更改客户机的可用内存</li>
+</ul>
+
+
+<hr />
+
+<h2>libvirt</h2>
+
+<h4>下载，编译并安装libvirt源码：</h4>
+
+<pre><code>$ download libvirt-1.1.4
+$ ./configure --prefix=/usr
+$ make -j4
+$ make install (默认安装在/usr/local/lib和/usr/local/bin下)
+</code></pre>
+
+<h4>libvirt配置文件</h4>
+
+<ul>
+<li>/etc/libvirt/libvirt.conf</li>
+</ul>
+
+
+<p>用于配置一些常用libvirt链接（通常是远程链接）别名。</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nv">uri_aliases</span> <span class="o">=</span> <span class="o">[</span>
+</span><span class='line'>  <span class="s2">&quot;remote1=qemu+ssh://root@192.168.2.58/system&quot;</span>,
+</span><span class='line'><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>用remote1来代替qemu+ssh://root@192.168.2.58/system这个远程libvirt链接：</p>
+
+<pre><code>$ service libvirtd reload
+$ virsh -c remote1
+</code></pre>
+
+<p>对应的python代码：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="n">conn</span> <span class="o">=</span> <span class="n">libvirt</span><span class="o">.</span><span class="n">openReadOnly</span><span class="p">(</span><span class="s">&#39;remote1&#39;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>/etc/libvirt/libvirtd.conf</li>
+</ul>
+
+
+<p>libvirtd的配置文件，每次修改完需要重新加载。</p>
+
+<ul>
+<li>/etc/libvirt/qemu.conf</li>
+</ul>
+
+
+<p>libvirt对QEMU的驱动的配置文件，包括VNC等和链接时采用的权限认证方式的配置，也包括内存大页、SELinux、Cgroups等的设置。</p>
+
+<ul>
+<li>/etc/libvirt/qemu/*</li>
+</ul>
+
+
+<p>使用QEMU驱动的domain的配置文件。</p>
+
+<p>libvirtd是一个service（/etc/init.d/libvirt-bin）：<code>service libvirt-bin start|restart|reload|status</code></p>
+
+<p>libvirtd直接启动（-d或&#8211;daemon | -f或&#8211;config | -l或&#8211;listen）</p>
+
+<h4>domain的XML配置文件</h4>
+
+<ul>
+<li>CPU的配置</li>
+</ul>
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;domain&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'>  <span class="nt">&lt;vcpu</span> <span class="na">placement=</span><span class="s">&#39;static&#39;</span> <span class="na">cpuset=</span><span class="s">&quot;1-4,^3,6&quot;</span> <span class="na">current=</span><span class="s">&quot;1&quot;</span><span class="nt">&gt;</span>2<span class="nt">&lt;/vcpu&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;features&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;acpi/&gt;</span>
+</span><span class='line'>      ...
+</span><span class='line'>  <span class="nt">&lt;/features&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'><span class="nt">&lt;/domain&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>cpuset表示可以运行在1，2，4，6物理CPU上，current表示启动客户机时只给一个vCPU，最多可以增加到2个vCPU。</p>
+
+<p>还提供<code>cputune</code>标签对CPU分配进行更多调节，如：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;domain&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'>  <span class="nt">&lt;cputune&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;vcpupin</span> <span class="na">vcpu=</span><span class="s">&quot;0&quot;</span> <span class="na">cpuset=</span><span class="s">&quot;1&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;vcpupin</span> <span class="na">vcpu=</span><span class="s">&quot;1&quot;</span> <span class="na">cpuset=</span><span class="s">&quot;2,3&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;vcpupin</span> <span class="na">vcpu=</span><span class="s">&quot;2&quot;</span> <span class="na">cpuset=</span><span class="s">&quot;4&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;vcpupin</span> <span class="na">vcpu=</span><span class="s">&quot;3&quot;</span> <span class="na">cpuset=</span><span class="s">&quot;5&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;emulatorpin</span> <span class="na">cpuset=</span><span class="s">&quot;1-3&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;shares&gt;</span>2048&gt;<span class="nt">&lt;/shares&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;period&gt;</span>1000000<span class="nt">&lt;/period&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;quota&gt;</span>-1<span class="nt">&lt;/quota&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;emulator_period&gt;</span>1000000<span class="nt">&lt;/emulator_period&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;emulator_quota&gt;</span>-1<span class="nt">&lt;/emulator_quota&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/cputune&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'><span class="nt">&lt;/domain&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>emulatorpin</code>表示QEMU绑定到1~3号物理CPU上；<code>shares</code>表示客户机所占用CPU的时间加权配额，2048配额的domain会得到CPU执行时间为1024配额的两倍。</p>
+
+<ul>
+<li>内存的配置</li>
+</ul>
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;domain&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'>  <span class="nt">&lt;memory</span> <span class="na">unit=</span><span class="s">&#39;KiB&#39;</span><span class="nt">&gt;</span>1048576<span class="nt">&lt;/memory&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;currentMemory</span> <span class="na">unit=</span><span class="s">&#39;KiB&#39;</span><span class="nt">&gt;</span>1048576<span class="nt">&lt;/currentMemory&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'>  <span class="nt">&lt;device&gt;</span>
+</span><span class='line'>      ...
+</span><span class='line'>      <span class="nt">&lt;memballoon</span> <span class="na">model=</span><span class="s">&#39;virtio&#39;</span><span class="nt">&gt;</span>
+</span><span class='line'>          <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#39;pci&#39;</span> <span class="na">domain=</span><span class="s">&#39;0x0000&#39;</span> <span class="na">bus=</span><span class="s">&#39;ox00&#39;</span> <span class="na">slot=</span><span class="s">&#39;0x06&#39;</span> <span class="na">function=</span><span class="s">&#39;0x0&#39;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;/memballoon&gt;</span>
+</span><span class='line'>      ...
+</span><span class='line'>  <span class="nt">&lt;/device&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'><span class="nt">&lt;/domain&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>memory</code>为最大值，<code>currentMemory</code>为客户机启动时的值。</p>
+
+<ul>
+<li>客户机系统类型和启动顺序</li>
+</ul>
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;domain&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'>  <span class="nt">&lt;os&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;type</span> <span class="na">arch=</span><span class="s">&#39;x86_64&#39;</span><span class="nt">&gt;</span>hvm<span class="nt">&lt;/type&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;boot</span> <span class="na">dev=</span><span class="s">&#39;hd&#39;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;boot</span> <span class="na">dev=</span><span class="s">&#39;cdrom&#39;</span><span class="nt">/&gt;</span>
+</span><span class='line'>  ...
+</span><span class='line'><span class="nt">&lt;/domain&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li><p>disk的配置</p></li>
+<li><p>network的配置</p></li>
+</ul>
+
+
+<hr />
+
+  
+    <footer>
+      <p class="meta">
+        
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-26T19:50:00+08:00" pubdate data-updated="true">May 26<span>th</span>, 2013</time>
+        
+      </p>
+      
+        <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+      
+    </footer>
+  
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/notes/kvm_notes.html';
+        var disqus_url = 'http://ytliu.github.io/notes/kvm_notes.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,1356 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>系统调用学习笔记 - Linux系统调用表（转） - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="syscall">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/04/28/xi-tong-diao-yong-xue-xi-bi-ji-linuxxi-tong-diao-yong-biao-%28zhuan-%29">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">系统调用学习笔记 - Linux系统调用表（转）</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-28T20:56:00+08:00" pubdate data-updated="true">Apr 28<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>最近发现自己对Linux里面很多的系统调用都不清楚具体是在怎么回事儿，想要好好学习一下。</p>
+
+<p>在IBM的<a href="https://www.ibm.com/developerworks/cn/">developerWorks</a>中发现一份它们整理的<a href="http://www.ibm.com/developerworks/cn/linux/kernel/syscall/part1/appendix.html">Linux系统调用列表</a>，从进程控制，文件系统控制等八个方面列举了大部分常见的Linux系统调用：</p>
+
+<!-- more -->
+
+
+<h2>进程控制</h2>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call             </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">fork                    </td>
+<td align="left"> 创建一个新进程</td>
+</tr>
+<tr>
+<td align="center">clone                   </td>
+<td align="left"> 按指定条件创建子进程</td>
+</tr>
+<tr>
+<td align="center">execve                  </td>
+<td align="left"> 运行可执行文件</td>
+</tr>
+<tr>
+<td align="center">exit                    </td>
+<td align="left"> 中止进程</td>
+</tr>
+<tr>
+<td align="center">_exit                   </td>
+<td align="left"> 立即中止当前进程</td>
+</tr>
+<tr>
+<td align="center">getdtablesize           </td>
+<td align="left"> 进程所能打开的最大文件数</td>
+</tr>
+<tr>
+<td align="center">getpgid                 </td>
+<td align="left"> 获取指定进程组标识号</td>
+</tr>
+<tr>
+<td align="center">setpgid                 </td>
+<td align="left"> 设置指定进程组标志号</td>
+</tr>
+<tr>
+<td align="center">getpgrp                 </td>
+<td align="left"> 获取当前进程组标识号</td>
+</tr>
+<tr>
+<td align="center">setpgrp                 </td>
+<td align="left"> 设置当前进程组标志号</td>
+</tr>
+<tr>
+<td align="center">getpid                  </td>
+<td align="left"> 获取进程标识号</td>
+</tr>
+<tr>
+<td align="center">getppid                 </td>
+<td align="left"> 获取父进程标识号</td>
+</tr>
+<tr>
+<td align="center">getpriority             </td>
+<td align="left"> 获取调度优先级</td>
+</tr>
+<tr>
+<td align="center">setpriority             </td>
+<td align="left"> 设置调度优先级</td>
+</tr>
+<tr>
+<td align="center">modify_ldt              </td>
+<td align="left"> 读写进程的本地描述表</td>
+</tr>
+<tr>
+<td align="center">nanosleep               </td>
+<td align="left"> 使进程睡眠指定的时间</td>
+</tr>
+<tr>
+<td align="center">nice                    </td>
+<td align="left"> 改变分时进程的优先级</td>
+</tr>
+<tr>
+<td align="center">pause                   </td>
+<td align="left"> 挂起进程，等待信号</td>
+</tr>
+<tr>
+<td align="center">personality             </td>
+<td align="left"> 设置进程运行域</td>
+</tr>
+<tr>
+<td align="center">prctl                   </td>
+<td align="left"> 对进程进行特定操作</td>
+</tr>
+<tr>
+<td align="center">ptrace                  </td>
+<td align="left"> 进程跟踪</td>
+</tr>
+<tr>
+<td align="center">sched_get_priority_max  </td>
+<td align="left"> 取得静态优先级的上限</td>
+</tr>
+<tr>
+<td align="center">sched_get_priority_min  </td>
+<td align="left"> 取得静态优先级的下限</td>
+</tr>
+<tr>
+<td align="center">sched_getparam          </td>
+<td align="left"> 取得进程的调度参数</td>
+</tr>
+<tr>
+<td align="center">sched_getscheduler      </td>
+<td align="left"> 取得指定进程的调度策略</td>
+</tr>
+<tr>
+<td align="center">sched_rr_get_interval   </td>
+<td align="left"> 取得按RR算法调度的实时进程的时间片长度</td>
+</tr>
+<tr>
+<td align="center">sched_setparam          </td>
+<td align="left"> 设置进程的调度参数</td>
+</tr>
+<tr>
+<td align="center">sched_setscheduler      </td>
+<td align="left"> 设置指定进程的调度策略和参数</td>
+</tr>
+<tr>
+<td align="center">sched_yield             </td>
+<td align="left"> 进程主动让出处理器,并将自己等候调度队列队尾</td>
+</tr>
+<tr>
+<td align="center">vfork                   </td>
+<td align="left"> 创建一个子进程，以供执行新程序，常与execve等同时使用</td>
+</tr>
+<tr>
+<td align="center">wait                    </td>
+<td align="left"> 等待子进程终止</td>
+</tr>
+<tr>
+<td align="center">wait3                   </td>
+<td align="left"> 参见wait</td>
+</tr>
+<tr>
+<td align="center">waitpid                 </td>
+<td align="left"> 等待指定子进程终止</td>
+</tr>
+<tr>
+<td align="center">wait4                   </td>
+<td align="left"> 参见waitpid</td>
+</tr>
+<tr>
+<td align="center">capget                  </td>
+<td align="left"> 获取进程权限</td>
+</tr>
+<tr>
+<td align="center">capset                  </td>
+<td align="left"> 设置进程权限</td>
+</tr>
+<tr>
+<td align="center">getsid                  </td>
+<td align="left"> 获取会晤标识号</td>
+</tr>
+<tr>
+<td align="center">setsid                  </td>
+<td align="left"> 设置会晤标识号</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>文件系统控制</h2>
+
+<h4>文件读写操作</h4>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">fcntl         </td>
+<td align="left"> 文件控制</td>
+</tr>
+<tr>
+<td align="center">open          </td>
+<td align="left"> 打开文件</td>
+</tr>
+<tr>
+<td align="center">creat         </td>
+<td align="left"> 创建新文件</td>
+</tr>
+<tr>
+<td align="center">close         </td>
+<td align="left"> 关闭文件描述字</td>
+</tr>
+<tr>
+<td align="center">read          </td>
+<td align="left"> 读文件</td>
+</tr>
+<tr>
+<td align="center">write         </td>
+<td align="left"> 写文件</td>
+</tr>
+<tr>
+<td align="center">readv         </td>
+<td align="left"> 从文件读入数据到缓冲数组中</td>
+</tr>
+<tr>
+<td align="center">writev        </td>
+<td align="left"> 将缓冲数组里的数据写入文件</td>
+</tr>
+<tr>
+<td align="center">pread         </td>
+<td align="left"> 对文件随机读</td>
+</tr>
+<tr>
+<td align="center">pwrite        </td>
+<td align="left"> 对文件随机写</td>
+</tr>
+<tr>
+<td align="center">lseek         </td>
+<td align="left"> 移动文件指针</td>
+</tr>
+<tr>
+<td align="center">_llseek       </td>
+<td align="left"> 在64位地址空间里移动文件指针</td>
+</tr>
+<tr>
+<td align="center">dup           </td>
+<td align="left"> 复制已打开的文件描述字</td>
+</tr>
+<tr>
+<td align="center">dup2          </td>
+<td align="left"> 按指定条件复制文件描述字</td>
+</tr>
+<tr>
+<td align="center">flock         </td>
+<td align="left"> 文件加/解锁</td>
+</tr>
+<tr>
+<td align="center">poll          </td>
+<td align="left"> I/O多路转换</td>
+</tr>
+<tr>
+<td align="center">truncate      </td>
+<td align="left"> 截断文件</td>
+</tr>
+<tr>
+<td align="center">ftruncate     </td>
+<td align="left"> 参见truncate</td>
+</tr>
+<tr>
+<td align="center">umask         </td>
+<td align="left"> 设置文件权限掩码</td>
+</tr>
+<tr>
+<td align="center">fsync         </td>
+<td align="left"> 把文件在内存中的部分写回磁盘</td>
+</tr>
+</tbody>
+</table>
+
+
+<h4>文件系统操作</h4>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">access        </td>
+<td align="left"> 确定文件的可存取性</td>
+</tr>
+<tr>
+<td align="center">chdir         </td>
+<td align="left"> 改变当前工作目录</td>
+</tr>
+<tr>
+<td align="center">fchdir        </td>
+<td align="left"> 参见chdir</td>
+</tr>
+<tr>
+<td align="center">chmod         </td>
+<td align="left"> 改变文件方式</td>
+</tr>
+<tr>
+<td align="center">fchmod        </td>
+<td align="left"> 参见chmod</td>
+</tr>
+<tr>
+<td align="center">chown         </td>
+<td align="left"> 改变文件的属主或用户组</td>
+</tr>
+<tr>
+<td align="center">fchown        </td>
+<td align="left"> 参见chown</td>
+</tr>
+<tr>
+<td align="center">lchown        </td>
+<td align="left"> 参见chown</td>
+</tr>
+<tr>
+<td align="center">chroot        </td>
+<td align="left"> 改变根目录</td>
+</tr>
+<tr>
+<td align="center">stat          </td>
+<td align="left"> 取文件状态信息</td>
+</tr>
+<tr>
+<td align="center">lstat         </td>
+<td align="left"> 参见stat</td>
+</tr>
+<tr>
+<td align="center">fstat         </td>
+<td align="left"> 参见stat</td>
+</tr>
+<tr>
+<td align="center">statfs        </td>
+<td align="left"> 取文件系统信息</td>
+</tr>
+<tr>
+<td align="center">fstatfs       </td>
+<td align="left"> 参见statfs</td>
+</tr>
+<tr>
+<td align="center">readdir       </td>
+<td align="left"> 读取目录项</td>
+</tr>
+<tr>
+<td align="center">getdents      </td>
+<td align="left"> 读取目录项</td>
+</tr>
+<tr>
+<td align="center">mkdir         </td>
+<td align="left"> 创建目录</td>
+</tr>
+<tr>
+<td align="center">mknod         </td>
+<td align="left"> 创建索引节点</td>
+</tr>
+<tr>
+<td align="center">rmdir         </td>
+<td align="left"> 删除目录</td>
+</tr>
+<tr>
+<td align="center">rename        </td>
+<td align="left"> 文件改名</td>
+</tr>
+<tr>
+<td align="center">link          </td>
+<td align="left"> 创建链接</td>
+</tr>
+<tr>
+<td align="center">symlink       </td>
+<td align="left"> 创建符号链接</td>
+</tr>
+<tr>
+<td align="center">unlink        </td>
+<td align="left"> 删除链接</td>
+</tr>
+<tr>
+<td align="center">readlink      </td>
+<td align="left"> 读符号链接的值</td>
+</tr>
+<tr>
+<td align="center">mount         </td>
+<td align="left"> 安装文件系统</td>
+</tr>
+<tr>
+<td align="center">umount        </td>
+<td align="left"> 卸下文件系统</td>
+</tr>
+<tr>
+<td align="center">ustat         </td>
+<td align="left"> 取文件系统信息</td>
+</tr>
+<tr>
+<td align="center">utime         </td>
+<td align="left"> 改变文件的访问修改时间</td>
+</tr>
+<tr>
+<td align="center">utimes        </td>
+<td align="left"> 参见utime</td>
+</tr>
+<tr>
+<td align="center">quotactl      </td>
+<td align="left"> 控制磁盘配额</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>系统控制</h2>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call         </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">ioctl               </td>
+<td align="left"> I/O总控制函数</td>
+</tr>
+<tr>
+<td align="center">_sysctl             </td>
+<td align="left"> 读/写系统参数</td>
+</tr>
+<tr>
+<td align="center">acct                </td>
+<td align="left"> 启用或禁止进程记账</td>
+</tr>
+<tr>
+<td align="center">getrlimit           </td>
+<td align="left"> 获取系统资源上限</td>
+</tr>
+<tr>
+<td align="center">setrlimit           </td>
+<td align="left"> 设置系统资源上限</td>
+</tr>
+<tr>
+<td align="center">getrusage           </td>
+<td align="left"> 获取系统资源使用情况</td>
+</tr>
+<tr>
+<td align="center">uselib              </td>
+<td align="left"> 选择要使用的二进制函数库</td>
+</tr>
+<tr>
+<td align="center">ioperm              </td>
+<td align="left"> 设置端口I/O权限</td>
+</tr>
+<tr>
+<td align="center">iopl                </td>
+<td align="left"> 改变进程I/O权限级别</td>
+</tr>
+<tr>
+<td align="center">outb                </td>
+<td align="left"> 低级端口操作</td>
+</tr>
+<tr>
+<td align="center">reboot              </td>
+<td align="left"> 重新启动</td>
+</tr>
+<tr>
+<td align="center">swapon              </td>
+<td align="left"> 打开交换文件和设备</td>
+</tr>
+<tr>
+<td align="center">swapoff             </td>
+<td align="left"> 关闭交换文件和设备</td>
+</tr>
+<tr>
+<td align="center">bdflush             </td>
+<td align="left"> 控制bdflush守护进程</td>
+</tr>
+<tr>
+<td align="center">sysfs               </td>
+<td align="left"> 取核心支持的文件系统类型</td>
+</tr>
+<tr>
+<td align="center">sysinfo             </td>
+<td align="left"> 取得系统信息</td>
+</tr>
+<tr>
+<td align="center">adjtimex            </td>
+<td align="left"> 调整系统时钟</td>
+</tr>
+<tr>
+<td align="center">alarm               </td>
+<td align="left"> 设置进程的闹钟</td>
+</tr>
+<tr>
+<td align="center">getitimer           </td>
+<td align="left"> 获取计时器值</td>
+</tr>
+<tr>
+<td align="center">setitimer           </td>
+<td align="left"> 设置计时器值</td>
+</tr>
+<tr>
+<td align="center">gettimeofday        </td>
+<td align="left"> 取时间和时区</td>
+</tr>
+<tr>
+<td align="center">settimeofday        </td>
+<td align="left"> 设置时间和时区</td>
+</tr>
+<tr>
+<td align="center">stime               </td>
+<td align="left"> 设置系统日期和时间</td>
+</tr>
+<tr>
+<td align="center">time                </td>
+<td align="left"> 取得系统时间</td>
+</tr>
+<tr>
+<td align="center">times               </td>
+<td align="left"> 取进程运行时间</td>
+</tr>
+<tr>
+<td align="center">uname               </td>
+<td align="left"> 获取当前UNIX系统的名称、版本和主机等信息</td>
+</tr>
+<tr>
+<td align="center">vhangup             </td>
+<td align="left"> 挂起当前终端</td>
+</tr>
+<tr>
+<td align="center">nfsservctl          </td>
+<td align="left"> 对NFS守护进程进行控制</td>
+</tr>
+<tr>
+<td align="center">vm86                </td>
+<td align="left"> 进入模拟8086模式</td>
+</tr>
+<tr>
+<td align="center">create_module       </td>
+<td align="left"> 创建可装载的模块项</td>
+</tr>
+<tr>
+<td align="center">delete_module       </td>
+<td align="left"> 删除可装载的模块项</td>
+</tr>
+<tr>
+<td align="center">init_module         </td>
+<td align="left"> 初始化模块</td>
+</tr>
+<tr>
+<td align="center">query_module        </td>
+<td align="left"> 查询模块信息</td>
+</tr>
+<tr>
+<td align="center">*get_kernel_syms    </td>
+<td align="left"> 取得核心符号,已被query_module代替</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>内存管理</h2>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">brk           </td>
+<td align="left"> 改变数据段空间的分配</td>
+</tr>
+<tr>
+<td align="center">sbrk          </td>
+<td align="left"> 参见brk</td>
+</tr>
+<tr>
+<td align="center">mlock         </td>
+<td align="left"> 内存页面加锁</td>
+</tr>
+<tr>
+<td align="center">munlock       </td>
+<td align="left"> 内存页面解锁</td>
+</tr>
+<tr>
+<td align="center">mlockall      </td>
+<td align="left"> 调用进程所有内存页面加锁</td>
+</tr>
+<tr>
+<td align="center">munlockall    </td>
+<td align="left"> 调用进程所有内存页面解锁</td>
+</tr>
+<tr>
+<td align="center">mmap          </td>
+<td align="left"> 映射虚拟内存页</td>
+</tr>
+<tr>
+<td align="center">munmap        </td>
+<td align="left"> 去除内存页映射</td>
+</tr>
+<tr>
+<td align="center">mremap        </td>
+<td align="left"> 重新映射虚拟内存地址</td>
+</tr>
+<tr>
+<td align="center">msync         </td>
+<td align="left"> 将映射内存中的数据写回磁盘</td>
+</tr>
+<tr>
+<td align="center">mprotect      </td>
+<td align="left"> 设置内存映像保护</td>
+</tr>
+<tr>
+<td align="center">getpagesize   </td>
+<td align="left"> 获取页面大小</td>
+</tr>
+<tr>
+<td align="center">sync          </td>
+<td align="left"> 将内存缓冲区数据写回硬盘</td>
+</tr>
+<tr>
+<td align="center">cacheflush    </td>
+<td align="left"> 将指定缓冲区中的内容写回磁盘</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>网络管理</h2>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call     </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">getdomainname   </td>
+<td align="left"> 取域名</td>
+</tr>
+<tr>
+<td align="center">setdomainname   </td>
+<td align="left"> 设置域名</td>
+</tr>
+<tr>
+<td align="center">gethostid       </td>
+<td align="left"> 获取主机标识号</td>
+</tr>
+<tr>
+<td align="center">sethostid       </td>
+<td align="left"> 设置主机标识号</td>
+</tr>
+<tr>
+<td align="center">gethostname     </td>
+<td align="left"> 获取本主机名称</td>
+</tr>
+<tr>
+<td align="center">sethostname     </td>
+<td align="left"> 设置主机名称</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>Socket控制</h2>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">socketcall    </td>
+<td align="left"> socket系统调用</td>
+</tr>
+<tr>
+<td align="center">socket        </td>
+<td align="left"> 建立socket</td>
+</tr>
+<tr>
+<td align="center">bind          </td>
+<td align="left"> 绑定socket到端口</td>
+</tr>
+<tr>
+<td align="center">connect       </td>
+<td align="left"> 连接远程主机</td>
+</tr>
+<tr>
+<td align="center">accept        </td>
+<td align="left"> 响应socket连接请求</td>
+</tr>
+<tr>
+<td align="center">send          </td>
+<td align="left"> 通过socket发送信息</td>
+</tr>
+<tr>
+<td align="center">sendto        </td>
+<td align="left"> 发送UDP信息</td>
+</tr>
+<tr>
+<td align="center">sendmsg       </td>
+<td align="left"> 参见send</td>
+</tr>
+<tr>
+<td align="center">recv          </td>
+<td align="left"> 通过socket接收信息</td>
+</tr>
+<tr>
+<td align="center">recvfrom      </td>
+<td align="left"> 接收UDP信息</td>
+</tr>
+<tr>
+<td align="center">recvmsg       </td>
+<td align="left"> 参见recv</td>
+</tr>
+<tr>
+<td align="center">listen        </td>
+<td align="left"> 监听socket端口</td>
+</tr>
+<tr>
+<td align="center">select        </td>
+<td align="left"> 对多路同步I/O进行轮询</td>
+</tr>
+<tr>
+<td align="center">shutdown      </td>
+<td align="left"> 关闭socket上的连接</td>
+</tr>
+<tr>
+<td align="center">getsockname   </td>
+<td align="left"> 取得本地socket名字</td>
+</tr>
+<tr>
+<td align="center">getpeername   </td>
+<td align="left"> 获取通信对方的socket名字</td>
+</tr>
+<tr>
+<td align="center">getsockopt    </td>
+<td align="left"> 取端口设置</td>
+</tr>
+<tr>
+<td align="center">setsockopt    </td>
+<td align="left"> 设置端口参数</td>
+</tr>
+<tr>
+<td align="center">sendfile      </td>
+<td align="left"> 在文件或端口间传输数据</td>
+</tr>
+<tr>
+<td align="center">socketpair    </td>
+<td align="left"> 创建一对已联接的无名socket</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>用户管理</h2>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">getuid        </td>
+<td align="left"> 获取用户标识号</td>
+</tr>
+<tr>
+<td align="center">setuid        </td>
+<td align="left"> 设置用户标志号</td>
+</tr>
+<tr>
+<td align="center">getgid        </td>
+<td align="left"> 获取组标识号</td>
+</tr>
+<tr>
+<td align="center">setgid        </td>
+<td align="left"> 设置组标志号</td>
+</tr>
+<tr>
+<td align="center">getegid       </td>
+<td align="left"> 获取有效组标识号</td>
+</tr>
+<tr>
+<td align="center">setegid       </td>
+<td align="left"> 设置有效组标识号</td>
+</tr>
+<tr>
+<td align="center">geteuid       </td>
+<td align="left"> 获取有效用户标识号</td>
+</tr>
+<tr>
+<td align="center">seteuid       </td>
+<td align="left"> 设置有效用户标识号</td>
+</tr>
+<tr>
+<td align="center">setregid      </td>
+<td align="left"> 分别设置真实和有效的的组标识号</td>
+</tr>
+<tr>
+<td align="center">setreuid      </td>
+<td align="left"> 分别设置真实和有效的用户标识号</td>
+</tr>
+<tr>
+<td align="center">getresgid     </td>
+<td align="left"> 分别获取真实的,有效的和保存过的组标识号</td>
+</tr>
+<tr>
+<td align="center">setresgid     </td>
+<td align="left"> 分别设置真实的,有效的和保存过的组标识号</td>
+</tr>
+<tr>
+<td align="center">getresuid     </td>
+<td align="left"> 分别获取真实的,有效的和保存过的用户标识号</td>
+</tr>
+<tr>
+<td align="center">setresuid     </td>
+<td align="left"> 分别设置真实的,有效的和保存过的用户标识号</td>
+</tr>
+<tr>
+<td align="center">setfsgid      </td>
+<td align="left"> 设置文件系统检查时使用的组标识号</td>
+</tr>
+<tr>
+<td align="center">setfsuid      </td>
+<td align="left"> 设置文件系统检查时使用的用户标识号</td>
+</tr>
+<tr>
+<td align="center">getgroups     </td>
+<td align="left"> 获取后补组标志清单</td>
+</tr>
+<tr>
+<td align="center">setgroups     </td>
+<td align="left"> 设置后补组标志清单</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>进程间通信</h2>
+
+<h4>信号</h4>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">sigaction     </td>
+<td align="left"> 设置对指定信号的处理方法</td>
+</tr>
+<tr>
+<td align="center">sigprocmask   </td>
+<td align="left"> 根据参数对信号集中的信号执行阻塞/解除阻塞等操作</td>
+</tr>
+<tr>
+<td align="center">sigpending    </td>
+<td align="left"> 为指定的被阻塞信号设置队列</td>
+</tr>
+<tr>
+<td align="center">sigsuspend    </td>
+<td align="left"> 挂起进程等待特定信号</td>
+</tr>
+<tr>
+<td align="center">signal        </td>
+<td align="left"> 参见signal</td>
+</tr>
+<tr>
+<td align="center">kill          </td>
+<td align="left"> 向进程或进程组发信号</td>
+</tr>
+<tr>
+<td align="center">*sigblock     </td>
+<td align="left"> 向被阻塞信号掩码中添加信号,已被sigprocmask代替</td>
+</tr>
+<tr>
+<td align="center">*siggetmask   </td>
+<td align="left"> 取得现有阻塞信号掩码,已被sigprocmask代替</td>
+</tr>
+<tr>
+<td align="center">*sigsetmask   </td>
+<td align="left"> 用给定信号掩码替换现有阻塞信号掩码,已被sigprocmask代替</td>
+</tr>
+<tr>
+<td align="center">*sigmask      </td>
+<td align="left"> 将给定的信号转化为掩码,已被sigprocmask代替</td>
+</tr>
+<tr>
+<td align="center">*sigpause     </td>
+<td align="left"> 作用同sigsuspend,已被sigsuspend代替</td>
+</tr>
+<tr>
+<td align="center">sigvec        </td>
+<td align="left"> 为兼容BSD而设的信号处理函数,作用类似sigaction</td>
+</tr>
+<tr>
+<td align="center">ssetmask      </td>
+<td align="left"> ANSI C的信号处理函数,作用类似sigaction</td>
+</tr>
+</tbody>
+</table>
+
+
+<h4>消息</h4>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">msgctl        </td>
+<td align="left"> 消息控制操作</td>
+</tr>
+<tr>
+<td align="center">msgget        </td>
+<td align="left"> 获取消息队列</td>
+</tr>
+<tr>
+<td align="center">msgsnd        </td>
+<td align="left"> 发消息</td>
+</tr>
+<tr>
+<td align="center">msgrcv        </td>
+<td align="left"> 取消息</td>
+</tr>
+</tbody>
+</table>
+
+
+<h4>管道</h4>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">pipe          </td>
+<td align="left"> 创建管道</td>
+</tr>
+</tbody>
+</table>
+
+
+<h4>信号量</h4>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">semctl        </td>
+<td align="left"> 信号量控制</td>
+</tr>
+<tr>
+<td align="center">semget        </td>
+<td align="left"> 获取一组信号量</td>
+</tr>
+<tr>
+<td align="center">semop         </td>
+<td align="left"> 信号量操作</td>
+</tr>
+</tbody>
+</table>
+
+
+<h4>共享内存</h4>
+
+<table>
+<thead>
+<tr>
+<th align="center">System Call   </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">shmctl        </td>
+<td align="left"> 控制共享内存</td>
+</tr>
+<tr>
+<td align="center">shmget        </td>
+<td align="left"> 获取共享内存</td>
+</tr>
+<tr>
+<td align="center">shmat         </td>
+<td align="left"> 连接共享内存</td>
+</tr>
+<tr>
+<td align="center">shmdt         </td>
+<td align="left"> 拆卸共享内存</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>后面会慢慢对其中的某些进行详细的学习。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-28T20:56:00+08:00" pubdate data-updated="true">Apr 28<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/linux/'>Linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/04/14/tong-bu-yuan-yu-xue-xi-bi-ji-lock%2Crcuhe-transaction/" title="Previous Post: 同步原语学习笔记 - Lock，RCU和Transaction Memory">&laquo; 同步原语学习笔记 - Lock，RCU和Transaction Memory</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/04/30/xi-tong-diao-yong-xue-xi-bi-ji-ptrace/" title="Next Post: 系统调用学习笔记 - ptrace和wait">系统调用学习笔记 - ptrace和wait &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/04/28/xi-tong-diao-yong-xue-xi-bi-ji-linuxxi-tong-diao-yong-biao-%28zhuan-%29/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/04/28/xi-tong-diao-yong-xue-xi-bi-ji-linuxxi-tong-diao-yong-biao-%28zhuan-%29/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

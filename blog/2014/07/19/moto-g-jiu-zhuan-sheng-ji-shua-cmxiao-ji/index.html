@@ -1,0 +1,476 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Moto g 救砖升级刷CM小记 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="cyanogenmod moto-g falcon">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Moto G 救砖升级刷CM小记</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-19T20:57:00+08:00" pubdate data-updated="true">Jul 19<span>th</span>, 2014</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>今天感觉自己爽爽哒，完成了我Motorola Moto g的“救砖”之行，还升了级，刷了CyanogenMod，以及现在还在编译CM的android源码，准备自己定制一番。</p>
+
+<p>一切还得从昨天说起。</p>
+
+<p>在那个无比蛋疼的昨天，我为了做一个实验，想把我的moto g手机里面系统自带的openssl库给换掉，没想到刚换完一重启，整个手机就灰屏了，怎么都起不来，变成了传说中的“砖头”手机。那把我给郁闷的啊，因为刚开机就挂，adb也连不上，ssl库也恢复不了，只能想办法重新刷机了。</p>
+
+<!-- more -->
+
+
+<p>其实刷机并不难，但是我走了很多弯路，一开始想在<a href="sbf.droid-developers.org/phone.php?device=14">sbf.droid-developers.org/phone.php?device=14</a>下载一个官方底包，但是打开一看有好多版本，毫无头绪地乱点下载了一个，发现验证失败。于是又开始了万能但是漫长的google之行，然后发现一个：</p>
+
+<pre><code>fastboot getvar all
+</code></pre>
+
+<p>就能得到你手机的固件信息，然后我发现其实我应该下载Blur_Version.14.85.4.falcon_umtsds.AsiaRetail.en.03，然后就等了好久好久下下来了（这里说一下，falcon其实就是Moto g XT1033的代号）。</p>
+
+<p>然后我按照<a href="http://www.onekeyrom.com/help/moto_moto-g_21172.html">这里</a>的步骤（传说中的“MOTO G 官方救砖升级教程”哦），但是发现还是他妈的验证不过。。。</p>
+
+<p>我想死的心都有了，但是哥的日子还长着呢，哥当然不能现在死啊，于是继续google，我发现如果要手动一步一步刷机的话，第一步就是：</p>
+
+<pre><code>fastboot flash partition gpt.bin
+</code></pre>
+
+<p>然后我发现这个包解压出来的这一步就不通过。。。突然我想起来我之前在胡乱下包的时候从<a href="http://d-h.st/WM6">这里</a>下了一个Android 4.4.2 KitKat的固件包<code>Blur_Version.14.85.4.falcon_umtsds.AsiaRetail.en.03</code>，记得当时执行这条命令好像是可以通过的。</p>
+
+<p>于是抱着活马当作死马医的念头，我就把这里的gpt.bin换到了之前的官方底包里面，运行：</p>
+
+<pre><code>./flashall.sh
+</code></pre>
+
+<p>竟然成功了，而且成功启动起来了！！！！</p>
+
+<p>但是，总有一个但是，系统起来后发现wifi连接的时候不懂为什么，密码框一直没法激活，我也不管那么多了，现在的这个官方底包好像是4.3的系统，而那个<code>Blur_Version.14.85.4.falcon_umtsds.AsiaRetail.en.03</code>是4.4.2 KitKat系统，于是我就直接再按照<a href="http://androidnews.co.in/2014/02/08/download-android-4-4-2-kitkat-moto-g-dual-sim/">这里</a>的做法把系统升级了，然后，就一切都迎刃而解了！</p>
+
+<hr />
+
+<p>之后我还是希望能自己编译源码安装（现在有一种控制欲，总是希望自己能控制源码！），于是就选择了CyanogenMod，至于什么是CyanogenMod，可以看我<a href="http://ytliu.info/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod/">之前写的一篇博客</a>。</p>
+
+<p>说句题外话，我发现CM的官方文档写得真是认真，很多地方都试图把概念解释的很清楚，希望没有太多背景的人也能看懂，太佩服他们了！</p>
+
+<p>在编译源码之前，我先尝试了下直接安装Nightly包，方法特别简单，可以参照<a href="http://wiki.cyanogenmod.org/w/Install_CM_for_falcon">这里</a>，如果熟悉的人可以直接操作下面的步骤：</p>
+
+<ul>
+<li><p>解锁Unlock（这个就不说了，直接参照<a href="https://motorola-global-portal.custhelp.com/app/standalone/bootloader/unlock-your-device-a/action/auth">这里</a>的步骤吧）</p></li>
+<li><p>刷Recovery包：先在<a href="http://loki.rombitch.com/Devs/Dhacker29/MotoG/CWM-swipe-6.0.4.7-falcon.img">这里</a>下载<code>CWM-swipe-6.0.4.7-falcon.img</code>，然后将手机重启到bootloader模式，把recovery包刷进去：</p>
+
+<p>  adb reboot bootloader
+  fastboot flash recovery CWM-swipe-6.0.4.7-falcon.img</p></li>
+</ul>
+
+
+<p>再进入Recovery选项（怎么进这里就不说了，直接看文档吧）</p>
+
+<ul>
+<li><p>在<a href="http://download.cyanogenmod.org/?device=falcon">这里</a>下CM的包，我下的是<code>cm-11-20140719-NIGHTLY-falcon.zip</code>.</p></li>
+<li><p>继续进入ClockworkMod Recovery模式，先wipe data/factory reset，然后install zip > install zip from sideload，在电脑上运行：</p>
+
+<p>  adb sideload cm-11-20140719-NIGHTLY-falcon.zip</p></li>
+</ul>
+
+
+<p>然后就搞定了。</p>
+
+<p><img src="http://ytliu.info/images/2014-07-19-1.jpg" title="My CM" alt="my cm" /></p>
+
+<h4>编译源码：</h4>
+
+<p>具体可以看<a href="http://wiki.cyanogenmod.org/w/Build_for_falcon#Build_CyanogenMod_and_ClockworkMod_Recovery">这个文档</a>，讲的特别详细。不过中间有一个地方需要提一下，我在按照这里讲的方法操作的时候会遇到一个问题，就是它一直找不到<code>vendor/motorola/falcon/falcon-vendor.mk</code>这个文件，于是我在<a href="https://github.com/DonkeyCoyote/proprietary_vendor_motorola">这个github上</a>下了个falcon文件夹，然后复制到<code>vendor/motorola</code>目录下，就可以了，简单来说，流程是这样的：</p>
+
+<ul>
+<li><p>安装环境（这个不讲了，直接安装文档上装sdk，adb，fastboot，以及一系列<code>apt-get</code>就可以了。</p></li>
+<li><p>下载CyanogenMod-android源码：</p>
+
+<pre><code>mkdir -p ~/bin
+PATH=~/bin:$PATH
+curl https://storage.googleapis.com/git-repo-downloads/repo &gt; ~/bin/repo
+chmod a+x ~/bin/repo
+mkdir -p ~/android/system
+cd ~/android/system/
+repo init -u git://github.com/CyanogenMod/android.git -b cm-11.0
+repo sync
+</code></pre></li>
+</ul>
+
+
+<p>等了好几个小时才下好，下了10多G吧。</p>
+
+<ul>
+<li><p>继续前期准备：</p>
+
+<pre><code>cd ~/android/system/vendor/cm
+./get-prebuilts
+cd ~/android/system/
+source build/envsetup.sh
+breakfast falcon
+</code></pre></li>
+</ul>
+
+
+<p>在这里就会遇到我之前说的找不到<code>falcon-vendor.mk</code>的错误，按照之前的做法把这个文件夹补上去就好了。</p>
+
+<ul>
+<li><p>然后插上手机：</p>
+
+<pre><code>cd ~/android/system/device/motorola/falcon
+./extract-files.sh
+</code></pre></li>
+<li><p>最后开始编译：</p>
+
+<pre><code>cd ~/android/system
+brunch falcon
+</code></pre></li>
+</ul>
+
+
+<p>然后就坐等编译结束啦！</p>
+
+<ul>
+<li><p>编译结束之后，会在<code>out/target/product/falcon</code>目录下生成一个<code>recovery.img</code>和一个<code>cm-11-20140719-UNOFFICIAL-falcon.zip</code>文件，只需要和之前安装步骤一样进行安装就好了：先关机，进入bootloader模式，然后刷入recovery.img</p>
+
+<pre><code>cd ~/android/system/out/target/product/falcon
+fastboot flash recovery recovery.img
+</code></pre></li>
+</ul>
+
+
+<p>然后进入ClockworkMod Recovery，选择install zip > install zip from sideload，在电脑上运行：</p>
+
+<pre><code>  adb sideload cm-11-20140719-UNOFFICIAL-falcon.zip
+</code></pre>
+
+<p>重启，搞定！</p>
+
+<p><img src="http://ytliu.info/images/2014-07-19-2.jpg" title="My CM 2" alt="my cm 2" /></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-19T20:57:00+08:00" pubdate data-updated="true">Jul 19<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>Android</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/06/25/yue-mo-za-ji/" title="Previous Post: 月末杂记">&laquo; 月末杂记</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/09/13/kvm-memory-management-using-hardware-assisted-paging/" title="Next Post: KVM: Memory Management using Hardware Assisted Paging">KVM: Memory Management using Hardware Assisted Paging &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji/';
+        var disqus_url = 'http://ytliu.github.io/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

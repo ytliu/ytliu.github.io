@@ -1,0 +1,438 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>CLK小记（2013.10） - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="ChinaSys">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/10/19/clkxiao-ji-%282013-dot-10%29">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">CLK小记（2013.10）</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-10-19T22:50:00+08:00" pubdate data-updated="true">Oct 19<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>昨天刚从苏州开完ChinaSys回来，在张江同学宿舍住了一晚（话说一年半没回张江了，从张江高科地铁站一出来听到”南汇差两位“，就感到额外的亲切啊），今天又和洪博去张江高科软件园参加第八届中国Linux内核开发者大会（China Linux Kerne Developer Conference 2013, CLK）了。这是我第一次参加CLK，也是在和HY聊天的时候临时决定的，还把<a href="http://www.liwenhaosuper.com/">利总</a>（作为回报帮你做下博客推广吧）的邀请信拿过来就去参加了。</p>
+
+<p>到了会场发现人流涌动啊（据说有700多个人报名，到场的在400人以上，当然大部分是男性同胞啦~），还看到有人提着行李箱，想必是从遥远的其它城市赶过来的吧？又据说这次CLK主要是由中国开源软件推进联盟主办，IBM，Intel，Fujitsu，Oracle赞助，所以后面的演讲也基本上是来自这些虎逼闪闪公司的牛逼哄哄程序员。整个会议分为上、下午两个时段，其中上午三个报告，下午又分为两场同时进行，分别有3个和4个报告。其中我自己听了上午主会场的三个报告和下午分会场的三个报告，每个演讲完提问者都很多，讨论也挺激烈的，而且自我感觉听到的六个演讲都能有一些收获，在这里把笔记整理下，就当“留作纪念”吧。</p>
+
+<!-- more -->
+
+
+<h4>Improving Linux Development with better Tools - <code>Andi Kleen</code> from Intel</h4>
+
+<p>主要讲了下现在开发者用于debug的工具，比如基于page fault的<code>kmemcheck</code>，基于instrumentation的<code>AddressSanitiser</code>，查找data race的<code>thread checkers</code>等等；还有现在蛮流行的一个说法——<code>fuzzers</code>，就是产生大量随机的input来查找bug，不过现在这方面还不是非常成熟，比如对于每个syscall（ioctls/sys/proc）需要人工建模，另外也没有对kernel的支持。</p>
+
+<p>之后还说了一些关于test suit的选择遇到的问题，以及一些和tracer相关的东西，其中我最感兴趣的是他说到Intel的处理器会出一个新的特性——<code>tracing branch with low overhead</code>，我之后问了下它和现在的BTS和LBR有什么区别，什么时候会出来，他说这个新特性比BTS快，比LBR记得东西多，至于什么时候出来，他只能说“in the future”了~</p>
+
+<p>最后Kleen提出说现在大部分静态分析工具都不能识别出indirect pointer，他希望能有一种基于types/initializer的indirect pointer aware scope-like tool来更有效地静态分析程序代码。</p>
+
+<h4>VFS Hot Tracking Development Overview - <code>吴志勇</code> from IBM</h4>
+
+<p>问题是这样的：flash存储设备（如SSD）存在这么一个矛盾 —— High IOPS vs. Low Capability。所以如果需要使用hybrid的存储模式的话就要考虑哪些文件要被存到作为cache的flash上。于是他们选择在VFS那一层加了一个inode level的hot tracker，主要目标是：</p>
+
+<ul>
+<li>能够快速地检测到有哪些inode是hot数据</li>
+<li>将这些hot的数据放在flash存储设备上作为缓存</li>
+<li>根据这些数据进行去碎片化</li>
+</ul>
+
+
+<p>其实除了inode级别，他们也再细化了粒度——range，即每个inode按1M的大小分为了好多个range，每个range都有相关的hot信息。这些hot item都有一个相对应的温度值，根据这些温度值被组织到一个rb tree里面，方便后来查找。</p>
+
+<p>另外由于这些hot值都是动态计算出来的，当某些hot item冷却后也会被移除flash设备。</p>
+
+<p>最后他们通过IBM开发的一些benchmark（比如FFSB等）对这个hot tracker给普通文件系统造成的overhead进行了测试，发现overhead在5%之内。由于他们这个项目也还在进行中，也没有对由此带来的benefit进行测试。</p>
+
+<p>现在这种hybrid memory架构越来越流行了，我觉得这种通过动态调整的方式如果不会给原来系统带来太大的复杂度的话，将是一个蛮不错的选择。IBM的这个工作现在正处于提交patch阶段，还在审核中，很有可能接下来的某个linux版本就会有相关patch了。</p>
+
+<h4>Introduction to ACPI based Memory Hotplug - <code>张燕飞</code> from Fujitsu</h4>
+
+<p>这个是今天听的最有趣的一个报告，是讲memory热插拔的。关于热插拔这个话题，最早的印象应该是U盘的热插拔吧，现在竟然连memory也可以热插拔，刚开始觉得有点不可思议。不过后面想想其实这也不是没有可能，只不过在我们的观念中，如果系统正在运行的时候直接把内存拔了必定会造成系统挂掉，内存挂掉！但是如果我们通过一些机制在拔掉内存之前做一些数据的迁移和处理，内存的热插拔还是可以说得通的。</p>
+
+<p>Memory Hotplug主要有两个部分，一个是hot-add，一个是hot-remove：</p>
+
+<ul>
+<li>hot-add：这个时候会产生一个ACPI中断，然后进行内存初始化：direct mapping pagetable, allocate VM mapping pages, 初始化VM mapping page table；</li>
+<li>hot-remove：这个过程比较复杂，需要进行页面迁移，如果在迁移过程中进程继续访问，则会造成缺页异常，进程等待迁移完成再继续。</li>
+</ul>
+
+
+<p>另外在进行热插拔（特别是拔）之前，似乎需要通过另外一种方式通知下（可能是软件手段？），进行相对应的操作，才能正常地进行插拔。</p>
+
+<p>但是这里有一个问题，如果某块内存条里被分配了kernel的地址空间，那么这个内存条就不应该被热插拔了！为了解决这个问题，他们提出在NUMA的系统里面可以配置一个叫做Moveable Node的属性。因为在正常使用中，内核是被平均分配到各个node中的，如果我们把NUMA中的一个node设置为Moveable Node，那么系统在启动的时候就不会吧kernel分配到这个node对应的内存中了，该内存就可以进行热插拔了。但是这样可能造成NUMA的性能问题（因为这个node在kernel运行时就会比其它node慢），所以这个参数是一个可选的flag，由用户自己来决定。</p>
+
+<p>现在这项工作已经被整合进Linux 3.8以上的内核中了。</p>
+
+<h4>The Linux Container - <code>高峰</code> from Fujitsu</h4>
+
+<p>这个报告主要包括了一些关于<code>LXC</code>（LinuX Container）的介绍和使用。<code>LXC</code>是一种基于容器的用户层的虚拟化技术，通过Linux内核的<code>cgroups</code>子系统为容器中的进程限定相应的namespace。当前<code>LXC</code>已经被整合进Linux内核，和传统的虚拟化技术（比如KVM）相比，有更小的虚拟化开销（按照高峰的说法是1%~2%），而且部署起来非常方便。</p>
+
+<p>在<code>LXC</code>中提供了6种不同的namespace：</p>
+
+<ul>
+<li>mount：类似于chroot；</li>
+<li>UTS：这个不太理解；</li>
+<li>IPC：isolate interprocess communication resource (shared memory, memory queue, semaphore)；</li>
+<li>Net：isolate networking related resources；</li>
+<li>PID：应该和现在的PID是一样的意思吧？</li>
+<li>User: kuid/kgid Global, uid_map (container里面一个uid对应一个kuid），同样适用于磁盘</li>
+</ul>
+
+
+<p>另外可以通过proc下面的<code>proc/&lt;pid&gt;/ns</code>得到对应的namespace，System call有三种比较重要的：</p>
+
+<ul>
+<li>clone：主要用于父进程创建一个container；</li>
+<li>unshare：修改某个container的某个namespace；</li>
+<li>setns：set which namespace the process will belong。</li>
+</ul>
+
+
+<p>另外演讲者还提到一些问题，由于我对container本身不是很了解，这些问题也不是很清楚，只能说“不明觉厉”吧~</p>
+
+<h4>Introduction to 0-day Linux Kernel Performance Test - <code>刘远汉</code> from Intel</h4>
+
+<p>通过这个演讲，我发现竟然还有人在做这种事情：现在linux kernel每天提交的commit非常的多，而他们做的就是在所有这些commit中找出那些会对性能造成影响的，并且在最短的时间内通知作者（所以叫0-day）。</p>
+
+<p>按照演讲者的说法，他们关注了和linux kernel相关的大约400个tree，每个小时都会同步一下，再根据每个tree所做的东西会选取相应的benchmark，来测试这些最新的commit是否会使得某些benchmark的性能突然降下来。但是由于这400个tree每天都大约有5000多个commit，而他们每天只能分析10多个，所以他们要找到一种过滤的方法来筛选出比较有可能产生性能下降的commit，现在他们主要考虑change percent，variation，run time，stats field weight，timeline这五个选项，当筛选出commit之后，会通过<code>git bisect</code>的方式来得到产生性能下降的那个commit，通知相应的作者。</p>
+
+<h4>In-Kernel Memory Compression - <code>刘勃</code> from Oracle</h4>
+
+<p>最后一个演讲是做内存压缩的，具体地说就是在内存不够要把某些内存页刷到disk上的时候，先将这些内存页做一个压缩，存在另一块特定的内存中，如果后来又要用到这些内存，则直接从这块内存中解压使用，而不要再从disk上拷出来了。Oracle他们做了两套机制——<code>ZSWAP</code>和<code>ZRAM</code>，前者是通过系统的swap分区来做的，被压缩的内存页通过LRU链表的方式维护在ZSWAP预留的内存区域中，通过PTE entry来进行索引；而后者则是考虑到一些像手机这样没有swap分区的设备，它通过自己虚拟出一块<code>/dev/zram0</code>当做swap分区来使用，具体的功能和ZSWAP是类似的。</p>
+
+<p>目前<code>ZSWAP</code>和<code>ZRAM</code>都已经被merge到Linux3.11里面去了（后面好像有人提到说Android2.3之后就已经开始使用ZRAM了？），如果需要使用ZSWAP，则需要预留出约20%的内存空间，到最后如果内存还是不够的话还是会写回ZSWAP所占用空间。根据实验，ZSWAP通过一些特定的压缩算法（如Lzo, 842等）可以达到50%左右的压缩效率。</p>
+
+<hr />
+
+<p>第一次参加CLK，感觉蛮好的。发现好多公司都有一些开发人员专门在为各个开源社区做贡献；到目前为止，我应该还没有为某个开源社区贡献过什么代码，不懂自己什么时候能够真正加入这个社区。</p>
+
+<p>一天听下来，感觉和这个社区的大牛们相比，我们的理论知识并不缺乏，甚至由于有各种paper的熏陶，在某些方面还能有自己的优势，但是对于我来说，感觉自己写代码的功底太弱，实践的太少，特别是对kernel都还是停留在表面上的理论知识，对它的代码、里面的数据结构什么的都只是一知半解。当然这些只能靠时间的积累，而且单单有时间还不够，必须得有计划性地积累！相信第一次CLK的参加并不只是单纯地提高了我对某些知识的了解，更多的应该会是对今后学习方向的把握提供帮助。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-10-19T22:50:00+08:00" pubdate data-updated="true">Oct 19<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/conference/'>Conference</a>, <a class='category' href='/blog/categories/linux/'>Linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/10/18/chinasysxiao-ji-%282013-dot-10%29/" title="Previous Post: ChinaSys小记（2013.10）">&laquo; ChinaSys小记（2013.10）</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/11/24/11yue-sui-bi/" title="Next Post: 11月随笔">11月随笔 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/10/19/clkxiao-ji-%282013-dot-10%29/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/10/19/clkxiao-ji-%282013-dot-10%29/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

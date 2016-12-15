@@ -1,0 +1,761 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/page/10">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/01/notes-about-ruby/">Notes About Ruby</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-04-01T19:58:00+08:00" pubdate data-updated="true">Apr 1<span>st</span>, 2012</time>
+        
+         | <a href="/blog/2012/04/01/notes-about-ruby/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>已经决定要学ruby和rails了，就从最实际的开始吧~</p>
+
+<p>CSE要求TA每次recitation完了以后给小朋友们发邮件告知成绩，就尝试用ruby写了个脚本，其实这件事最简单的应该是直接用shell脚本来做的，既然在学ruby嘛~就逮着机会用咯~而且还和小Z学到很多东西呢。</p>
+
+<p>其实要做的事情很简单，就把学生的成绩按照<em>&#8220;学号 分数&#8221;</em>一行行写在文件里，分数是按照<em>&#8220;1.5/0.5/0.5&#8221;</em>的顺序排放的，最后要通过一行行读文件，然后用gmail发给相应学生的学号邮箱里面，标题为REC SCORE，内容是</p>
+
+<pre><code>2.5 （summary/qa/discussion = 1.5/0.5/0.5）
+</code></pre>
+
+<p>其它也没什么好多说的，先贴代码吧：</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/04/01/notes-about-ruby/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/26/wo-de-meng-xiang/">我的梦想</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-26T14:15:00+08:00" pubdate data-updated="true">Mar 26<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/03/26/wo-de-meng-xiang/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote><p>这是这篇博文的MD5和SHA1，它有我最最好的朋友进行见证，我只是希望当20年后回过头来看它的时候我能无怨无悔<br/><blockquote><p>MD5:  e451b95a2e65d728275604ee59d0e431<br/>SHA1: bb44aef1eecd0b1b09b55a16d88eb4b9aa0cc32d</p></blockquote></p></blockquote>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/17/exploitation-learning-outset/">Metasploit Learning Outset</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-17T15:35:00+08:00" pubdate data-updated="true">Mar 17<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/03/17/exploitation-learning-outset/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这周开始看和学《Metasploit》，真是一个神器啊！原来这种工具还有一种比较学术的、很有正义感的名字叫&#8221;Peneration Test Tool&#8221;啊，不过也确实很有道理就是了，毕竟攻击与防范真是因人而异，其实我觉得如果要实现一个相对安全的系统就先拿所有这些所谓的Penetration tools测试一遍，虽然说从来就是先有矛再有盾，但毕竟如果能对抗所有已有的矛，那这个盾也足够强大了，至于那些新发明的矛，可以通过一些特征标识检测机制来减少，如果想彻底防范所有的攻击那是不可能的！当然啦，要通过现有的所有Penetration Tests困难还是挺大的，而且并不是所有人都有这么高的安全意识，这也就造成现在攻击泛滥、隐私无处藏身的危险境地。做安全的人必需地先懂得攻击，这是我自己理解的，懂得攻击的方式很多，可以从最底层开始，比较理论而深入地去学习每一种攻击的原理，也可以从一些现有的工具下手，来分析它们的漏洞查找手法和所找到的系统漏洞的特点，在我看来，太过于强调前者不是那么地贴近实际，而太过于依赖后者最多也就只能算是个名不见经传的小黑客，所以，我希望能联系两者，即能通过一些paper来比较深入地理解大部分攻击的原理和概念，又能熟练掌握一些或是开源或是收费的工具，更现实而直观地探测它们的可行性。经过了一段时间的survey，我发现了很多超级强大的工具，从各种角度来进行各种攻击，比如进行网络抓包的Wireshark，强调于局域网中间人攻击的Ettercap，简单而又强大的nmap，牛逼的密码破解和ARP攻击的windows下面的Cain，还有寻找漏洞的NeXpose和Nessus&#8230;最后我打算从Metasploit这个&#8221;神器&#8221;入手进行扩展，一个是因为这是一个开源而且被广泛应用的Framework，功能确实无比强大，整合了很多的module和plugin，而且《Metasploit》这本文档也写得很不错，不仅仅是介绍攻击方法，而且框架很清晰，从攻击的流程来进行说明，很有往下看下去的欲望。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/03/17/exploitation-learning-outset/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/09/wo-kan-bei-ai-and-wo-xue-ruby/">我看北爱&amp;我学ruby</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-09T21:30:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/03/09/wo-kan-bei-ai-and-wo-xue-ruby/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><strong>我看北爱</strong></p>
+
+<p>这两周花了晚上睡前的时间加上几次地铁上的时间把传说中的《北京爱情故事》看完了，蛮有感触的。没想到看到最后几集的时候竟然躺在床上任由眼泪从脸颊流下咽入口内，就像很多人所说的，这真的是一部展现无比残酷现实的爱情故事片，尽管我对其中很多思想做法不置可否，觉得或许很多太绝对，太不现实或者根本就不符合我的价值观。可能是受了前段时间很激动地看过的《十七岁不哭》里面简宁的影响吧，我对吴狄还是蛮喜欢的，虽然他有时候感觉太&#8221;迂腐&#8221;，对小伍太不公平，对小曦太过没来由地好，但当他最后和吴魏争论，和伍媚掏尽心窝的那些话使得我越来越喜欢他。在三个男主角中，吴狄是最中庸也是最让人揪心的一个，但他对朋友的付出，对责任心的诠释，还有对情感的从不背叛，让我认识了一个真正活着这个世上的或许被许多人埋怨为幼稚却内心无比强大的人。我想说，在十七岁不哭中简宁所向往的从容，向往的&#8221;无论这个世界如何喧闹都活的从容&#8221;曾经无限地感染过我；而在北爱中他对情感对亲情、爱情、友情的无条件的忠诚也让我在这部现实而残酷的剧中感受到一种不一样的宁静。</p>
+
+<p>或许是性格上的相似吧，我也从不希望自己能有多么地成功，能挣那么多的财产，如果要我像石小孟那样拿沈冰来交换所谓&#8221;成功&#8221;，我怎么也做不到！不要说我只是还没有经历这种场面，更不要说我从没有体会过什么叫贫穷，什么叫身世不济，我不知道为什么石小孟一定要坚持北漂被砸的头破血流，如果是我，我一定选择放弃，选择回家。当沈冰问小猛&#8221;大不了我们就回老家去吧&#8221;而小猛给出坚决的态度的时候我就感觉这是一个悲剧的开始。在我看来人生最重要的是要知道该什么时候放弃什么东西，知道自己最想要的是什么。很喜欢沈冰的那句话：能被买走的东西，迟早会失去的；买不走的，它永远是属于你的。或许小猛只是这千千万万个人中的一个典型，或许他是可怜的，值得我们同情的，或许一个正常的人处在他的状况说不定也会像他一样选择。或许他没有错，不管怎么样，不管他有多么有说服力的理由，有一点是肯定的，他没有沈冰爱他那样地爱沈冰！为什么每个男人都要以为女人一定要你无论用什么代价都要给她物质上的满足呢？两个人简简单单地相爱真的有那么难吗？或许我太年轻太幼稚太没见过世面吧，可是就算我达到所谓的&#8221;成熟&#8221;了，就算我经历过无数这样子的分分合合，我依然希望自己能像吴狄那样坚持自己内心最深处的判断，没了情感的寄托，有再多的钱财又有什么用呢？</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/03/09/wo-kan-bei-ai-and-wo-xue-ruby/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/03/wei-lai-zai-na-li/">未来在哪里</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-03T20:23:00+08:00" pubdate data-updated="true">Mar 3<span>rd</span>, 2012</time>
+        
+         | <a href="/blog/2012/03/03/wei-lai-zai-na-li/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>又一周要过去了，回过头看看过去的几天做了些什么呢？七零八乱的事凑在一起到头来只能感觉自己又是一事无成！这几天总是感觉失魂落魄的，好像人生没有了目标一样，无数次地问自己想要什么，问未来在哪里？有一种身不由己的感觉，胸口总觉得有一股气闷得慌，真的好烦啊！！！</p>
+
+<p>周三回本部在光草前吹着冷风坐着尝试冥想，真的感觉好难好难，真的已经过了那种无忧无虑可以什么都不考虑的年龄了，连那种保持大脑空白哪怕是仅仅10分钟的能力都已经没有了！脑子里有一股浆糊似的，吵闹而拥塞，不知我会做什么，也不知我能做什么，更不知我将要做什么！好久没有感觉这么迷茫了，却又不知该找谁述说，肯定是没有人能够理解，连我自己都觉得自己在没事找事，在无理取闹！我接下来五年都有了归宿，比起那些还在等待成绩还在期盼offer的同学我看起来有多么的幸福啊，似乎应该毫无烦恼没有杂念，好好享受这种后直博生活，或者静下心来充实自己为接下来的五年做准备，抑或继续搞研究、想idea，学技术&#8230;我也想这样啊！甚至就在几天前我都觉得我应该会这样，可是为什么，为什么突然就变得那么忧伤那么惘然若失？</p>
+
+<p>似乎自己总是没有信心，又开始怀疑自己选择读博是否是正确的。自己真的适合做研究吗？之前的那些理由是否仅仅是自欺欺人呢？有的时候我甚至会觉得自己就不应该在IT业发展，想象着自己未来仅仅是和自己爱的人开着一个小店，每天单调却无忧地生活，一天天老去却也无怨无悔。我从小就没有什么雄心壮志，只是运气好生在一个温馨平凡的家庭，一路走来可以说一帆风顺，走到现在这个地步，这个在大部分人看来应该能有个理想的未来，应该继续朝着这个方向前进，能有多远就走多远，没有什么好彷徨好犹豫的。可是真的是这样吗？这条路往下走走到头就是我想要的生活就是我希望的未来吗？</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/03/03/wei-lai-zai-na-li/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/02/25/qian-tan-mou-xie-gong-ji-ji-qi-fang-fan/">浅谈某些攻击及其防范</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-25T21:03:00+08:00" pubdate data-updated="true">Feb 25<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/02/25/qian-tan-mou-xie-gong-ji-ji-qi-fang-fan/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>很多时候我觉得攻击和防范的历史就像一部电视连续剧，不断出现的魔高一尺道高一丈，此消彼长，生生不息……</p>
+
+<p>这篇博文的初衷来源于6.858中lecture2里面最后的一篇references:</p>
+
+<pre><code>    INTERPRETER EXPLOITATION: POINTER INFERENCE AND JIT SPRAYING
+</code></pre>
+
+<p>这是一篇介绍两个技术<em>pointer inference</em>和<em>JIT spraying</em>的文章，关于这篇文章我应该会在之后详细介绍，这里想说的又是里面引出的一篇报告：</p>
+
+<p><a href="http://www.azimuthsecurity.com/resources/bh2008_dowd_sotirov.pdf" title="bypassing">Bypassing Browser Memory Protections</a></p>
+
+<p>里面介绍了微软在软硬件层面对5种攻击所作的防范，以及攻击者可以如何绕开这些防范。这里的描述方式也按文中一样按照防范措施来分类感觉会比较清晰点吧</p>
+
+<h4><strong>前言</strong></h4>
+
+<p>对于一个成功的攻击，有很大一部分是需要用到<em>buffer overflow</em>技术的，而<em>bf</em>分为很多，主要看你要覆盖什么内容，之后如何使得控制流变成你想要执行的代码，对于之后的这些攻击技术，也就出现了相应的防范策略和机制。但不管怎么说，这里所提到的所有攻击都源自于<em>bf</em>，没有它的攻击属于另外的范畴，这篇暂且不谈。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/02/25/qian-tan-mou-xie-gong-ji-ji-qi-fang-fan/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/02/19/za/">杂</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-19T18:08:00+08:00" pubdate data-updated="true">Feb 19<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/02/19/za/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>总的来说这周过得是比较颓废的，花了太多时间在金庸上，晚睡早起的，不过我并不后悔，没有什么好后悔的，做了就是做了，而且过程还挺开心的，好好制定接下来的计划并实行就好了。</p>
+
+<p>看了射雕，真的很羡慕小说中人物的生活，很喜欢靖哥哥和蓉儿，有的时候我会想，如果真有一个那样子的世界，而我又身处其中，那又会怎么样呢？我也能像郭靖那样这么真诚地对待自己和他人吗？从一开始我就感觉很讨厌杨康，可是看完了回头想想杨康真的做的就完全不对吗？作为一个人多为自己考虑又哪里错了呢？喜欢郭靖还有很重要的原因是他功夫好，可是有时候又真的很为他担心，太过于坚持原则。说到底，我还是最喜欢蓉儿和后期的靖哥哥，真的真的好羡慕他们两人，我知道这是虚构，可是为什么就不能相信世界上真的有这样的一对呢~还有，我在想，在现实生活中，真的能像郭靖那样真诚地对待他人吗？路上看到需要帮助的人你能毫不犹豫地给予施舍？给别人的承诺就算再难也要实现？为了心爱的人能付出所有的一切，包括自己的生命？可是世间又是那么地充满不公，充盈着欺瞒与腐败，作为一个如此普通的人，没有拯救世界的能力，又何来如此真诚而无条件的信心呢？所以我有时憧憬着那些武林中的生活，固然世间充满着不公，固然人依然是如此的渺小，很多时候却更有可能单纯依靠努力改变一些什么。说不清楚什么，或许是虚拟世界的完美性的虚构带来的幻觉吧……</p>
+
+<p>武林中的世界将要告一段落，回到现实生活中，这周主要的工作是两篇paper的rebuttal和依旧的读paper，从PC的review其实可以从一定程度上看出最后的结果了，不过依然带着些侥幸心理，还是要等到最后吧。在后来重新搭建CFIMon的时候发现虽然只是经过了短短2、3个月，很多东西依然忘记了，主要还是因为1.理解的不够深，2.没有很好地记录下来吧。比如那个禁止linux地址空间布局随机化的</p>
+
+<pre><code>    echo 0 &gt; /proc/sys/kernel/randomize_va_space    
+</code></pre>
+
+<p>如果当时能记下来这次就能省去好多时间了。这就是为什么今年&#8221;记笔记&#8221;是我一个很大的计划的原因了。真的越来越感觉到自己记忆的易失和笔头的重要性了。</p>
+
+<p>还有这周印象很深的是在讨论CFIMon处理signal的问题的时候，斌哥问我关于linux中对signal处理的问题，说来惭愧，当时在写这篇paper的时候我对这个还是一知半解的，甚至到现在还把signal的处理和interrupt的处理混起来了。希望能在这里把这东西说清楚:</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/02/19/za/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/02/12/wo-yao-ti-gao-zhi-xing-li-%21/">我要提高执行力！</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-02-12T23:24:00+08:00" pubdate data-updated="true">Feb 12<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/02/12/wo-yao-ti-gao-zhi-xing-li-%21/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>已经快十二点了，但是这周的任务还没完成。而这一周是自己要开始执行计划的第一周，因为周末去北京开会，以为今天会比较早回来，没想到到达寝室已经是这个时间了。不过，我决定就算再困也一定要把第一周的任务完成！执行力的退化就是一次又一次地寻找理由妥协而造成的，不过今年的计划最后能完成多少，如果第一次就因为一个或许比较不可避免的原因推迟了，我也就不相信自己将来能做的多好了。何况下周事情感觉比这周还要多，拖延只会造成更严重的滞后，这不是我希望的，也就强迫自己一次吧~~</p>
+
+<p>说实话，当放假在家的时候斌哥告诉我要去北京开会的时候我可高兴自豪了，不要嘲笑我，就是，开会有什么好开心的，又累又没有假期的，不过在这种时候有一种这么重要的锻炼，对于自己来说确实是一种感激。总的来说这次去北京收获真的很大，除了见识了这么多教授，对他们常说的基金有了实质性的了解之外，在路上和北京还和海波斌哥他们讨论了那么多有趣的东西，还和小杜杜逛了一个小时的清华，真的从内心里感到惬意，甚至于上飞机的时候还有那么一丝的不舍呢。</p>
+
+<p>基金的事情就不说了，可能还是谨慎点好，说说这次来北京吧，这是自己有生以来第二次来北京，第一次是初中毕业参加航模比赛和一堆好朋友来，想起当时的稚嫩，都有一种难以说出口的感受。今天在小杜杜的带领下小逛清货，更是感受到一种物是人非的感受。应该快7年了吧，我们就这样从未成年到成年，从幼稚到青春再到渐渐地成熟，依然不变的是那份最最纯真的友谊和我们共同的默契和关心。今年我一定要再去一次北京，自己去，看看同学，和你们更自由地聊聊。今天清华园二校门突然映入眼帘，将自己带回7年前的那么一瞬间的杜杜所谓的moment，在那些走过的石砖上听杜杜的介绍和聊话，真的是一份最最惬意的享受。相信不久之后一定能再次相见，谢谢你的热情款待哦。</p>
+
+<p>还有今天飞机上和斌哥的聊天，让我回想起了好多小时候的事，想起了自己某天的梦想，想起自己曾经对它那么地热爱，对他那么地崇敬，想起那时候的好朋友们现在都行走在自己的道路上，我们走在自己原先的梦想道路上吗？十年、二十年后我们又聚在一起还能那么清晰地回忆那段记忆，能够一个细数那么一些曾经的梦想吗？</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/02/12/wo-yao-ti-gao-zhi-xing-li-%21/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/01/03/paper-reading-x86-interrupt-and-sr-iov-interrupts-avoidance/">Paper Reading X86 Interrupt and Sr Iov Interrupts Avoidance</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-01-03T00:00:00+08:00" pubdate data-updated="true">Jan 3<span>rd</span>, 2012</time>
+        
+         | <a href="/blog/2012/01/03/paper-reading-x86-interrupt-and-sr-iov-interrupts-avoidance/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>/&#8212;
+layout: post
+title: &#8220;Paper reading - x86 interrupt and SR-IOV interrupts avoidance&#8221;
+date: 2012-01-03 21:37
+comments: true</p>
+
+<h2>categories: Paper</h2>
+
+<p>元旦去奉化享受了，玩得超爽，吃的也超爽！感谢zbd和他爸妈的热情招呼，让我们享受了如此惬意的三天~</p>
+
+<p>好了，言归正传吧，讲讲这篇paper：</p>
+
+<pre><code>    "ELI: Bare-Metal Performance for I/O virtualization"
+</code></pre>
+
+<p>是由IBM和Technion的学者做的，发表在ASPLOS&#8217;12上，按照海波的说法是Muli教授推荐的一篇他们写的paper，现在还没公布出来，拿到的是DRAFT版本，所以不会讲太多的细节，主要是谈谈自己学到的东西吧。</p>
+
+<p>由于这篇paper是自己读的，所以也就看的比较仔细，说实话，看完整篇之后收获真的挺大的，加上之后Muli教授和他的同事对邮件的详细回答让我更加清楚了x86对interrupt的处理，特别是虚拟化环境下的一些细节，加上它最后做出来效果很好，对SR-IOV的优化（特别是万兆网络下小包的效率）提高很大，所以从总体来说我觉得这是一个很有趣而且有用的工作。</p>
+
+<p>先简要介绍下这篇paper的motivation吧：在现在虚拟化的环境中，SR-IOV（single root I/O virtualization）可以说使得整个I/O的效率相对于传统的PV也好，用qemu模拟的HVM也好，提高了一个层次，由于可以将一个特定的device（比如网卡）或者virtual function直接赋予一个domain虚拟机，从而从本质上减少了host（比如xen）在整个I/O路径上的介入时间，同时也减少了相当一部分的内存拷贝操作，使得I/O的performance、latency都得到了提高。但是不管是不是用SR-IOV技术，由于x86体系结构的限制，在由物理设备产生的interrupt发生时还是会陷入host，由host来对interrupt进行第一步的处理，或是直接调用自己的interrupt handler，或是向虚拟机插入软件中断，再调度回虚拟机由虚拟机的interrupt handler处理，在处理完成之后由于对EOI寄存器的写操作还会再一次陷入host；由于这两次的context切换造成的overhead，包括context switch、cache pollution&#8230;也就造成了作者在做evaluation时测出的40%的overhead。（其实刚开始看到这个40%我还觉得挺不可思议的，我们实验室之前也对SR-IOV进行过评估，当时得出的结论是SR-IOV的性能很好，和native的环境几乎没有差别。不过后来发现是因为我们的测试环境是千兆，而作者的环境是万兆，而且是小包~~~看来测试环境的优劣还是很重要啊:-)）。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/01/03/paper-reading-x86-interrupt-and-sr-iov-interrupts-avoidance/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/12/26/paper-reading-tcp-re-and-incremental-mr/">Paper Reading: TCP RE and Incremental MR</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-12-26T20:57:00+08:00" pubdate data-updated="true">Dec 26<span>th</span>, 2011</time>
+        
+         | <a href="/blog/2011/12/26/paper-reading-tcp-re-and-incremental-mr/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天组会两篇paper，Naruil讲的第一篇听了蛮有收获的，DX讲的第二篇感觉是自己英文太差而且领域不熟最后听的不是很懂，就大致记录下吧。</p>
+
+<p>第一篇是一个做数据中心之间数据传递重复消除的系统，叫End-to-end RE(redundancy elimination)，是发在NSDI&#8217;11上的，题目叫&#8221;EndRE: An End-System Redundancy Elimination Service for Enterprises&#8221;，主要由微软的人做的。简单来说它的motivation就是现在在网络中传递的数据有很大一部分是重复的，比如两个包有大量的重复数据，而这些重复数据占用了大量的带宽，而这篇paper的工作就是如何在减少重复数据的同时也不减少太多的性能。</p>
+
+<p>现在在用的关于这种重复数据消除的技术主要是&#8221;Middlebox-based&#8221;，它有几个缺点：  <br/>
+*       关于安全方面的问题，网络数据在middlebox里面是明文，这样才能更好地判断重复性，这样就势必减弱了网络数据的安全级别；    <br/>
+*       对于一些终端的手机设备，它需要和PC终端传递数据，在这过程中同样有数据的重复，而这种情况就不适宜用Middlebox技术了；      <br/>
+*       代价比较大，现在用的middlebox都是很强大的服务器，配备巨大的内存来存储内容的cache。</p>
+
+<p>于是作者就提出一种end-to-end的RE技术。通篇听下来最大的收获是对传统的fingerprint算法和作者提出的一种新的SAMPLEBYTE fingerprint算法的理解。</p>
+
+<p>这篇paper里面提到了两种传统的fingerprint算法：</p>
+
+<pre><code>    ModP fingerprint：
+            这是一种content-based的fingerprint算法，用一种特殊的hash算法
+            （每一个window的hash值 = 上一个window的hash值+上一个window的第一个byte+下一个byte）
+            这样可以快速地得出每个window的hash值，之后将该hash值mod一个P，
+            如果结果为0，则将该hash值作为一个sample的fingerprint。             
+    Fixed fingerprint：
+            这是一个position-based的fingerprint算法，即每隔P个byte算一个hash
+            （window size大小的byte），之后将其作为一个sample的fingerprint。
+</code></pre>
+
+<p>从这两个fingerprint算法可以很容易地看出对于ModP，由于它是一个content-based的算法，所以不管是不是有偏移都可以比较完整地得出内容上的重复性，但是它的效率太低了，因为它要算每一个byte的hash；而对于Fixed，它的效率远远大于ModP，但消除重复性的能力也相应地变小很多。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2011/12/26/paper-reading-tcp-re-and-incremental-mr/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/11/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/9/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader&#8217;s blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao&#8217; weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

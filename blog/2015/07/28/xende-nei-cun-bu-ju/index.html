@@ -1,0 +1,653 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Xen的内存布局 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Xen Memory">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2015/07/28/xende-nei-cun-bu-ju">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Xen的内存布局</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-07-28T21:06:00+08:00" pubdate data-updated="true">Jul 28<span>th</span>, 2015</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>我会在接下来几篇博客里面介绍Xen的memory。这些都是我在看了各种资料，并且研究了Xen的代码之后的个人总结。之所以写这个系列，是感觉现在网络上没有什么比较具体介绍Xen内存的资料，<a href="http://bbs.chinacloud.cn/attachment.aspx?attachmentid=397">这里</a>有一个，但是是比较老的版本，而且主要介绍的是32位的系统。而我现在看的是Xen最新的版本（4.6），然后介绍的主要是64位的系统，希望能把自己花时间学到的东西分享出去。如果有什么错误的，或者解释的不清楚的地方，也希望各位指出来，共同讨论。</p>
+
+<p>我应该会从五个方面来介绍Xen的内存：</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2015/07/28/xende-nei-cun-bu-ju/">Xen的内存布局总体概览</a></li>
+<li><a href="http://ytliu.info/blog/2015/07/30/xende-qi-dong-zhi-nei-cun-xiang-guan-shi-xian/">Xen启动的内存相关实现</a></li>
+<li>Domain-0启动的内存相关实现</li>
+<li>Domain-U启动的内存相关实现</li>
+<li>虚拟机运行时内存相关实现</li>
+</ul>
+
+
+<p>现在我也还在研究中，所以这些应该会随着我自己学习的深入慢慢的进行整理。</p>
+
+<p>好啦，不说废话了，直接进入这篇博客的主题：Xen内存布局的总体概览。</p>
+
+<!-- more -->
+
+
+<p>一般情况下我们讨论一个虚拟化系统中的内存，我们主要考虑的是客户虚拟机的内存机制，所以我们会提到shadow page table（影子页表），或者硬件内存虚拟化机制EPT（for Intel）/NPT（for AMD）等。然而这些其实都是针对于客户虚拟机来说的，也就是说对于客户虚拟机来说，它所看到的内存是怎么样的。但是如果我们从Xen本身的角度来考虑的话，Xen所看到的内存又是怎么样的呢？另外，对于整个系统来说，它的内存又是如何分布的呢？</p>
+
+<p>首先我们要搞清楚几个概念：</p>
+
+<p>第一，Xen有一个自己的页表，它是Xen的虚拟地址到物理地址的映射，这也是我们今天主要介绍的内容；</p>
+
+<p>第二，客户虚拟机也有一个自己的页表，但是这个页表是关于客户虚拟机客户虚拟地址到客户物理地址的映射，Xen帮其维护了一个客户物理地址到机器物理地址的映射，这个会在之后的系列进行详细介绍；</p>
+
+<p>第三，特权级虚拟机（即Domain-0）的内存管理和普通的客户虚拟机的内存管理不同。这也会在之后进行介绍。</p>
+
+<p>好了，大致了解了上述几个概念，我们开始介绍Xen的虚拟内存布局。换句话说，在Xen的内存实现中，不同的虚拟地址范围对应的都是什么物理地址？在第一点里提到的Xen的那个页表到底是如何对虚拟内存进行映射的？</p>
+
+<p>在Xen源码的<code>xen/include/asm-x86/config.h</code>文件中描述了该映射：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm"> * Memory layout:</span>
+</span><span class='line'><span class="cm"> *  0x0000000000000000 - 0x00007fffffffffff [128TB, 2^47 bytes, PML4:0-255]</span>
+</span><span class='line'><span class="cm"> *    Guest-defined use (see below for compatibility mode guests).</span>
+</span><span class='line'><span class="cm"> *  0x0000800000000000 - 0xffff7fffffffffff [16EB]</span>
+</span><span class='line'><span class="cm"> *    Inaccessible: current arch only supports 48-bit sign-extended VAs.</span>
+</span><span class='line'><span class="cm"> *  0xffff800000000000 - 0xffff803fffffffff [256GB, 2^38 bytes, PML4:256]</span>
+</span><span class='line'><span class="cm"> *    Read-only machine-to-phys translation table (GUEST ACCESSIBLE).</span>
+</span><span class='line'><span class="cm"> *  0xffff804000000000 - 0xffff807fffffffff [256GB, 2^38 bytes, PML4:256]</span>
+</span><span class='line'><span class="cm"> *    Reserved for future shared info with the guest OS (GUEST ACCESSIBLE).</span>
+</span><span class='line'><span class="cm"> *  0xffff808000000000 - 0xffff80ffffffffff [512GB, 2^39 bytes, PML4:257]</span>
+</span><span class='line'><span class="cm"> *    ioremap for PCI mmconfig space</span>
+</span><span class='line'><span class="cm"> *  0xffff810000000000 - 0xffff817fffffffff [512GB, 2^39 bytes, PML4:258]</span>
+</span><span class='line'><span class="cm"> *    Guest linear page table.</span>
+</span><span class='line'><span class="cm"> *  0xffff818000000000 - 0xffff81ffffffffff [512GB, 2^39 bytes, PML4:259]</span>
+</span><span class='line'><span class="cm"> *    Shadow linear page table.</span>
+</span><span class='line'><span class="cm"> *  0xffff820000000000 - 0xffff827fffffffff [512GB, 2^39 bytes, PML4:260]</span>
+</span><span class='line'><span class="cm"> *    Per-domain mappings (e.g., GDT, LDT).</span>
+</span><span class='line'><span class="cm"> *  0xffff828000000000 - 0xffff82bfffffffff [256GB, 2^38 bytes, PML4:261]</span>
+</span><span class='line'><span class="cm"> *    Machine-to-phys translation table.</span>
+</span><span class='line'><span class="cm"> *  0xffff82c000000000 - 0xffff82cfffffffff [64GB,  2^36 bytes, PML4:261]</span>
+</span><span class='line'><span class="cm"> *    vmap()/ioremap()/fixmap area.</span>
+</span><span class='line'><span class="cm"> *  0xffff82d000000000 - 0xffff82d03fffffff [1GB,   2^30 bytes, PML4:261]</span>
+</span><span class='line'><span class="cm"> *    Compatibility machine-to-phys translation table.</span>
+</span><span class='line'><span class="cm"> *  0xffff82d040000000 - 0xffff82d07fffffff [1GB,   2^30 bytes, PML4:261]</span>
+</span><span class='line'><span class="cm"> *    High read-only compatibility machine-to-phys translation table.</span>
+</span><span class='line'><span class="cm"> *  0xffff82d080000000 - 0xffff82d0bfffffff [1GB,   2^30 bytes, PML4:261]</span>
+</span><span class='line'><span class="cm"> *    Xen text, static data, bss.</span>
+</span><span class='line'><span class="cm"> *  0xffff82d0c0000000 - 0xffff82dffbffffff [61GB - 64MB,       PML4:261]</span>
+</span><span class='line'><span class="cm"> *    Reserved for future use.</span>
+</span><span class='line'><span class="cm"> *  0xffff82dffc000000 - 0xffff82dfffffffff [64MB,  2^26 bytes, PML4:261]</span>
+</span><span class='line'><span class="cm"> *    Super-page information array.</span>
+</span><span class='line'><span class="cm"> *  0xffff82e000000000 - 0xffff82ffffffffff [128GB, 2^37 bytes, PML4:261]</span>
+</span><span class='line'><span class="cm"> *    Page-frame information array.</span>
+</span><span class='line'><span class="cm"> *  0xffff830000000000 - 0xffff87ffffffffff [5TB, 5*2^40 bytes, PML4:262-271]</span>
+</span><span class='line'><span class="cm"> *    1:1 direct mapping of all physical memory.</span>
+</span><span class='line'><span class="cm"> *  0xffff880000000000 - 0xffffffffffffffff [120TB,             PML4:272-511]</span>
+</span><span class='line'><span class="cm"> *    PV: Guest-defined use.</span>
+</span><span class='line'><span class="cm"> *  0xffff880000000000 - 0xffffff7fffffffff [119.5TB,           PML4:272-510]</span>
+</span><span class='line'><span class="cm"> *    HVM/idle: continuation of 1:1 mapping</span>
+</span><span class='line'><span class="cm"> *  0xffffff8000000000 - 0xffffffffffffffff [512GB, 2^39 bytes  PML4:511]</span>
+</span><span class='line'><span class="cm"> *    HVM/idle: unused</span>
+</span><span class='line'><span class="cm"> *</span>
+</span><span class='line'><span class="cm"> * Compatibility guest area layout:</span>
+</span><span class='line'><span class="cm"> *  0x0000000000000000 - 0x00000000f57fffff [3928MB,            PML4:0]</span>
+</span><span class='line'><span class="cm"> *    Guest-defined use.</span>
+</span><span class='line'><span class="cm"> *  0x00000000f5800000 - 0x00000000ffffffff [168MB,             PML4:0]</span>
+</span><span class='line'><span class="cm"> *    Read-only machine-to-phys translation table (GUEST ACCESSIBLE).</span>
+</span><span class='line'><span class="cm"> *  0x0000000100000000 - 0x0000007fffffffff [508GB,             PML4:0]</span>
+</span><span class='line'><span class="cm"> *    Unused.</span>
+</span><span class='line'><span class="cm"> *  0x0000008000000000 - 0x000000ffffffffff [512GB, 2^39 bytes, PML4:1]</span>
+</span><span class='line'><span class="cm"> *    Hypercall argument translation area.</span>
+</span><span class='line'><span class="cm"> *  0x0000010000000000 - 0x00007fffffffffff [127TB, 2^46 bytes, PML4:2-255]</span>
+</span><span class='line'><span class="cm"> *    Reserved for future use.</span>
+</span><span class='line'><span class="cm"> */</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里有几个比较关键的地址空间（注：PML4:M-N表示该地址空间占用了第四级页表的第M到第N项）：</p>
+
+<ul>
+<li><code>0x0000000000000000 - 0x00007fffffffffff [128TB, PML4:0-255]</code>是为客户虚拟机准备的虚拟地址空间，这个会在之后的系列里面讨论，我现在也还不是很清楚它们是如何被使用的。</li>
+<li><code>0xffff800000000000 - 0xffff803fffffffff [256GB, PML4:256]</code>是客户虚拟机只读的machine-to-physical table（MPT），MPT会在介绍客户虚拟机的时候进行介绍，现在只需要知道它是记录了HPA到GPA的映射的表。</li>
+<li><code>0xffff804000000000 - 0xffff807fffffffff [256GB, PML4:256]</code>是Xen和虚拟机共享shared info信息的内存地址，shared info会在虚拟机启动的时候进行介绍，其主要是一些Xen需要让客户虚拟机启动时用到的一些信息。</li>
+<li><code>0xffff810000000000 - 0xffff817fffffffff [512GB, PML4:258]</code>记录了每个客户虚拟机的page table，这个在客户虚拟机部分进行介绍，现在暂时还不清楚是用来干嘛的。</li>
+<li><code>0xffff818000000000 - 0xffff81ffffffffff [512GB, PML4:259]</code>记录shadow page table的信息。</li>
+<li><code>0xffff820000000000 - 0xffff827fffffffff [512GB, PML4:260]</code>这是记录每个虚拟机的(per-domain mapping)一些相关信息，包括一些GDT，LDT之类的，也是在之后客户虚拟机部分进行介绍。</li>
+<li><code>0xffff828000000000 - 0xffff82bfffffffff [256GB, PML4:261]</code>这个也是MPT，但是客户虚拟机不可访问，现在我还不太清楚具体是做什么的，我猜它应该是P2M。</li>
+<li><code>0xffff82c000000000 - 0xffff82cfffffffff [64GB, PML4:261]</code>用于vmap()/ioremap()/fixmap，现在还不清楚是做什么的。</li>
+<li><code>0xffff82d080000000 - 0xffff82d0bfffffff [1GB, PML4:261]</code>这个最重要，映射了Xen的code和data，还包括bss之类的。这也是在Xen启动的时候会被最早映射到物理内存中的内容。</li>
+<li><code>0xffff82dffc000000 - 0xffff82dfffffffff [64MB, PML4:261]</code>这个用于记录一些superpage相关的信息。</li>
+<li><code>0xffff82e000000000 - 0xffff82ffffffffff [128GB, PML4:261]</code>这个也非常关键，Xen会为每个物理页都生成一个page frame的数据结构，里面记录了每个物理页相关的信息。</li>
+<li><code>0xffff830000000000 - 0xffff87ffffffffff [5TB, PML4:262-271]</code>这个是一个一对一的直接映射，即每一个物理地址都会在这个地址空间中找到一个相应的虚拟地址的映射。在Xen的代码里面<code>__va()</code>这个宏就是对应了这个地址空间中的某个地址。</li>
+<li><code>0xffff880000000000 - 0xffffffffffffffff [120TB, PML4:272-511]</code>用于PV的客户虚拟机，这个之后介绍，现在也不清楚要如何用。</li>
+<li><code>0xffff880000000000 - 0xffffff7fffffffff [119.5TB, PML4:272-510]</code>用于HVM客户虚拟机。</li>
+</ul>
+
+
+<p>当然还有一些其它的，现在我也还暂时不清楚到底是用来做什么的，先在这里列出来吧：</p>
+
+<ul>
+<li><code>0xffff808000000000 - 0xffff80ffffffffff [512GB, PML4:257]</code>用于ioremap for PCI mmconfig space。</li>
+<li><code>0xffff82d000000000 - 0xffff82d03fffffff [1GB, PML4:261]</code>又是一个MPT，叫做Compatibility MPT，现在不清楚是做什么的。</li>
+<li><code>0xffff82d040000000 - 0xffff82d07fffffff [1GB, PML4:261]</code>又是一个MPT，叫做High read-only compatibility MPT。</li>
+</ul>
+
+
+<p>这里有几个点需要强调一下：</p>
+
+<p>首先，上面所说的这个内存分布状况会被反映在Xen的页表中，同时某些信息也会被映射在虚拟机的内存空间中，至于有哪些我们在之后的系列慢慢介绍。</p>
+
+<p>另外，所有虚拟内存到物理内存的映射都会在<code>[PML4:262-271]</code>，也就是direct map那里反映出来，如果我们看<code>__va()</code>的实现：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">void</span> <span class="o">*</span><span class="nf">__maddr_to_virt</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">ma</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">ASSERT</span><span class="p">(</span><span class="n">pfn_to_pdx</span><span class="p">(</span><span class="n">ma</span> <span class="o">&gt;&gt;</span> <span class="n">PAGE_SHIFT</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">DIRECTMAP_SIZE</span> <span class="o">&gt;&gt;</span> <span class="n">PAGE_SHIFT</span><span class="p">));</span>
+</span><span class='line'>    <span class="k">return</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">DIRECTMAP_VIRT_START</span> <span class="o">+</span>
+</span><span class='line'>                    <span class="p">((</span><span class="n">ma</span> <span class="o">&amp;</span> <span class="n">ma_va_bottom_mask</span><span class="p">)</span> <span class="o">|</span>
+</span><span class='line'>                     <span class="p">((</span><span class="n">ma</span> <span class="o">&amp;</span> <span class="n">ma_top_mask</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">pfn_pdx_hole_shift</span><span class="p">)));</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define maddr_to_virt(ma)   __maddr_to_virt((unsigned long)(ma))</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define __va(x)             (maddr_to_virt(x))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中<code>DIRECTMAP_VIRT_START</code>就是direct map虚拟地址的首地址：<code>0xffff830000000000</code>。</p>
+
+<p>另外，对于page frame，也即前面提到的，Xen会为每一个物理页生成一个对应的page_info数据结构：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">page_info</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">union</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="n">page_list_entry</span> <span class="n">list</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">paddr_t</span> <span class="n">up</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="n">page_sharing_info</span> <span class="o">*</span><span class="n">sharing</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">count_info</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">union</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="p">{</span>
+</span><span class='line'>            <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">type_info</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span> <span class="n">inuse</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="p">{</span>
+</span><span class='line'>            <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">type</span><span class="o">:</span><span class="mi">5</span><span class="p">;</span>   <span class="cm">/* What kind of shadow is this? */</span>
+</span><span class='line'>            <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pinned</span><span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="cm">/* Is the shadow pinned? */</span>
+</span><span class='line'>            <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">head</span><span class="o">:</span><span class="mi">1</span><span class="p">;</span>   <span class="cm">/* Is this the first page of the shadow? */</span>
+</span><span class='line'>            <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">count</span><span class="o">:</span><span class="mi">25</span><span class="p">;</span> <span class="cm">/* Reference count */</span>
+</span><span class='line'>        <span class="p">}</span> <span class="n">sh</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">bool_t</span> <span class="n">need_tlbflush</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span> <span class="n">free</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span> <span class="n">u</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">union</span> <span class="p">{</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">__pdx_t</span> <span class="n">_domain</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span> <span class="n">inuse</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">__pdx_t</span> <span class="n">back</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span> <span class="n">sh</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="p">{</span>
+</span><span class='line'>            <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">order</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span> <span class="n">free</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span> <span class="n">v</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">union</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">u32</span> <span class="n">tlbflush_timestamp</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">struct</span> <span class="p">{</span>
+</span><span class='line'>            <span class="n">u16</span> <span class="n">nr_validated_ptes</span><span class="p">;</span>
+</span><span class='line'>            <span class="n">s8</span> <span class="n">partial_pte</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">};</span>
+</span><span class='line'>        <span class="n">u32</span> <span class="n">shadow_flags</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">__pdx_t</span> <span class="n">next_shadow</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中主要记录了该页相关的一些信息，比如它是什么类型（normal page，或者是页表页，或者是free的）？被引用的次数（count_info）？以及和其它page之间的链表关系等。这些信息在相关page被回收或者分配的时候会被用到。</p>
+
+<p>其它的内存映射的具体细节就需要在之后慢慢进行介绍了。</p>
+
+<p>最后我们画一张图，来总体描述一下各个内存地址空间在整个页表中的分布情况：</p>
+
+<p><img src="http://ytliu.info/images/2015-07-28-1.png" title="xen page table" alt="xen page table" /></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-07-28T21:06:00+08:00" pubdate data-updated="true">Jul 28<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/system/'>System</a>, <a class='category' href='/blog/categories/virtualization/'>Virtualization</a>, <a class='category' href='/blog/categories/xen/'>Xen</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/06/10/xsm-flaskxue-xi-bi-ji/" title="Previous Post: XSM-FLASK学习笔记">&laquo; XSM-FLASK学习笔记</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/07/30/xende-qi-dong-zhi-nei-cun-xiang-guan-shi-xian/" title="Next Post: Xen的启动之内存相关实现">Xen的启动之内存相关实现 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2015/07/28/xende-nei-cun-bu-ju/';
+        var disqus_url = 'http://ytliu.github.io/blog/2015/07/28/xende-nei-cun-bu-ju/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

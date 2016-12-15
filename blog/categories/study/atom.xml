@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Study | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/study/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[XSM-FLASK学习笔记]]></title>
+    <link href="http://ytliu.github.io/blog/2015/06/10/xsm-flaskxue-xi-bi-ji/"/>
+    <updated>2015-06-10T10:40:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/06/10/xsm-flaskxue-xi-bi-ji</id>
+    <content type="html"><![CDATA[<p>XSM-FLASK全称为：<strong>X</strong>en <strong>S</strong>ecurity <strong>M</strong>odules - <strong>FL</strong>ux <strong>A</strong>dvanced <strong>S</strong>ecurity <strong>K</strong>ernel。这篇博文对其进行一个简单的介绍，资料主要翻译自<a href="http://wiki.xen.org/wiki/Xen_Security_Modules_:_XSM-FLASK">这里</a>。</p>
+
+<p>XSM是Xen提供的一个安全框架，允许管理者对整个系统进行细粒度的控制，换句话说，即运行管理者定义一套规则来管理虚拟机之间，虚拟机与Xen之间的交互，以及对系统资源（memory，device）的访问。</p>
+
+<p>FLASK是XSM中的一个模块实现，当然，之后可能还有其他的模块，那就是后话了。下面是一些例子，列举了XSM-FLASK可以做的几件事：</p>
+
+<ul>
+<li>禁止两台虚拟机之间通过event channel和grant table进行通信；</li>
+<li>将一些需要特权级别的操作安全地grant给某些非特权级虚拟机；</li>
+<li>控制哪些虚拟机能使用device passthrough；</li>
+<li>限制或者审计特权虚拟机中进行的某些特定操作；</li>
+<li>限制特权虚拟机对其他虚拟机的任意内存映射；</li>
+<li>将hypervisor中的不同模块（比如qemu和xenstore）进行隔离，防止它们之间互相影响。</li>
+</ul>
+
+
+<p>以上是一些基本说明，下面会具体介绍如何使用FLASK，以及FLASK中规则的一些语法定义。</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h3>FLASK及其policy的编译流程</h3>
+
+<p>在Xen 4.3之后的版本都对FLASK进行了比较全面的支持，如果要开启FLASK，需要在编译Xen之前修改<code>Config.mk</code>文件，将<code>XSM_ENABLE</code>和<code>FLASK_ENABLE</code>设成<code>y</code>，然后再开始编译。</p>
+
+<p>编译完Xen之后，需要编译FLASK的policy，在这之前需要先安装checkpolicy：</p>
+
+<pre><code>$ aptitude install checkpolicy
+</code></pre>
+
+<p>然后编译：</p>
+
+<pre><code>$ cd $XEN
+$ make -C tools/flask/policy
+</code></pre>
+
+<p>之后会在<code>$XEN/tools/flask/policy</code>目录下生成一个叫做<code>xenpolicy-$XEN_FULLVESION</code>的文件，这个就是生成的flask policy。</p>
+
+<hr />
+
+<h3>启动Xen（with FLASK）</h3>
+
+<p>在重启机器之前，我们需要在grub的配置中加上flask的选项，修改<code>/etc/default/grub</code>文件：</p>
+
+<pre><code>GRUB_CMDLINE_XEN_DEFAULT="flask=&lt;OPTION&gt;"
+</code></pre>
+
+<p>其中，OPTIONs包括：</p>
+
+<ul>
+<li><code>permissive</code>表示：如果在bootloader阶段找到了一个policy，则会被加载；如果没有，或者发生错误，错误报告会被写到一个buffer，但是不会阻止系统启动。该模式可以通过<code>xl setenforce</code>改为<code>enforcing</code>模式；</li>
+<li><code>enforcing</code>表示：在创建domain0之前会强制要求提供一个policy，否则无法启动系统；</li>
+<li><code>late</code>表示：在bootloader阶段不会load相关的policy，可以在系统启动之后通过<code>xl loadpolicy</code>加载相应的policy，一旦policy被加载则进入enforcing模式；</li>
+<li><code>disabled</code>表示：XSM会被设成dummy module，该模块和没有编译XSM所产生的效果是一样的，另外，一旦采用这个模式之后，FLASK是无法被重新加载的。</li>
+</ul>
+
+
+<p>需要注意的一点是，FLASK的policy需要被放在一个grub可以访问的目录下，如<code>/boot/flask/</code>，否则FLASK不会开启。另外，该policy选项需要写入grub的配置中，放在multiboot下面，如下所示：</p>
+
+<pre><code>multiboot /boot/xen-VERSION.gz dom0_mem=1024M,max:1024M flask=enforcing
+module /boot/vmlinuz-X.Y-amd64 root=/dev/mapper/vg_system-root ro quiet
+module /boot/initrd.img-X.Y
+module /boot/flask/xenpolicy-VERSION
+</code></pre>
+
+<hr />
+
+<h3>利用XSM security label创建虚拟机</h3>
+
+<p>当通过上面所提到的方式启动Xen之后，FLASK也就开启了，那么我们在创建虚拟机的时候就需要在其配置中增加一个security label（安全标签），否则，该虚拟机会被标记为“unlabeled”，例子如下所示：</p>
+
+<pre><code>seclabel='system_u:system_r:domU_t'
+</code></pre>
+
+<p>安全标签有<code>user</code>,<code>role</code>和<code>type</code>表示，这些会在之后进行介绍。另外我们需要在policy中对相应的主体进行正确的权限设置。对于“unlabeled”的虚拟机，如果FLASK并没进入enforcing模式，或者进入了enforcing模式但定义了相关标签的权限，则不会有问题，否则，在其调用某些操作的时候会被禁止。</p>
+
+<p>通过<code>xl list -Z</code>命令可以查看当前虚拟机所具有的安全标签。</p>
+
+<p>通过<code>xl dmesg | grep avc</code>命令可以查看FLASK相关的log记录。</p>
+
+<hr />
+
+<h3>FLASK policies</h3>
+
+<h4>增加一个security module</h4>
+
+<p>我们可以把<strong>security module（安全模块）</strong>当做将一系列规则进行封装所产生的集合，如果要增加一个自定义的安全模块，我们需要在<code>$XEN/tools/flask/policy/policy/modules.conf</code>文件中加一行：</p>
+
+<pre><code>&lt;module_name&gt; = on
+</code></pre>
+
+<p>同时在<code>$XEN/tools/flask/policy/policy/modules/&lt;module_name&gt;</code>目录下增加两个文件：</p>
+
+<pre><code>&lt;module_name&gt;.te
+&lt;module_name&gt;.if
+</code></pre>
+
+<p>其中<code>.te</code>文件定义了相应规则的的描述，而<code>.if</code>文件定义了一系列在<code>.te</code>文件中会被用到的宏（macros）。</p>
+
+<p>在XSM-FLASK中有一个默认的模块：xen。如果存在多个模块（比如用户自己定义了多个模块），那么这些模块中不能有重复的<code>type</code>和<code>role</code>的定义。当模块定义好之后，可以参照'FLASK policy的编译流程'进行编译，并将其放在目标目录中（如<code>/boot/flask</code>)，这样在xen启动的时候就会加载，或者通过<code>xl loadpolicy</code>进行手动加载。</p>
+
+<h4>定义Types, roles, users和attributes</h4>
+
+<p>在安全模块中会定义许多规则，对于一个特定的规则，说白了就是规定了某个主体（source subject）对另一个主体（target subject）进行的一系列访问和操作（如hypercall）的权限（deny or allow），比如规定：</p>
+
+<pre><code>某个集合中的虚拟机（source）不能向（deny）虚拟机监控器Xen（target）调用某个hypercall（operation）
+</code></pre>
+
+<p>那么这些集合就需要通过一系列的层级进行定义，也就引入了接下来需要讨论的<code>type</code>, <code>role</code>, <code>users</code>和<code>attributes</code>。可以结合<code>$XEN/tools/flask/policy/policy/modules/xen.te</code>文件中的例子进行更具体的了解。</p>
+
+<p><strong>Policy Attribute</strong></p>
+
+<p><code>attribute</code>定义了一个抽象的属性，它可以被附属在接下来要介绍的<code>type</code>主体上，即表示某个<code>type</code>具备哪些<code>attributes</code>。</p>
+
+<p><strong>Policy Type</strong></p>
+
+<p><code>type</code>是整个policy定义规范中最低的一个主体级别，它可以被用来在某个规则中指定source和target的类型。定义<code>type</code>的方式是：</p>
+
+<pre><code>type new_type_t &lt;attributes&gt;;
+</code></pre>
+
+<p>比如在示例文件中，定义了一个<code>type</code>：</p>
+
+<pre><code>type xen_t, xen_type, mls_priv;
+</code></pre>
+
+<p>其中<code>xen_t</code>即为<code>type</code>的标示符，而后面的<code>xen_type</code>和<code>mls_priv</code>则是相应的<code>attribute</code>，也就是说每个<code>type</code>可能会带有多个不同的<code>attributes</code>。</p>
+
+<p>当我们需要定义一个规则的时候，可以通过<code>type</code>来指定对应的源和目标主体。比如需要定义某个hypercall的调用是被允许的，可以这么写：</p>
+
+<pre><code>allow &lt;source type&gt; &lt;target type&gt;:&lt;security class&gt; &lt;hypercall&gt;;
+</code></pre>
+
+<p>其中，<code>security class</code>会在之后介绍，简单来说，它定义了一系列具有相关性的hypercall的集合。一个具体的例子：</p>
+
+<pre><code>allow dom0_t security_t:security check_context;
+</code></pre>
+
+<p>定义了<code>dom0_t</code> type的主体可以向<code>security_t</code> type主体调用<code>security class</code>中的<code>check_context</code> hypercall。</p>
+
+<p>另外，如果同时定义多个同一个class中的hypercall，可以用<code>{}</code>将其括起来，例如：</p>
+
+<pre><code>allow dom0_t dom0_t:resource { add remove };
+</code></pre>
+
+<p>除了用<code>type</code>表示的主体，我们也可以直接用<code>attribute</code>来表示主体，如：</p>
+
+<pre><code>allow domain_type xen_t:xen tmem_op;
+</code></pre>
+
+<p>即表示所有具有domain_type属性的type主体都可以向<code>xen_t</code> type主体调用<code>xen class</code>中的<code>tmem_op</code> hypercall。</p>
+
+<p><strong>Policy Role</strong></p>
+
+<p><code>role</code>是处于<code>type</code>上一层级的主体级别，用户可以定义某个<code>role</code>由多个<code>types</code>组成，比如：</p>
+
+<pre><code>role system_r
+role system_r types { xen_type domain_type };
+</code></pre>
+
+<p>可以看到，<code>role</code>的<code>types</code>是采用<code>attribute</code>的方式定义的，即定义具有某个<code>attribute</code>的所有<code>types</code>都属于这个<code>role</code>。如果要定义具有某个<code>attribute</code>的除掉某个<code>type</code>的所有<code>types</code>，则通过在该<code>type</code>之前加上一个<code>-</code>进行标示，如：</p>
+
+<pre><code>role vm_r
+role vm_r types {domain_type -dom0_t };
+</code></pre>
+
+<p><strong>Policy Users</strong></p>
+
+<p><code>user</code>作为policy中的最高层级的主体级别，它并不被定义在<code>.te</code>文件中，它们是被定义在<code>$XEN/tools/flask/policy/policy/users</code>文件中。因此我们可以跨安全模块共用同一个<code>user</code>。在默认情况下，FLASK定义了三个users：system_u, customer_t和customer_2。</p>
+
+<h4>增加Policy constraints</h4>
+
+<p>FLASK可以通过在<code>$XEN/tools/flask/policy/policy/constraints</code>文件中定义规则来限制某些操作。在默认的情况下，FLASK规则定义了两条constraints（限制规则）来防止不同用户之间event channel和grant table的交互。一条限制规则语法如下：</p>
+
+<pre><code>constrain &lt;security class&gt; { &lt;hypercall&gt; } ( expression );
+</code></pre>
+
+<p>比如例子中的：</p>
+
+<pre><code>constrain grant { map_read map_write copy } (
+  u1 == system_u or
+  u2 == system_u or
+  u1 == u2
+);
+</code></pre>
+
+<p>这条限制规则表示如果属于<code>grant class</code>的这些hypercall可以被执行，当且仅当expression中的条件成立。其中，expression可以包含之前定义好的所有<code>user</code>, <code>role</code>和<code>type</code>主体，其语法规则如下：</p>
+
+<pre><code>expression : (expresion)
+      | not expression
+      | expression and expression
+      | expression or expression
+      | u1 op u2
+      | r1 role_op r2
+      | t1 op t2
+      | u1 op names
+      | u2 op names
+      | r1 op names
+      | r2 op names
+      | t1 op names
+      | t2 op names
+
+op : == | !=
+role_op : == | != | eq | dom | domby | incomp
+
+names : name | { name_list }
+name_list : name | name_list name
+</code></pre>
+
+<h3>Security classes</h3>
+
+<p><code>security class</code>被定义在<code>$XEN/xen/xsm/flask/policy/access_vectors</code>文件中，每个hypercall被分配在了其中一个class中，需要注意的是，每一个class最多只能有32个hypercalls。下面简单介绍下默认的几个classes，相关的hypercall的描述可以直接看<a href="http://wiki.xen.org/wiki/Xen_Security_Modules_:_XSM-FLASK#Security_classes">这里</a>。</p>
+
+<ul>
+<li><code>class xen</code>包含了所有在hypervisor中进行的操作，其source为执行hypercall的domain，target为xen (<code>xen_t</code> type);</li>
+<li><code>class domain &amp; class domain2</code>包含了某个domain调用另一个domain或者调用自己的操作，source为执行hypercall的domain，target为被调用的domain（包括<code>_self</code>和<code>_target</code>的type）;</li>
+<li><code>class hvm</code>类似于<code>domain</code>，除了它是针对HVM domain；</li>
+<li><code>class event</code>用于描述event channels；</li>
+<li><code>class grant</code>用于描述grant mapping；</li>
+<li><code>class mmu</code>用于描述不是采用grant机制映射的内存页；</li>
+<li><code>class shadow</code>（这个不清楚是干嘛的）；</li>
+<li><code>class resource</code>用于描述硬件设备passthrough所使用的资源，包括IRQ, MMIO regions, I/O ports, PCI device等；</li>
+<li><code>class security</code>用于描述和FLASK相关的操作。</li>
+</ul>
+
+
+<hr />
+
+<p>以上即为XSM-FLASK最基本的介绍，我也还正处于学习阶段，其它更细节的部分和更直观的实例会在以后的博文中进行说明。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[知识整理（2015.1）]]></title>
+    <link href="http://ytliu.github.io/blog/2015/01/24/zhi-shi-zheng-li-%282015-dot-1%29/"/>
+    <updated>2015-01-24T13:28:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/01/24/zhi-shi-zheng-li-(2015-dot-1)</id>
+    <content type="html"><![CDATA[<p>从上大学开始到现在，我们学过多少的知识，尝试过多少的技能？特别是对于程序员来说，每天都可能遇到新的东西，听别人讲解或者自己去查询新的知识，但是这些所谓的知识大部分只能在大脑中贮存那么几天，最多几周，那些我们曾经以为自己看懂了就永远都不会忘记的东西又有多少被那个过于自信的自己所遗忘了呢？当自己想要重新去涉及相关领域的时候甚至都不记得该从那里去找了。有时候，我甚至回想前一天看过什么的时候都已然忘记！</p>
+
+<p>确实，现在有很多很方便的软件，或者相应的方法来记录这些，比如evernote，甚至单纯地采用书签。然而单纯的记录和鼠标点击都远远不能达到好的知识学习的效果。在现实生活中，我们想要学习一个知识点，往往都会花上大量的时间和精力在良莠不齐的网页中搜索到那些靠谱的、解释清楚的博客或者文档。再花上时间去阅读和理解。对于我们这种普通人来说，看过的东西大部分会在很短的时间内忘掉，就算当时感觉完全理解了，也会在未来的某一天里不经意地彻底忘记。这种事对我来说发生过太多次了，以至于我经常在某些时候觉得自己掌握了很多知识，充满了自信，而过了一段时间之后又变得颓然无助。</p>
+
+<p>从这个月开始我尝试记录“技术日记”，每天总结一下当天所查询、理解的知识，并且记录下对于我来说比较有用的博客或者的文档出处，以便于日后查询。当记录了一个月之后我依然觉得这样还是不够，我觉得除了每天记录之外，每隔一段时间的回顾和总结也是非常必要的。于是我决定把这个总结作为每个月的常规任务，记录在博客上，或许能够更好地激励和督促我自己，甚至也可能会在不经意间带给别人些许方便呢。</p>
+
+<p>从这次开始，进行2015年1月的知识整理，并不会非常详细，仅仅是当做一个月知识的回顾，并且记录下一些对自己产生启发效果或者科普功能的博客和文档的链接。</p>
+
+<p>这个月的关键字：IOCTL, MSI-X, Eventfd, Namespaces, QOM, Linux Kernel, Inline Assembly, Segement Register, TLS, PCI Device Driver, Xen I/O, BDF Notation, Signal, CPU Privilege Level.</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h4>IOCTL</h4>
+
+<p>推荐LWN的这篇科普文：<a href="http://lwn.net/Articles/119652/">The new way of ioctl</a></p>
+
+<ul>
+<li>原来的IOCTL: 采用内核大锁（big kernel lock: BKL）</li>
+<li>unlocked_ioctl: 优化，采用自定义的锁（self-defined lock）</li>
+<li>compat_ioctl: 当32位的进程需要在64位的系统上调用（whenever a 32-bit process calls ioctl() on a 64-bit system），需要做一些类型转换的操作。</li>
+</ul>
+
+
+<hr />
+
+<h4>MSI-X</h4>
+
+<p><a href="http://lwn.net/Articles/44139/">MSI-X How To</a></p>
+
+<p>另外，在Linux内核的文档中（linux-src/Documentation/PCI/MSI-HOWTO.txt）也有最新的详细的描述。</p>
+
+<p><a href="http://ytliu.info/notes/linux/msix_how_to.html">这里是我对这个文档进行的整理</a></p>
+
+<hr />
+
+<h4>Eventfd</h4>
+
+<p><a href="http://man7.org/linux/man-pages/man2/eventfd.2.html">这里是eventfd的man page</a>，讲的还是比较详细的，有一个简单例子。</p>
+
+<hr />
+
+<h4>Namespaces</h4>
+
+<p>还是推荐<a href="http://lwn.net/Articles/531114/">LWN的那几篇介绍吧</a></p>
+
+<p>这里稍微介绍下，linux的namespace一个最重要的作用是用来支持Linux Container（LXC）的，到目前为止包含6种namespaces（按照出现的时间顺序排列）：</p>
+
+<ul>
+<li><strong>Mount namespace</strong> (Linux 2.4.19)：用于隔离不同进程可见的fs mount point，其中一个作用有点像chroot，和chroot不同的是，mount namespace更安全和更灵活。它还有其它用法。</li>
+<li><strong>UTS namespace</strong> (Linux 2.6.19): 隔离两个标示符：nodename和domainname，由uname()返回，由sethostname()和setdomainname()两个syscall进行设置。UTS允许container中有自己的hostname和domain name.</li>
+<li><strong>IPC namespace</strong> (Linux 2.6.19): 隔离IPC资源（System V IPC object和POSIX message queues），现在感觉有了PID的namespace之后好像不怎么用了吧。</li>
+<li><strong>PID namespace</strong> (Linux 2.6.24) 隔离PID number。即不同PID namespace的进程可以有相同的PID。其中一个好处是container可以在host间迁移，同时保持里面进程原有的PID。另外，它可以允许每个container里面都有自己的init（PID 1）进程，在执行初始化和回收子进程的任务）。也就是说，在一个PID namespace中，每个进程会有两个PID，一个是PID namespace里面的PID，一个是外面host看到的PID</li>
+<li><strong>Network namespace</strong> (Linux 2.6.24 - Linux 2.6.29): 提供网络资源的隔离。每个network namespace有自己的网络设备，IP地址，IP路由表，/proc/net 目录，端口号等等。</li>
+<li><strong>User namespace</strong> (Linux 2.6.23 - Linux 3.8): 对user和group ID number进行隔离。也就是说，一个进程的user ID和group ID在user namespace内外可能不一样。从Linux 3.8开始，一个unprivilege的进程可以创建user namespaces，这产生了一些新的可能性，也会产生一些安全性问题。</li>
+</ul>
+
+
+<hr />
+
+<h4>Qemu Object Model (QOM)</h4>
+
+<p><a href="http://www.linux-kvm.org/wiki/images/0/0b/Kvm-forum-2013-Modern-QEMU-devices.pdf">这个slide</a>介绍了Qemu设备模型的发展历史。</p>
+
+<p><a href="http://wiki.qemu.org/Features/QOM">WIKI的这篇</a>介绍了QOM和Qdev的区别。</p>
+
+<p><a href="http://mnstory.net/wp-content/uploads/2014/10/qemu-device-simulation/qemu-device-simulation.pdf">这个文档</a>详细地介绍了QOM。</p>
+
+<p>当然也可以看<a href="http://ytliu.info/blog/2015/01/10/qemushe-bei-chu-shi-hua/">我写的这篇博客</a>，里面也有一些说明。</p>
+
+<hr />
+
+<h4>Linux Kernel - read/write file</h4>
+
+<p>这个点主要是说明如何在内核里面读写文件。</p>
+
+<p>事实上在内核里面是不建议对文件进行读写操作的。</p>
+
+<p><a href="http://lkml.iu.edu/hypermail/linux/kernel/0005.3/0061.html">这个mailing list</a>里面简单说明了原因。</p>
+
+<p>而在<a href="http://www.linuxjournal.com/article/8110">这个博客中</a>更详细地解释了这件事，不过如果你确实要这么做，它也举了个例子。</p>
+
+<p>这是一个<a href="http://bbs.chinaunix.net/thread-1945223-1-1.html">中文博客</a>，同样了举了个例子说明如何在内核中读写文件（如果你真的要这么做的话）</p>
+
+<p><a href="http://ytliu.info/notes/linux/file_ops_in_kernel.html">这里</a>是我对这个问题的整理。</p>
+
+<hr />
+
+<h4>Linux Kernel - kmalloc, kzalloc, kcalloc, vmalloc</h4>
+
+<p>简单地说，这几个malloc的区别在于：</p>
+
+<ul>
+<li>kzalloc zeroes the memory before returning a pointer</li>
+<li><p>kcmalloc allocates memory for an array, it is not a replacement for kmalloc :</p>
+
+<p>  void *kcalloc(size_t n, size_t size, gfp_t flags)</p></li>
+<li><p>vmalloc is the same as kmalloc, except that it allocates memory that is only virtually contiguous. The underlying physical memory can be discontiguous.</p></li>
+</ul>
+
+
+<p><a href="http://lwn.net/Articles/147014/">LWN的这篇文章</a>说明了为什么要引入kcalloc，以及之后的kzalloc:</p>
+
+<ul>
+<li><code>kcalloc</code>是用于代替<code>kmalloc()/memset()</code>的组合的，</li>
+<li>而<code>kzaloc</code>主要是去掉<code>kcalloc</code>的第一个参数n，因为在大部分情况下它等于<code>1</code>。</li>
+</ul>
+
+
+<hr />
+
+<h4>Inline Assembly</h4>
+
+<p><a href="http://www.ibm.com/developerworks/library/l-ia/">这篇IBM的文档</a>较清楚地介绍了汇编语言和内联汇编的语法。</p>
+
+<p><a href="http://www.delorie.com/djgpp/doc/brennan/brennan_att_inline_djgpp.html">这个</a>和<a href="http://www.ibiblio.org/gferg/ldp/GCC-Inline-Assembly-HOWTO.html">这个</a>是两篇比较简单清楚的科普文档。</p>
+
+<p><a href="http://staff.ustc.edu.cn/~xlanchen/cailiao/x86%20Assembly%20Programming.htm">这个是X86汇编编程的一个简化版的查询文档</a>。</p>
+
+<p><a href="http://www.cs.virginia.edu/~evans/cs216/guides/x86.html">这个事X86汇编的Guide</a>就比较详细的文档。</p>
+
+<hr />
+
+<h4>Segment Register</h4>
+
+<p><a href="http://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for#">这个</a>和<a href="http://reverseengineering.stackexchange.com/questions/2006/how-are-the-segment-registers-fs-gs-cs-ss-ds-es-used-in-linux">这个</a>是两个问答网站上关于gs、fs等segment register的提问，有一些比较详细的回答。</p>
+
+<p><a href="http://www.mouseos.com/arch/segment_registers.html">这个文档</a>介绍了segment寄存器的结构。</p>
+
+<p><a href="http://www.eecg.toronto.edu/~amza/www.mindsec.com/files/x86regs.html">这个文档</a>列举了X86的所有寄存器及其简介。</p>
+
+<hr />
+
+<h4>Thread Local Storage (TLS)</h4>
+
+<p><a href="http://www.longene.org/techdoc/0328131001224576926.html">这个</a>是一篇中文的关于TLS的介绍，比较长，而且主要是关于Windows的。</p>
+
+<p><a href="http://www.uml.org.cn/embeded/201207131.asp">这个博客</a>是Linux TLS的介绍，比较清楚。</p>
+
+<hr />
+
+<h4>PCI Device Driver</h4>
+
+<p><a href="http://nairobi-embedded.org/linux_pci_device_driver.html">Writing a PCI Device Driver, A Tutorial with a QEMU Virtual Device</a> 非常详细地介绍了如何写一个Qemu的PCI设备驱动，采用的是Qemu的Inter-VM share memory来做介绍，非常赞！</p>
+
+<p>另外，在Linux内核的文档中（<code>linux-src/Documentation/PCI/pci.txt</code>）也有最新的详细的描述介绍如何写一个PCI device driver。</p>
+
+<hr />
+
+<h4>Xen I/O</h4>
+
+<p><a href="http://www.mulix.org/lectures/xen-iommu/xen-io.pdf">这是一个介绍Xen I/O的科普slide</a></p>
+
+<p>而<a href="http://www.informit.com/articles/article.aspx?p=1160234">这一篇文章</a>摘自那本《The Definitive Guide to the Xen Hypervisor》书。</p>
+
+<p>其实了解Xen I/O最好的资料是上面提到的这本书，以及去查阅相应的代码。</p>
+
+<p>当然还有一些文档：</p>
+
+<ul>
+<li><a href="http://www.xenproject.org/users/getting-started.html">这个文档</a>是<code>Xen Get Started</code>。</li>
+<li><a href="http://xmodulo.com/install-paravirtualized-xen-guest.html">这个</a>介绍了如何安装一个PV的虚拟机。</li>
+<li><a href="http://twobit.us/2010/07/xen-network-driver-domain-wh/">这个博客</a>和<a href="http://wiki.xen.org/wiki/Driver_Domain">这个文档</a>也说明了如何安装一个network driver domain。</li>
+<li><a href="http://wiki.xenproject.org/wiki/Category:HowTo">这里</a>列举了大部分Xen相关的文档。</li>
+<li><a href="http://wiki.xen.org/wiki/Xen_PCI_Passthrough">这个WIKI</a>介绍了Xen PCI passthrough</li>
+</ul>
+
+
+<hr />
+
+<h4>BDF Notation</h4>
+
+<p><a href="http://wiki.xen.org/wiki/Bus:Device.Function_(BDF)_Notation">这个Xen的Wiki</a>详细并且清楚地科普了BDF的相关知识</p>
+
+<hr />
+
+<h4>Signal in Linux</h4>
+
+<p><a href="http://cs-pub.bu.edu/fac/richwest/cs591_w1/notes/wk3_pt2.PDF">这个slide</a>对signal介绍的蛮清楚的。</p>
+
+<p><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">这个文档</a>对Signal介绍地更为全面。</p>
+
+<hr />
+
+<h4>CPU Privilege Level</h4>
+
+<p><a href="http://xu3stones.blog.163.com/blog/static/2059571362012103094448554/">这篇中文博客</a>前面的对CPL，DPL，RPL的名词解释部分还不错，但是后面有点看不懂。</p>
+
+<p><a href="https://iambvk.wordpress.com/2007/10/10/notes-on-cpl-dpl-and-rpl-terms/">这个英文笔记</a>其实对这三种权限级别介绍的更为简单，但是清楚，特别是最后对RPL的介绍所举的那个例子。</p>
+
+<p><a href="http://ytliu.info/notes/linux/cpl_dpl_rpl.html">这里</a>是我基于上面这篇英文笔记对这几个名词解释的整理。</p>
+]]></content>
+  </entry>
+  
+</feed>

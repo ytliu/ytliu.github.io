@@ -1,0 +1,825 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Attack | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/attack/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[【转载】Sigreturn Oriented Programming (SROP) Attack - 攻击原理]]></title>
+    <link href="http://ytliu.github.io/blog/2015/12/02/sigreturn-oriented-programming-srop-attack-gong-ji-yuan-li/"/>
+    <updated>2015-12-02T18:43:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/12/02/sigreturn-oriented-programming-srop-attack-gong-ji-yuan-li</id>
+    <content type="html"><![CDATA[<p>这篇文章我已经投稿在<a href="http://www.freebuf.com/">Freebuf</a>上，可以参看<a href="http://www.freebuf.com/articles/network/87447.html">这里</a>。所以版权肯定是算Freebuf的，虽然是我写的，但是也只得算是转载吧。</p>
+
+<!-- more -->
+
+
+<p>这次之所以选择把文章投在freebuf上，主要原因还是想要赚点稿费。不过不得不提的是，freebuf的阅读访问量还是很大的，仅仅过了一天就有10000+的点击，虽然我觉得可能大部分人点进来之后也不会细看，而且确实没有相关背景也很难理解。</p>
+
+<p>在自己的博客中存个档，当然希望大家还是去freebuf上支持下~</p>
+
+<hr />
+
+<p>去年在Wooyun投了<a href="http://drops.wooyun.org/tips/3071">一篇文章</a>，介绍<a href="http://www.scs.stanford.edu/brop/">BROP攻击</a>。反响还挺好的，也帮助了很多人去理解这个非常smart的攻击原理。当然大家也可以去<a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">我的博客</a>看这个攻击的重现。
+这次我想介绍另一个类ROP攻击，叫SROP，也是发表在<a href="http://www.ieee-security.org/TC/SP2014">Oakland 2014</a>，被评选为当年的<a href="http://www.ieee-security.org/TC/SP2014/awards.html">Best Student Papers</a>。论文的题目叫做<code>Framing Signals — A Return to Portable Shellcode</code>，作者是来自Vrije Universiteit Amsterdam的Erik Bosman，以下是相关paper和slides的链接：</p>
+
+<p><a href="http://www.ieee-security.org/TC/SP2014/papers/FramingSignals-AReturntoPortableShellcode.pdf">paper</a></p>
+
+<p><a href="https://tc.gtisc.gatech.edu/bss/2014/r/srop-slides.pdf">slides</a></p>
+
+<p>首先，我觉得这也是一个非常有趣的攻击，虽然在去年就已经发表了，但是我在网上并没有找到太多相关的信息，在最近一年的研究领域也没有太多对它的<a href="https://scholar.google.com/scholar?cites=5919093237976555977&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN">引用</a>，所以我觉得很有必要推广一下。但是在我看完paper之后，觉得这篇paper写得并不是很容易让人理解，很多句子都晦涩难懂，不过这些都不重要，重要的是，这个攻击确实很有效，里面提到，在不同版本的Unix系统（如GNU Linux，BSD，iOS/Mac OS X等）中被使用了40多年的Signal机制，存在一个很容易被攻击者利用的设计缺陷，而这个缺陷所产生的相应的攻击，即文中所描述的SROP，和传统的ROP攻击相比显得更加简单，可靠，可移植。</p>
+
+<p>接下来，我会从ROP攻击开始讲起，然后引入SROP的攻击原理，其中会涉及到Signal机制的相关背景，最后，我会介绍一些相应的防御措施。</p>
+
+<h3>ROP背景介绍</h3>
+
+<h4>ROP攻击的出现</h4>
+
+<p><a href="https://zh.wikipedia.org/wiki/Stack_Overflow">Stack Overflow</a>和<a href="https://en.wikipedia.org/wiki/Data_Execution_Prevention">DEP (Data Execution Prevention)</a>我在这里就不介绍了，简单来说，就是最早的code injection攻击在现在的操作系统中基本上不能使用，因此出现了ROP，也就是所谓的Return Oriented Programming，其中也包括比较早期的Return-to-libc。ROP的主要思想就是攻击者不需要自己注入代码（因为在DEP的保护下，注入的代码不可执行），而是利用系统已有的代码片段来构造攻击。这里之所以叫ROP，是因为其改变控制流的方式是用系统中的return指令（比如x86中的<code>ret</code>）。</p>
+
+<p>这里需要说明的是，在栈操作中，return指令是唯一一个可以通过控制栈上的数据改变指令流的指令，它的效果等同于：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">pop</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'><span class="n">jmp</span> <span class="o">%</span><span class="n">eax</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>即将IP设置成栈上的某个值。因此如果我们可以控制栈上的数据，就可以控制执行流。</p>
+
+<h4>ROP攻击的原理</h4>
+
+<p>这里举一个最简单的例子来说明如何利用ROP来实现一条内存赋值语句：<code>Mem[v2] = v1</code>，其中<code>v2</code>是一个内存地址，<code>v1</code>是一个值。</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-1.png" title="Simple ROP Example" alt="ROP example" /></p>
+
+<p>这里我们先把<code>Mem[v2] = v1</code>这条内存赋值语句转化成汇编代码：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">mov</span> <span class="o">%</span><span class="n">eax</span> <span class="n">v1</span><span class="p">;</span>
+</span><span class='line'><span class="n">mov</span> <span class="o">%</span><span class="n">ebx</span> <span class="n">v2</span><span class="p">;</span>
+</span><span class='line'><span class="n">mov</span> <span class="p">[</span><span class="o">%</span><span class="n">ebx</span><span class="p">],</span> <span class="o">%</span><span class="n">eax</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>将<code>v1</code>的值赋给<code>%eax</code>，将<code>v2</code>的值（即内存地址）赋给<code>%ebx</code>，最后将<code>%eax</code>的值赋给<code>%ebx</code>地址指向的内存。</p>
+
+<p>我们将这段代码翻译成可以通过ROP的方式执行的代码：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="nl">addr1:</span> <span class="n">pop</span> <span class="n">eax</span><span class="p">;</span> <span class="n">ret</span>
+</span><span class='line'><span class="nl">addr2:</span> <span class="n">pop</span> <span class="n">ebx</span><span class="p">;</span> <span class="n">ret</span>
+</span><span class='line'><span class="nl">addr3:</span> <span class="n">mov</span> <span class="p">[</span><span class="n">ebx</span><span class="p">],</span> <span class="n">eax</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>其中<code>addr1</code>、<code>addr2</code>、<code>addr3</code>都是相应指令的内存地址，我们将每一行称为一个“gadget”。通过像上图中那样构造栈上的数据就可以完成和上面汇编相同的效果。如果不清楚可以自己代入试一试，这里就不详述了。</p>
+
+<p>你可能会问，单纯构造一个内存赋值语句有什么用呢？其中最广泛的应用就是为参数赋值。假设我们希望用ROP的方式调用一个system call，那么我们就可以用上面的这种方式为这个system call填上参数，最后在栈上填上<code>syscall</code>（或者<code>int 80</code>）指令的内存地址就可以了。</p>
+
+<h4>ROP攻击的前提条件</h4>
+
+<p>讲到这里，如果你对上面有了初步的理解，就可能会觉得好像ROP确实很厉害，能够随意调用system call（比如调用<code>execve</code>来开启一个shell；或者调用<code>mprotect</code>来将栈设置成可执行，等等）。然而事实上ROP并没有想象中的那么简单。要完成一个成功的ROP攻击，需要有很多前提条件，这里列举几个最重要的：</p>
+
+<ul>
+<li>首先必须要有一个buffer overflow的漏洞（当然这个前提基本上所有攻击都必须得有）；</li>
+<li>攻击者需要事先决定好完成攻击过程的所有gadgets。对于上面提到的赋值操作，总共只需要3个gadgets，每个gadget最长两条指令，但是如果需要进行一些复杂的操作，就有可能需要有很多gadgets；除了gadgets的数量多之外，单个gadget的指令数也需要考虑；</li>
+<li>攻击者需要在被攻击程序所在的进程地址空间中找到所有的这些gadgets的首地址，并且将其填在栈的合适位置上。</li>
+</ul>
+
+
+<p>这三个前提条件，造成了传统的ROP对于攻击者来说具备了一定的难度，加上现在操作系统中的一系列保护机制（比如ASLR），使得寻找gadgets的地址变得更难了。而且对于攻击者来说，他攻击每个不同的应用程序都需要单独精心构造大量的gadgets，这也使得ROP的可复用性变得很差。</p>
+
+<p>以上的这些，都是我们接下来将要介绍的SROP所想要解决的问题。</p>
+
+<h3>SROP攻击原理</h3>
+
+<p>SROP的全称是Sigreturn Oriented Programming。在这里<code>sigreturn</code>是一个系统调用，它在unix系统发生signal的时候会被间接地调用。</p>
+
+<p>在开始介绍SROP的攻击原理之前，我们需要先对signal的背景进行一个简单的说明。</p>
+
+<h4>Signal in Unix-like System</h4>
+
+<p>Signal这套机制在1970年代就被提出来并整合进了UNIX内核中，它在现在的操作系统中被使用的非常广泛，比如内核要杀死一个进程（<code>kill -9 $PID</code>），再比如为进程设置定时器，或者通知进程一些异常事件等等。</p>
+
+<p>如下图所示，当内核向某个进程发起（deliver）一个signal，该进程会被暂时挂起（suspend），进入内核（1），然后内核为该进程保存相应的上下文，跳转到之前注册好的signal handler中处理相应signal（2），当signal handler返回之后（3），内核为该进程恢复之前保存的上下文，最后恢复进程的执行（4）。</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-2.png" title="Process of Signal Handling" alt="Signal Process" /></p>
+
+<p>在这四步过程中，第三步是关键，即如何使得用户态的signal handler执行完成之后能够顺利返回内核态。在类UNIX的各种不同的系统中，这个过程有些许的区别，但是大致过程是一样的。这里以Linux为例：</p>
+
+<p>在第二步的时候，内核会帮用户进程将其上下文保存在该进程的栈上，然后在栈顶填上一个地址<code>rt_sigreturn</code>，这个地址指向一段代码，在这段代码中会调用<code>sigreturn</code>系统调用。因此，当signal handler执行完之后，栈指针（stack pointer）就指向<code>rt_sigreturn</code>，所以，signal handler函数的最后一条<code>ret</code>指令会使得执行流跳转到这段sigreturn代码，被动地进行<code>sigreturn</code>系统调用。下图显示了栈上保存的用户进程上下文、signal相关信息，以及<code>rt_sigreturn</code>：</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-3.png" title="Signal Frame" alt="Signal Frame" /></p>
+
+<p>我们将这段内存称为一个<code>Signal Frame</code>。</p>
+
+<p>在内核<code>sigreturn</code>系统调用处理函数中，会根据当前的栈指针指向的<code>Signal Frame</code>对进程上下文进行恢复，并返回用户态，从挂起点恢复执行。</p>
+
+<p>看到这里，你看出什么问题了吗？如果还没有，建议你再倒回去仔细想想，因为我马上就要揭晓答案了。</p>
+
+<h4>Signal机制缺陷利用</h4>
+
+<p>好了，我们先来看看内核在这个过程中扮演了什么角色？首先，内核替用户进程将其上下文保存在<code>Signal Frame</code>中，然后，内核利用这个<code>Signal Frame</code>恢复用户进程的上下文，done！那么，问题来了：</p>
+
+<ul>
+<li>第一，这个<code>Signal Frame</code>是被保存在用户进程的地址空间中的，是用户进程可读写的；</li>
+<li>第二，内核并没有将保存的过程和恢复的过程进行一个比较，也就是说，在<code>sigreturn</code>这个系统调用的处理函数中，内核并没有判断当前的这个<code>Signal Frame</code>就是之前内核为用户进程保存的那个<code>Signal Frame</code>。</li>
+</ul>
+
+
+<p>按照作者slides里面的说法，“kernel agnostic about signal handlers”既是一个优点，因为内核不需要花精力来记录其发起的signal，但是，这也是一个缺点，正因为内核对其的不可知性，使得恶意的用户进程可以对其进行伪造！</p>
+
+<h4>例子：一个最简单的攻击</h4>
+
+<p>让我们先来假设一个攻击者可以控制用户进程的栈，那么它就可以伪造一个<code>Signal Frame</code>，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-4.png" title="Faked Signal Frame" alt="Fake Signal Frame" /></p>
+
+<p>在这个伪造的<code>Signal Frame</code>中，将<code>rax</code>设置成59（即<code>execve</code>系统调用号），将<code>rdi</code>设置成字符串<code>/bin/sh</code>的地址（该字符串可以是攻击者写在栈上的），将<code>rip</code>设置成系统调用指令<code>syscall</code>的内存地址，最后，将<code>rt_sigreturn</code>手动设置成<code>sigreturn</code>系统调用的内存地址。那么，当这个伪造的<code>sigreturn</code>系统调用返回之后，相应的寄存器就被设置成了攻击者可以控制的值，在这个例子中，一旦<code>sigreturn</code>返回，就会去执行<code>execve</code>系统调用，打开一个shell。</p>
+
+<p>这是一个最简单的攻击。在这个攻击中，有4个前提条件：</p>
+
+<ul>
+<li>第一，攻击者可以通过stack overflow等漏洞控制栈上的内容；</li>
+<li>第二，需要知道栈的地址（比如需要知道自己构造的字符串<code>/bin/sh</code>的地址）；</li>
+<li>第三，需要知道<code>syscall</code>指令在内存中的地址；</li>
+<li>第四，需要知道<code>sigreturn</code>系统调用的内存地址；</li>
+</ul>
+
+
+<p>和传统的ROP相比，这个最简单的SROP攻击只需要找到两个gadgets就可以了。但是在这个攻击中，攻击者所产生的效果只能调用一个syscall，当syscall返回之后就失去了对执行流的控制了，显然不能满足大部分要求。</p>
+
+<h4>利用SROP构造系统调用串（System Call Chains）</h4>
+
+<p>那么，我们如何利用上面这套机制来连续地进行系统调用呢？其实方法很简单，除了上面的步骤之外，只需要再额外添加一个对栈指针<code>rsp</code>的控制就行了，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-5.png" title="Faked Signal Frame for System Call Chain" alt="System Call Chain" /></p>
+
+<p>另外我们需要把原来单纯的<code>syscall</code> gadget换成<code>syscall; ret</code> gadget。在这个过程中，每次<code>syscall</code>返回之后，栈指针都会指向下一个<code>Signal Frame</code>，因此，在这个时候执行<code>ret</code>指令，就会再次调用<code>sigreturn</code>系统调用。这样就可以通过操作栈来达到连续进行系统调用的效果。</p>
+
+<h4>两个重要的gadgets</h4>
+
+<p>那么，我们在哪里能找到上面提到的这两个gadgets呢？</p>
+
+<p>对于第一个gadget <code>sigreturn</code>，这里需要提一下，<code>sigreturn</code>这个系统调用和别的系统调用有一个不同的地方，即一般的应用程序不会主动调用它，而是像之前介绍的，由内核将相应地址填到栈上，使得应用进程被动地调用。因此在系统中一般会有一段代码专门用来调用<code>sigreturn</code>，论文作者发现，在不同的类UNIX系统中，这段代码会出现在不同的位置，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-6.png" title="sigreturn gadget in memory" alt="sigreturn gadget location" /></p>
+
+<p>其中在<code>Linux &lt; 3.11 ARM</code>（也就是大部分现在Android所使用的内核），以及<code>FreeBSB 9.2 x86_64</code>，都可以在固定的内存地址中找到这个gadget，而在其它系统中，一般被保存在<code>libc</code>库的内存中，如果有ASLR保护的话似乎没有那么容易找到。</p>
+
+<p>而对于第二个gadget <code>syscall; ret</code>，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-7.png" title="syscall ret gadget in memory" alt="syscall ret gadget location" /></p>
+
+<p>如果是<code>Linux &lt; 3.3 x86_64</code>（在Debian 7.0， Ubuntu Long Term Support， CentOS 6系统中默认内核），则可以直接在固定地址[vsyscall]中找到这段代码片段。其中<code>vsyscall</code>是用来加速<code>time()</code>，<code>gettimeofday()</code>和<code>getcpu()</code>这三个系统调用的机制，虽然现在已经被<code>vsyscall-emulate</code>和<code>vdso</code>机制所代替，但在稍微比较早一点的内核中依然是被默认支持的。具体可以看<a href="http://lwn.net">lwn</a>的<a href="https://lwn.net/Articles/446528/">这个post</a>。</p>
+
+<p>除了上面提到的这两个可能存在在固定地址的gadgets之外，在其它系统中，这两个gadgets似乎并没有那么容易找到，特别是在有ALSR保护的系统中。但是，如果我们将其和传统的ROP来进行比较的话，就可以发现，它把整个攻击的代价拉低了一个档次，难怪作者认为SROP "is among the lowest hanging fruit available to an attacker."</p>
+
+<h4><code>sigreturn</code>这个gadget是必须的吗？</h4>
+
+<p>如果我们将<code>sigreturn</code>当做一个系统调用来看待的话，那么其实这个单独的gadget并不是必须的。因为我们可以将<code>rax</code>寄存器设置成15（sigreturn的系统调用号），然后调用一个<code>syscall</code>，效果和调用一个<code>sigreturn</code>是一样一样的。那么，问题就从“如何找到一个<code>sigreturn</code> gadget”变成了“如何控制寄存器<code>rax</code>的值”。而<code>rax</code>这个寄存器非常特殊，它除了被用来指定系统调用的调用号之外，也是函数返回值最后存放的地方。因此，我们可以利用控制函数返回值来控制<code>rax</code>寄存器的值。具体的做法因人而异，但是这为攻击者提供了另外一个思路，有兴趣可以去看论文。在论文中，简单来说，作者在受害者进程调用对网络文件描述符进行<code>read</code>系统调用的时候传输不同数量的字节数来控制<code>read</code>调用的返回值，来最终达到控制<code>rax</code>寄存器的效果的，非常smart的一个做法！</p>
+
+<h4>SROP应用场景</h4>
+
+<p>正如上文所说，利用SROP，我们可以构造一系列的系统调用串，利用这个方法，我们可以做很多事情。</p>
+
+<h5>应用场景一：后门（Backdoor）</h5>
+
+<p>首先，作者提出，可以通过这种方法构造一个后门（backdoor）。后门的意思就是攻击者在系统中隐藏一个可以被触发的点，当某些比较少见的特定操作发生之后，会触发一个动作，这个动作一般是打开一个端口让攻击者通过网络连接进系统，从而对系统进行控制。后门最重要的特点是隐蔽，不容易被杀毒软件检查出来。所以说如果后门是一段可执行代码，那么就很容易被杀毒软件检测到，而如果后门是隐藏在数据域中，那么就能做到非常隐蔽。SROP就为其提供了一个强有力的工具：system call chain。整个过程如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-8.png" title="SROP backdoor" alt="SROP backdoor" /></p>
+
+<p>在这个过程中，攻击者利用<code>inotify API</code>来监控一个文件，当这个文件被访问（比如攻击者在发起的请求中读取这个文件的内容），则后续的系统调用链被触发，打开一个socket，等待连接。同时通过一个<code>alarm</code>系统调用设置一个定时器，如果在5秒钟没有人对这个socket发起连接请求，则将其关闭，否则建立连接，并调用<code>execve</code>系统调用打开一个shell。</p>
+
+<p>这就是一个典型的后门，可以用SROP完成。</p>
+
+<h5>应用场景二：系统调用代理（System call proxy）</h5>
+
+<p>在这个应用场景中，作者提到了如何绕过诸如<code>iOS</code>、<code>Mac OS X</code>等系统进行的代码签名（code signing）保护机制。在代码签名保护机制下，程序中不能存在恶意代码片段（否则无法经过Apple官方的验证）。但是SROP可以解决这个问题，我们可以在代码中进行一个网络连接，然后通过构造特定的请求来执行一些恶意的操作。在这里，作者提出一种系统调用代理的机制，原理和我之前介绍的系统调用串的原理差不多，就是通过执行一系列的<code>read</code>系统调用来设置各个参数，最后利用这些参数构造一个特定的系统调用，如下如所示：</p>
+
+<p><img src="http://ytliu.info/images/2015-11-27-9.png" title="SROP syscall proxy" alt="SROP syscall proxy" /></p>
+
+<h3>SROP的防范</h3>
+
+<p>最后我们来提一下SROP的防范。从三个角度出发，作者提出了三种方法：</p>
+
+<h4>Gadgets Prevention</h4>
+
+<p>在<code>两个重要的gadgets</code>这章我提到，在当前的几种不同的操作系统中，<code>sigreturn</code>和<code>syscall; ret</code>这两个gadgets非常容易被找到，特别是在<code>vsyscall</code>这种特别不安全的机制存在的情况下。因此我们应该尽量避免这种机制，让ASLR等保护机制物尽其用，使得攻击者很难找到这些gadgets。</p>
+
+<p>当然这种方法并不能从本质上解决SROP的问题。</p>
+
+<h4>Signal Frame Canaries</h4>
+
+<p>这种方法借鉴于<a href="https://en.wikipedia.org/wiki/Buffer_overflow_protection#Canaries">stack canaries</a>机制，即在<code>Signal Frame</code>的<code>rt_sigreturn</code>字段之前插入一段随机生成的字节，如果发生overflow，则该段字节会被破坏，从而在发生<code>sigreturn</code>之前会被检测到。</p>
+
+<p>当然，针对stack canaries的攻击也很多，其同样不能从本质上防止SROP的发生。</p>
+
+<h4>Break kernel agnostic</h4>
+
+<p>这就要追溯到SROP的本质问题了，就是内核对Signal的不可知性。如果我们在内核处理<code>sigreturn</code>系统调用的时候判断一下当前的<code>Signal Frame</code>是否是由内核之前创建的，那么这个问题就能从根本上解决。当然，这就涉及到要修改内核的一些底层的设计了，可能也会引入一些新的问题。</p>
+
+<h3>Proof of Concept（PoC）</h3>
+
+<p>如果大家对这个攻击感兴趣，可以从这里下载一个非常简单的<a href="https://github.com/eQu1NoX/srop-poc">PoC</a>，当然按照其作者的说法，SROP已经被整合进<a href="https://binjitsu.readthedocs.org/">binjitsu</a>这个框架了。之后如果有时间，我也会对这个PoC以及binjitsu框架做一个介绍。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[【转载】Blind Return Oriented Programming (BROP) Attack - 攻击原理]]></title>
+    <link href="http://ytliu.github.io/blog/2014/09/28/blind-return-oriented-programming-brop-attack-gong-ji-yuan-li/"/>
+    <updated>2014-09-28T18:39:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/09/28/blind-return-oriented-programming-brop-attack-gong-ji-yuan-li</id>
+    <content type="html"><![CDATA[<p>这篇文章我已经投稿在<a href="http://drops.wooyun.org/">Wooyun</a>上，可以参看<a href="http://drops.wooyun.org/tips/3071">这里</a>。版权是Wooyun的，转载过来，纯属为了存个档，大家还是去Wooyun支持下吧~</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h3>0x00 写在前面</h3>
+
+<hr />
+
+<p>这篇文章翻译至我的<a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">这篇博客</a>，主要介绍了一种叫做BROP的攻击，该文章主要介绍原理部分，对该攻击的重现可以参看我的<a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">另外一篇博客</a>。</p>
+
+<p>BROP攻击基于一篇发表在Oakland 2014的论文<strong>Hacking Blind</strong>，作者是来自Standford的Andrea Bittau，以下是相关paper和slide的链接：</p>
+
+<p><a href="http://www.scs.stanford.edu/brop/bittau-brop.pdf">paper</a></p>
+
+<p><a href="http://www.scs.stanford.edu/brop/bittau-brop-slides.pdf">slide</a>。</p>
+
+<p>以及BROP的原网站地址：</p>
+
+<p><a href="http://www.scs.stanford.edu/brop/">Blind Return Oriented Programming (BROP) Website</a></p>
+
+<p>可以说这篇论文是今年看过的最让我感到兴奋的论文（没有之一），如果要用一个词来形容它的话，那就只有“不能更帅”才能表达我对它的喜爱程度了！</p>
+
+<p>这篇文章假设读者已经了解Return-Oriented Programming (ROP) 的基本概念，所以只是介绍BROP的实现原理，如果还不清楚什么是ROP，请先出门左转，看看<a href="http://en.wikipedia.org/wiki/Return-oriented_programming">Wiki</a>的相关介绍。</p>
+
+<p>BROP的实现真的是让人感到非常“cool”和“smart”，我希望能够通过这篇文章把它讲清楚。</p>
+
+<h3>0x01 BROP攻击的目标和前提条件</h3>
+
+<hr />
+
+<p>目标：通过ROP的方法远程攻击某个应用程序，劫持该应用程序的控制流。我们可以不需要知道该应用程序的源代码或者任何二进制代码，该应用程序可以被现有的一些保护机制如NX, ASLR, PIE, 以及stack canaries等保护，应用程序所在的服务器可以是32位系统或者64位系统。</p>
+
+<p>初看这个目标感觉实现起来特别困难。其实这个攻击有两个前提条件的：</p>
+
+<ul>
+<li>必须先存在一个已知的stack overflow的漏洞，而且攻击者知道如何触发这个漏洞；</li>
+<li>服务器进程在crash之后会重新复活，并且复活的进程不会被re-rand（意味着虽然有ASLR的保护，但是复活的进程和之前的进程的地址随机化是一样的）。这个需求其实是合理的，因为当前像nginx, MySQL, Apache, OpenSSH, Samba等服务器应用都是符合这种特性的。</li>
+</ul>
+
+
+<h3>0x10 BROP的攻击流程 1 - 远程dump内存</h3>
+
+<hr />
+
+<p>由于我们不知道被攻击程序的内存布局，所以首先要做的事情就是通过某种方法从远程服务器dump出该程序的内存到本地，为了做到这点我们需要调用一个系统调用<code>write</code>，传入一个socket文件描述符，如下所示：</p>
+
+<blockquote><p>write(int sock, void *buf, int len)</p></blockquote>
+
+<p>将这条系统调用转换成4条汇编指令，如图所示：</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-1.png" title="write gadgets" alt="write gadgets" /></p>
+
+<p>所以从ROP攻击的角度来看，我们只需要找到四个相应的gadget，然后在栈上构造好这4个gadget的内存地址，依次进行顺序调用就可以了。</p>
+
+<p>但是问题是我们现在连内存分布都不知道，该如何在内存中找到这4个gadgets呢？特别是当系统部署了ASLR和stack canaries等保护机制，似乎这件事就更难了。</p>
+
+<p>所以我们先将这个问题放一放，在脑袋里记着这个目标，先来做一些准备工作。</p>
+
+<h4>攻破Stack Canaries防护</h4>
+
+<p>如果不知道什么是<code>stack canaries</code>可以先看<a href="http://en.wikipedia.org/wiki/Stack_buffer_overflow#Stack_canaries">这里</a>，简单来说就是在栈上的<code>return address</code>下面放一个随机生成的数（成为canary），在函数返回时进行检查，如果发现这个canary被修改了（可能是攻击者通过buffer overflow等攻击方法覆盖了），那么就报错。</p>
+
+<p>那么如何攻破这层防护呢？一种方法是brute-force暴力破解，但这个很低效，这里作者提出了一种叫做“stack reading”的方法：</p>
+
+<p>假设这是我们想要overflow的栈的布局：</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-2.png" title="stack layout" alt="stack layout" /></p>
+
+<p>我们可以尝试任意多次来判断出overflow的长度（直到进程由于canary被破坏crash了，在这里即为<code>4096+8=4104</code>个字节），之后我们将这4096个字节填上任意值，然后一个一个字节顺序地进行尝试来还原出真实的canary，比如说，我们将第4097个字节填为<code>x</code>，如果<code>x</code>和原来的canary中的第一个字节是一样的话，那么进程不会crash，否则我们尝试下一个<code>x</code>的可能性，在这里，由于一个字节只有256种可能，所以我们只要最多尝试256次就可以找到canary的某个正确的字节，直到我们得到8个完整的canary字节，该流程如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-3.png" title="stack reading" alt="stack reading" /></p>
+
+<p>我们同样可以用这种方法来得到保存好的<code>frame pointer</code>和<code>return address</code>。</p>
+
+<h4>寻找<code>stop gadget</code></h4>
+
+<p>到目前为止，我们已经得到了合适的canary来绕开stack canary的保护, 接下来的目标就是找到之前提到的4个gadgets。</p>
+
+<p>在寻找这些特定的gadgets之前，我们需要先来介绍一种特殊的gadget类型：<code>stop gadget</code>.</p>
+
+<p>一般情况下，如果我们把栈上的<code>return address</code>覆盖成某些我们随意选取的内存地址的话，程序有很大可能性会挂掉（比如，该<code>return address</code>指向了一段代码区域，里面会有一些对空指针的访问造成程序crash，从而使得攻击者的连接（connection）被关闭）。但是，存在另外一种情况，即该<code>return address</code>指向了一块代码区域，当程序的执行流跳到那段区域之后，程序并不会crash，而是进入了无限循环，这时程序仅仅是hang在了那里，攻击者能够一直保持连接状态。于是，我们把这种类型的gadget，成为<code>stop gadget</code>，这种gadget对于寻找其他gadgets取到了至关重要的作用。</p>
+
+<h4>寻找可利用的（potentially useful）gadgets</h4>
+
+<p>假设现在我们找到了某个可以造成程序block住的<code>stop gadget</code>，比如一个无限循环，或者某个blocking的系统调用（<code>sleep</code>），那么我们该如何找到其他 <code>useful gadgets</code>呢？（这里的“useful”是指有某些功能的gadget，而不是会造成crash的gadget）。</p>
+
+<p>到目前为止我们还是只能对栈进行操作，而且只能通过覆盖<code>return address</code>来进行后续的操作。假设现在我们猜到某个<code>useful gadget</code>，比如<code>pop rdi; ret</code>, 但是由于在执行完这个gadget之后进程还会跳到栈上的下一个地址，如果该地址是一个非法地址，那么进程最后还是会crash，在这个过程中攻击者其实并不知道这个<code>useful gadget</code>被执行过了（因为在攻击者看来最后的效果都是进程crash了），因此攻击者就会认为在这个过程中并没有执行到任何的<code>useful gadget</code>，从而放弃它，这个步骤如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-4.png" title="useful gadget but crash" alt="useful gadget but crash" /></p>
+
+<p>但是，如果我们有了<code>stop gadget</code>，那么整个过程将会很不一样. 如果我们在需要尝试的<code>return address</code>之后填上了足够多的<code>stop gadgets</code>，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-5.png" title="stop gadgets usage" alt="stop gadgets usage" /></p>
+
+<p>那么任何会造成进程crash的gadget最后还是会造成进程crash，而那些<code>useful gadget</code>则会进入block状态。尽管如此，还是有一种特殊情况，即那个我们需要尝试的gadget也是一个<code>stop gadget</code>，那么如上所述，它也会被我们标识为<code>useful gadget</code>。不过这并没有关系，因为之后我们还是需要检查该<code>useful gadget</code>是否是我们想要的gadget.</p>
+
+<h4>最后一步：远程dump内存</h4>
+
+<p>到目前为止，似乎准备工作都做好了，我们已经可以绕过canary防护，并且得到很多不会造成进程crash的“potential useful gadget”了，那么接下来就是该如何找到我们之前所提到的那四个gadgets呢？</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-6.png" title="find write gadgets" alt="find write gadgets" /></p>
+
+<p>如上图所示，为了找到前两个gadgets：<code>pop %rsi; ret</code>和<code>pop %rdi; ret</code>，我们只需要找到一种所谓的<code>BROP gadget</code>就可以了，这种gadget很常见，它做的事情就是恢复那些<code>callee saved registers</code>. 而对它进行一个偏移就能够生成<code>pop %rdi</code>和<code>pop %rsi</code>这两个gadgets.</p>
+
+<p>不幸的是<code>pop %rdx; ret</code>这个gadget并不容易找到，它很少出现在代码里, 所以作者提出一种方法，相比于寻找<code>pop %rdx</code>指令，他认为可以利用<code>strcmp</code>这个函数调用，该函数调用会把字符串的长度赋值给<code>%rdx</code>，从而达到相同的效果。另外<code>strcmp</code>和<code>write</code>调用都可以在程序的Procedure Linking Table (PLT)里面找到.</p>
+
+<p>所以接下来的任务就是：</p>
+
+<ul>
+<li>找到所谓的<code>BROP Gadget</code>；</li>
+<li>找到对应的PLT项。</li>
+</ul>
+
+
+<h5>寻找<code>BROP Gadget</code></h5>
+
+<p>事实上<code>BROP gadgets</code>特别特殊，因为它需要顺序地从栈上<code>pop</code> 6个值然后执行<code>ret</code>。所以如果我们利用之前提到的<code>stop gadget</code>的方法就可以很容易找到这种特殊的gadget了，我们只需要在<code>stop gadget</code>之前填上6个会造成crash的地址:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-7.png" title="find brop gadgets" alt="find brop gadget" /></p>
+
+<p>如果任何<code>useful gadget</code>满足这个条件且不会crash的话，那么它基本上就是<code>BROP gadgets</code>了。</p>
+
+<h5>寻找PLT项</h5>
+
+<p><a href="http://en.wikipedia.org/wiki/Dynamic_linking">PLT</a>是一个跳转表，它的位置一般在可执行程序开始的地方，该机制主要被用来给应用程序调用外部函数（比如libc等），具体的细节可以看相关的Wiki。它有一个非常独特的signature：每一个项都是16个字节对齐，其中第0个字节开始的地址指向改项对应函数的fast path，而第6个字节开始的地址指向了该项对应函数的slow path：</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-8.png" title="plt structure" alt="plt structure" /></p>
+
+<p>另外，大部分的PLT项都不会因为传进来的参数的原因crash，因为它们很多都是系统调用，都会对参数进行检查，如果有错误会返回EFAULT而已，并不会造成进程crash。所以攻击者可以通过下面这个方法找到PLT：如果攻击者发现好多条连续的16个字节对齐的地址都不会造成进程crash，而且这些地址加6得到的地址也不会造成进程crash，那么很有可能这就是某个PLT对应的项了。</p>
+
+<p>那么当我们得到某个PLT项，我们该如何判断它是否是<code>strcmp</code>或者<code>write</code>呢？</p>
+
+<p>对于<code>strcmp</code>来说, 作者提出的方法是对其传入不同的参数组合，通过该方法调用返回的结果来进行判断。由于<code>BROP gadget</code>的存在，我们可以很方便地控制前两个参数，<code>strcmp</code>会发生如下的可能性：</p>
+
+<table>
+<thead>
+<tr>
+<th align="center">arg1 </th>
+<th align="center"> arg2 </th>
+<th align="center"> result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">readable </td>
+<td align="center"> 0x0 </td>
+<td align="center"> crash</td>
+</tr>
+<tr>
+<td align="center">0x0 </td>
+<td align="center"> readable </td>
+<td align="center"> crash</td>
+</tr>
+<tr>
+<td align="center">0x0 </td>
+<td align="center"> 0x0 </td>
+<td align="center"> crash</td>
+</tr>
+<tr>
+<td align="center">readable </td>
+<td align="center"> readable </td>
+<td align="center"> nocrash</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>根据这个signature, 我们能够在很大可能性上找到<code>strcmp</code>对应的PLT项。</p>
+
+<p>而对于<code>write</code>调用，虽然它没有这种类似的signature，但是我们可以通过检查所有的PLT项，然后触发其向某个socket写数据来检查<code>write</code>是否被调用了，如果<code>write</code>被调用了，那么我们就可以在本地看到传过来的内容了。</p>
+
+<p>最后一步就是如何确定传给<code>write</code>的socket文件描述符是多少了。这里有两种办法：1. 同时调用好几次write，把它们串起来，然后传入不同的文件描述符数；2. 同时打开多个连接，然后使用一个相对较大的文件描述符数字，增加匹配的可能性。</p>
+
+<p>到这一步为止，攻击者就能够将整个<code>.text</code>段从内存中通过socket写到本地来了，然后就可以对其进行反编译，找到其他更多的gadgets，同时，攻击者还可以dump那些symbol table之类的信息，找到PLT中其它对应的函数项如<code>dup2</code>和<code>execve</code>等。</p>
+
+<h3>0x11 BROP的攻击流程 2 - 实施攻击</h3>
+
+<hr />
+
+<p>到目前为止，最具挑战性的部分已经被解决了，我们已经可以得到被攻击进程的整个内存空间了，接下来就是按部就班了（从论文中翻译）：</p>
+
+<ul>
+<li>将socket重定向到标准输入/输出（standard input/output）。攻击者可以使用<code>dup2</code>或<code>close</code>，跟上<code>dup</code>或者<code>fcntl(F_DUPFD)</code>。这些一般都能在PLT里面找到。</li>
+<li>在内存中找到<code>/bin/sh</code>。其中一个有效的方法是从symbol table里面找到一个可写区域（writable memory region），比如<code>environ</code>，然后通过socket将<code>/bin/sh</code>从攻击者这里读过去。</li>
+<li><code>execve</code> shell. 如果<code>execve</code>不在PLT上, 那么攻击者就需要通过更多次的尝试来找到一个<code>pop rax; ret</code>和<code>syscall</code>的gadget.</li>
+</ul>
+
+
+<p>归纳起来，BROP攻击的整个步骤是这样的：</p>
+
+<ul>
+<li>通过一个已知的stack overflow的漏洞，并通过stack reading的方式绕过stack canary的防护，试出某个可用的return address；</li>
+<li>寻找<code>stop gadget</code>：一般情况下这会是一个在PLT中的blocking系统调用的地址（sleep等），在这一步中，攻击者也可以找到PLT的合法项；</li>
+<li>寻找<code>BROP gadget</code>：这一步之后攻击者就能够控制<code>write</code>系统调用的前两个参数了；</li>
+<li>通过signature的方式寻找到PLT上的<code>strcmp</code>项，然后通过控制字符串的长度来给<code>%rdx</code>赋值，这一步之后攻击者就能够控制<code>write</code>系统调用的第三个参数了；</li>
+<li>寻找PLT中的<code>write</code>项：这一步之后攻击者就能够将整个内存从远端dump到本地，用于寻找更多的gadgets；</li>
+<li>有了以上的信息之后，就可以创建一个shellcode来实施攻击了。</li>
+</ul>
+
+
+<h3>0x100 后记</h3>
+
+<hr />
+
+<p>以上就是BROP攻击的原理，在<a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">这篇博文</a>中重现了这个攻击，有兴趣的可以去看看。</p>
+
+<p>其实在整个攻击过程中最酷的要数第一个步骤：如何dump内存，之后的步骤其实就是传统的ROP攻击了。明白了原理之后，其实最好的了解该攻击的方法就是看源代码了，这个对了解整个ROP会有非常大的帮助。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Blind Return Oriented Programming (BROP) Attack (3)]]></title>
+    <link href="http://ytliu.github.io/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/"/>
+    <updated>2014-06-02T20:32:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san</id>
+    <content type="html"><![CDATA[<p>This topic consists of 3 sessions:</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">BROP Principle - dump memory to attacker and do exploit</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">BROP Practice1 - attack conduct</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">BROP Practice2 - code analysis</a></li>
+</ul>
+
+
+<hr />
+
+<p><a href="http://www.scs.stanford.edu/brop/">Blind Return Oriented Programming (BROP) Website</a></p>
+
+<p><strong>Hacking Blind</strong>: <a href="http://www.scs.stanford.edu/brop/bittau-brop.pdf">paper</a> and <a href="http://www.scs.stanford.edu/brop/bittau-brop-slides.pdf">slide</a></p>
+
+<hr />
+
+<p>The principle of BROP can be found in the <a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">1st session</a> and the real attack exploit can be found in the <a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">2nd session</a>, and in this page I would like to write a code analysis blog which shows how I understand the code of the attack.</p>
+
+<!-- more -->
+
+
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Blind Return Oriented Programming (BROP) Attack (2)]]></title>
+    <link href="http://ytliu.github.io/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/"/>
+    <updated>2014-06-01T16:05:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er</id>
+    <content type="html"><![CDATA[<p>This topic consists of 3 sessions:</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">BROP Principle - dump memory to attacker and do exploit</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">BROP Practice1 - attack conduct</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">BROP Practice2 - code analysis</a></li>
+</ul>
+
+
+<hr />
+
+<p><a href="http://www.scs.stanford.edu/brop/">Blind Return Oriented Programming (BROP) Website</a></p>
+
+<p><strong>Hacking Blind</strong>: <a href="http://www.scs.stanford.edu/brop/bittau-brop.pdf">paper</a> and <a href="http://www.scs.stanford.edu/brop/bittau-brop-slides.pdf">slide</a></p>
+
+<hr />
+
+<p>Following the <a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">1st session</a>, which talked about the principle of BROP attack, this page will discuss about how to conduct the real exploit in a Linux system.</p>
+
+<p>This session is more like a kind of tutorial about how I conduct one of the 3 attacks conducted by the authors (specifically, attack nginx 1.4.0 with a buffer overflow bug - <a href="http://cvedetails.com/cve/2013-2028">CVE-2013-2028</a>, and finally can execute the shell) in my PC.</p>
+
+<!-- more -->
+
+
+<h4>Setting Up Nginx-1.4.0</h4>
+
+<p>At first, we need to setup the server environment: nginx 1.4.0.</p>
+
+<p>Download the nginx 1.4.0 source code:</p>
+
+<pre><code>$ wget nginx.org/download/nginx-1.4.0.tar.gz
+$ tar zxvf nginx-1.4.0.tar.gz
+$ cd nginx-1.4.0
+$ ./configure --sbin-path=/usr/local/nginx/nginx --conf-path=/usr/local/nginx/nginx.conf --pid-path=/usr/local/nginx/nginx.pid --with-http_ssl_module
+</code></pre>
+
+<p>Before compiling, modify the makefile with stack canary protection:</p>
+
+<pre><code>$ vi obj/Makefile
+</code></pre>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="n">CFLAGS</span> <span class="o">=</span> <span class="o">-</span><span class="n">pipe</span> <span class="o">-</span><span class="n">O</span> <span class="o">-</span><span class="n">W</span> <span class="o">-</span><span class="n">Wall</span> <span class="o">-</span><span class="n">Wpointer</span><span class="o">-</span><span class="n">arith</span> <span class="o">-</span><span class="n">Wno</span><span class="o">-</span><span class="n">unused</span><span class="o">-</span><span class="n">parameter</span> <span class="o">-</span><span class="n">Werror</span> <span class="o">-</span><span class="n">g</span> <span class="o">-</span><span class="n">fstack</span><span class="o">-</span><span class="n">protector</span>
+</span><span class='line'><span class="p">...</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Then compile it:</p>
+
+<pre><code>$ make -j4
+$ sudo make install
+</code></pre>
+
+<p>At this point, it is installed in the <code>/usr/local/nginx</code> folder. If you use <code>checksec.sh</code> to check it:</p>
+
+<pre><code>$ wget www.trapkit.de/tools/checksec.sh
+$ chmod +x ./checksec.sh
+$ ./checksec.sh --file /usr/local/nginx/nginx
+</code></pre>
+
+<p>You will get following result:</p>
+
+<p><img src="http://ytliu.info/images/2014-06-01-1.png" title="checksec result" alt="checksec.sh result" /></p>
+
+<p>Which means it already has NX and Stack canary protection.</p>
+
+<p>Before running nginx, we need to modify its configuration to make it run with 4 worker processes:</p>
+
+<pre><code>$ vi /usr/local/nginx/nginx.conf
+</code></pre>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">user</span>  <span class="n">nobody</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">worker_processes</span> <span class="mi">4</span><span class="p">;</span>
+</span><span class='line'><span class="p">...</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Then we just run it with:</p>
+
+<pre><code>$ sudo /usr/local/nginx/nginx
+</code></pre>
+
+<h4>Exploit BROP Attack</h4>
+
+<p>Now let's see how to do the BROP attack. It is quite simple, since the authors have already write a nginx specific attack script using ruby.</p>
+
+<p>Download the exploit script:</p>
+
+<pre><code>$ wget www.scs.standford.edu/brop/nginx-1.4.0-exp.tgz
+$ tar zxvf nginx-1.4.0-exp.tgz
+$ cd nginx-1.4.0-exp
+</code></pre>
+
+<p>And run it by simply executing:</p>
+
+<pre><code>$ ./brop.rb 127.0.0.1
+</code></pre>
+
+<p>If everything is ok, then it will exploit the nginx-1.4.0 using the approach I talked about <a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">here</a>, and finally print the id of the exploited shell's owner:</p>
+
+<p><video width='640' height='320' preload='none' controls poster='http://ytliu.info/images/nginx-brop.png'><source src='http://ytliu.info/images/nginx-brop.mp4' type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'></video></p>
+
+<p>If there's any problem, and you want to rerun the script, you should first remove the <code>state.bin</code> file, or even restart nginx, and run brop.rb again:</p>
+
+<pre><code>$ rm -f ./state.bin
+$ ./brop.rb 127.0.0.1
+</code></pre>
+
+<p>That's done!</p>
+
+<hr />
+
+<p>In the <a href="http://ytliu.info/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">following session</a>, I will try to analyse the ruby script, and show how they do the attack in code aspect.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Blind Return Oriented Programming (BROP) Attack (1)]]></title>
+    <link href="http://ytliu.github.io/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/"/>
+    <updated>2014-05-31T10:00:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi</id>
+    <content type="html"><![CDATA[<p>This topic consists of 3 sessions:</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">BROP Principle - dump memory to attacker and do exploit</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">BROP Practice1 - attack conduct</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">BROP Practice2 - code analysis</a></li>
+</ul>
+
+
+<hr />
+
+<p><a href="http://www.scs.stanford.edu/brop/">Blind Return Oriented Programming (BROP) Website</a></p>
+
+<p><strong>Hacking Blind</strong>: <a href="http://www.scs.stanford.edu/brop/bittau-brop.pdf">paper</a> and <a href="http://www.scs.stanford.edu/brop/bittau-brop-slides.pdf">slide</a></p>
+
+<hr />
+
+<p>This paper is surely one of the best security papers I've ever read these years! Cool, fabulous, terrific, gorgeous, superb, sensuous...I would like to use any "good" word I can tell to describe it. And what's more, the attack code is open sourced! I've read and talked about so many times about ROP attack, but actually I've never conducted or tried one in reality myself, but this time, I not only tried the "legendary" ROP attack, it is even the <strong>Blind</strong> one!</p>
+
+<p>In this page, I will assume you have basic knowledge about Return Oriented Programming (ROP), so that I just explain what the BROP is and how they conduct it.</p>
+
+<p>This BROP is really cool and smart, I hope I can throw light on it and make you clear.</p>
+
+<!-- more -->
+
+
+<h3>Goal of BROP</h3>
+
+<ul>
+<li>Remotely ROP attack one program even when we don't know both the source code and binary of this program. The remote server may be protected by NX, ASLR, PIE and stack canaries, and the system may be 64-bit rather than 32-bit.</li>
+</ul>
+
+
+<p>When you first see this, you must find it is notoriously hard to accomplish such goal. However, there's also 2 assumptions:</p>
+
+<h3>Attack Requirements</h3>
+
+<ul>
+<li>There's at least one stack vulnerability, and the attacker has the knowledge of how to trigger it.</li>
+<li>Server process will respawns after crash, and the respawn process will not re-rand (which means rerandomize its address space). This is reasonable, it holds for examples like nginx, MySQL, Apache, OpenSSH, Samba, etc.</li>
+</ul>
+
+
+<h3>Attack Procedure</h3>
+
+<h4>Remotely dump memory</h4>
+
+<p>Since we don't know the memory layout of the victim program, the first thing we need to do is to find an approach to dump the memory to our screen, thus we need to call a <code>write</code> system call with a socket file descriptor argument, that is:</p>
+
+<blockquote><p>write(int sock, void *buf, int len)</p></blockquote>
+
+<p>To tranform it to the assembly code, we can simply get following 4 pieces of gadgets:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-1.png" title="write gadgets" alt="write gadgets" /></p>
+
+<p>So for this mission, what we need to do is finding these 4 gadgets, and constructing stack to provide appropriate values and invoke them sequentially.</p>
+
+<p>Let's now stop here, since currently we still have no idea about what the memory layout looks like, especially when the remote system are armed with ASLR and stack canaries.</p>
+
+<h5>Breaking Stack Canaries</h5>
+
+<p>How? One possible way is "Brute-forcing", but that's inefficient, and here the authors propose a so called "stack reading" approach.</p>
+
+<p>Suppose this is the original layout of the compromised stack:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-2.png" title="stack layout" alt="stack layout" /></p>
+
+<p>We can try as many times as possible to find the overflow length (until crash due to canary tamper, here is <code>4096+8=4104</code>), then we fill the 4096 bytes with arbitary value, and leak canary by sequentially overwriting a single byte with value <code>x</code>, if <code>x</code> is correct, than the server will not crash, we repeat <code>x</code> for all possible 256 byte values until it is found, till we find all 8 canary bytes, the process is shown as follows:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-3.png" title="stack reading" alt="stack reading" /></p>
+
+<p>We can also use this approach to read the saved frame pointer and return address.</p>
+
+<h5>Finding the stop gadget</h5>
+
+<p>Till now we already have the appropriate canary to bypass the stack canary protection, the next task is to find the mentioned gadgets.</p>
+
+<p>Before exploring for these specific gadgets, there is one type of gadget we need to get: stop gadget.</p>
+
+<p>As we know, when we overwright the return address to some guessed memory address, most of the time the program will crash, e.g., the return address point to code with a null pointer dereference, then the connection will close. However, there's another situation, where the return address point to code which causes an inﬁnite loop, so the program will just hang, and the connection will still stay open. This kind of gadget, the so called <code>stop gadget</code>, is fundamental to
+ﬁnding other gadgets.</p>
+
+<h5>Finding the potentially useful gadgets</h5>
+
+<p>Suppose we have a stop gadget that would cause the program to block, like an inﬁnite loop or a blocking system call (e.g., <code>sleep</code>), then how can we find other potentially useful gadgets? (here for useful, I mean the gadgets that have some potential functions, other than the ones which will cause crash.)</p>
+
+<p>Since now we can only manipulate the stack, the only things we can do are overwriting return addresses. Suppose if we guess an address of a useful gadget like <code>pop rdi; ret</code>, the application will still likely crash because it will eventually attempt to return to the next word on the stack, likely an invalid address, and this crash would cause us to discard the gadget classifying it as useless, as shown in the figure:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-4.png" title="useful gadget but crash" alt="useful gadget but crash" /></p>
+
+<p>However, if we have <code>stop gadget</code> as we mentioned above, it will be quite different. If we fill enough <code>stop gadgets</code> after the return address we want to probe, as follows:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-5.png" title="stop gadgets usage" alt="stop gadgets usage" /></p>
+
+<p>Then any crash gadget will cause program crash and be marked as useless, while any potential useful gadget will not cause crash. Nevertheless as you can see, there's still a word called "potential", which means there's one exception, that is "stop gadget". It is possible that the gadge we probe is also another <code>stop gadget</code>, however it never matters, since we will check later to assure the gadgets that we need.</p>
+
+<h5>Dumping memory remotely</h5>
+
+<p>As of now, everything seemed ready, then let's see how to find and validate the 4 pieces of gadgets as we proposed at the beginning:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-6.png" title="find write gadgets" alt="find write gadgets" /></p>
+
+<p>As shown in the figure, to find the first 2 gadgets: <code>pop %rsi; ret</code>, <code>pop %rdi; ret</code>, we just need to find the so called <code>BROP gadget</code>, which is very common as it restores all callee saved registers. Misaligned parses of it yield a <code>pop %rdi</code> and <code>pop %rsi</code>. Unfortunately <code>pop %rdx; ret</code> gadgets are rare, so the optimization proposed by the authors is to ﬁnd a call to strcmp instead which sets <code>%rdx</code> to the length of the string being compared, and together with finding <code>call write</code>, we can find them in the program’s Procedure Linking Table (PLT).</p>
+
+<ul>
+<li>Finding BROP Gadget</li>
+</ul>
+
+
+<p>Actually BROP gadgets are very special, since it sequentially <code>pop</code> 6 values from stack and <code>ret</code>. So if we use the approach with <code>stop gadget</code> mentioned above, we can fill 6 crash addresses before the <code>stop gadget</code> address:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-7.png" title="find brop gadgets" alt="find brop gadget" /></p>
+
+<p>if any potential useful gadget fullfil such condition, it is very likely one of the <code>BROP gadgets</code>.</p>
+
+<ul>
+<li>Finding PLT Entries</li>
+</ul>
+
+
+<p>The <a href="http://en.wikipedia.org/wiki/Dynamic_linking">PLT</a> is a jump table at the beginning of the executable used for all external calls (e.g., libc). It  has a very unique signature: each entry is 16 bytes apart (16 bytes aligned) and the slow path for each entry can be run at an offset of 6 bytes:</p>
+
+<p><img src="http://ytliu.info/images/2014-05-31-8.png" title="plt structure" alt="plt structure" /></p>
+
+<p>What's more, most of the PLT entries will not cause a crash regardless of arguments because they are system calls that return EFAULT on invalid parameters. One can therefore ﬁnd the PLT with great conﬁdence if a couple of addresses 16 bytes apart do not cause a crash, and can verify that the same addresses plus six do not cause a crash. And these addresses are also the ﬁrst to have valid code as they are early on in the executable’s address space.</p>
+
+<p>So when we find one of the PLT entries, what we need to do is check if it is <code>strcmp</code> or <code>write</code> one.</p>
+
+<p>For <code>strcmp</code>, the authors validate it by exercising it with different arguments and seeing how the function performs. Thanks to BROP gadget, we can control the first two arguments passed to <code>strcmp</code>, and it will have following behavior and signature:</p>
+
+<table>
+<thead>
+<tr>
+<th align="center">arg1 </th>
+<th align="center"> arg2 </th>
+<th align="center"> result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">readable </td>
+<td align="center"> 0x0 </td>
+<td align="center"> crash</td>
+</tr>
+<tr>
+<td align="center">0x0 </td>
+<td align="center"> readable </td>
+<td align="center"> crash</td>
+</tr>
+<tr>
+<td align="center">0x0 </td>
+<td align="center"> 0x0 </td>
+<td align="center"> crash</td>
+</tr>
+<tr>
+<td align="center">readable </td>
+<td align="center"> readable </td>
+<td align="center"> nocrash</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Based on this signature, we have high possibility to find the <code>strcmp</code> PLT entry.</p>
+
+<p>And for <code>write</code>, though there's not any similar signature, we can still achieve it by scanning each PLT entry and forcing a write to the socket and checking whether the write occurred.</p>
+
+<p>The only complication is ﬁguring out the ﬁle descriptor number for the socket. There are two approaches: chaining multiple writes each with different ﬁle descriptor numbers in a single ROP chain, or opening multiple connections and using a relatively high ﬁle descriptor number in hope that it will match one of the connections.</p>
+
+<p>At this point the attacker can write the entire <code>.text</code> segment from memory to the attacker’s socket, disassemble it, and ﬁnd more gadgets. The attacker can also dump the symbol table and ﬁnd useful functions in the PLT like dup2 and execve.</p>
+
+<h4>Doing exploit</h4>
+
+<p>So the most challenge part has been solved, the subsequent process will be (simply from paper):</p>
+
+<ul>
+<li>Redirect the socket to standard input/output. The attacker can use dup2 or close, followed by either dup or fcntl(F_DUPFD). These are often in the PLT.</li>
+<li>Find <code>/bin/sh/</code> in memory. An effective technique is to find a writable memory region like the environment, <code>environ</code>, from the symbol table, and <code>read</code> <code>/bin/sh</code> from the attacker's socket to that address.</li>
+<li><code>execve</code> the shell. If <code>execve</code> is not in the PLT, the attacker will need to transfer more of the binary to find a <code>pop rax; ret</code> and <code>syscall</code> gadget.</li>
+</ul>
+
+
+<p>So in conclusion provided by the authors, the BROP attack is as follows:</p>
+
+<ul>
+<li>Find where the executable is loaded. Either 0x400000 for non-PIE executables (default) or stack read a saved return address.</li>
+<li>Find a stop gadget. This is typically a blocking system call (like sleep or read) in the PLT. The attacker ﬁnds the PLT in this step too.</li>
+<li>Find the BROP gadget. The attacker can now control the ﬁrst two arguments to calls.</li>
+<li>Find strcmp in the PLT. The attacker can now control the ﬁrst three arguments to calls.</li>
+<li>Find write in the PLT. The attacker can now dump the entire binary to ﬁnd more gadgets.</li>
+<li>Build a shellcode and exploit the server.</li>
+</ul>
+
+
+<hr />
+
+<p>By far, I've briefly introduced the principle of BROP attack, in the <a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">2nd session</a>, I would like to show how I conduct this attack in my setup environment.</p>
+]]></content>
+  </entry>
+  
+</feed>

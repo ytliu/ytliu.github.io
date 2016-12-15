@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Architecture | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/architecture/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Segmentation Protection in Intel Processor]]></title>
+    <link href="http://ytliu.github.io/blog/2016/09/30/segmentation-protection-in-intel-processor/"/>
+    <updated>2016-09-30T13:49:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2016/09/30/segmentation-protection-in-intel-processor</id>
+    <content type="html"><![CDATA[<p>最近继续看Intel手册，第三卷的第3章和第5章，感觉又学到很多，包括一些之前一直困扰我的问题。这里做一个整理和总结吧。</p>
+
+<!-- more -->
+
+
+<p>这里先推荐一篇博文，<a href="http://duartes.org/gustavo/blog/post/cpu-rings-privilege-and-protection/">CPU Rings, Privilege, and Protection</a>，感觉写的非常好，思路很清晰。建议可以先阅读一下。</p>
+
+<p>首先提一个问题，为什么在当前的Linux操作系统里面，用户态的程序不能访问内核的数据，不能执行内核的代码，同时不能执行一些特权指令呢？在回答这个问题之前，首先需要明白一个概念，到底什么是用户态和内核态。</p>
+
+<h4>特权级（privilege levels）</h4>
+
+<p>特权级是处理器硬件内部维护的一个状态，软件无法直接修改。Intel处理器一共有四个特权级，从高到低分别由0到3表示，即数字越低，表示特权越高，而每个数字即表示了当前CPU运行在哪个特权级上。一般情况下（特别是在64位系统中），系统只会用到这四个特权级中的两个，即0和3，其中0就是所谓的内核态，而3就是用户态。</p>
+
+<p>所以说，一个程序运行在用户态的意思，就是该程序所运行的CPU里面的特权级的状态为3，内核态就表示运行内核的CPU的状态为0，仅此而已。当然，这个特权级会和其它的一些机制组合在一起，在触发某些操作的时候进行检查。这个会在之后详细说明。</p>
+
+<h4>软件如何知道自己运行在哪个特权级上</h4>
+
+<p>按道理来说，特权级是CPU内部的一个状态，软件是无法对它进行直接修改的。但是Intel为软件提供了一个机制，使得软件能够知道自己当前运行在哪个特权级上，简单来说，就是通过段寄存器<code>cs</code>来获得该信息。<code>cs</code>说白了就是一个16位的寄存器，长成这样：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-1.png" title="cs register" alt="cs register" /></p>
+
+<p>也就是说，它最后两个bits就表示当前CPU所处的特权级状态。软件可以通过直接读取<code>cs</code>寄存器获取该信息：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>read_cs.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">read_cs</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">cs</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">asm</span> <span class="k">volatile</span> <span class="p">(</span><span class="s">&quot;mov %%cs, %0&quot;</span> <span class="o">:</span> <span class="s">&quot;=r&quot;</span> <span class="p">(</span><span class="n">cs</span><span class="p">));</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">cs</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>如果读出来最后两个bits是0，则表示运行在内核态，如果是3，则表示运行在用户态。</p>
+
+<h4>基于特权级的保护机制</h4>
+
+<p>有了特权级的概念，我们就可以比较清楚地了解Intel处理器本身提供的那些保护机制了，总体来说，该保护机制主要由三个部分组成。</p>
+
+<ul>
+<li>特权指令的执行</li>
+<li>Memory的保护</li>
+<li>I/O的保护</li>
+</ul>
+
+
+<p>对于I/O的保护，我们这里暂且不表，这里主要考虑的是前面两个部分。</p>
+
+<h3>特权指令的执行</h3>
+
+<p>在Intel的处理器中，一共有16条指令是用户态不能直接执行的（只有内核态可以执行），这些指令如下：</p>
+
+<ul>
+<li>LGDT — Load GDT register.</li>
+<li>LLDT — Load LDT register.</li>
+<li>LTR — Load task register.</li>
+<li>LIDT — Load IDT register.</li>
+<li>MOV (control registers) — Load and store control registers.</li>
+<li>LMSW — Load machine status word.</li>
+<li>CLTS — Clear task-switched flag in register CR0.</li>
+<li>MOV (debug registers) — Load and store debug registers.</li>
+<li>INVD — Invalidate cache, without writeback.</li>
+<li>WBINVD — Invalidate cache, with writeback.</li>
+<li>INVLPG —Invalidate TLB entry.</li>
+<li>HLT— Halt processor.</li>
+<li>RDMSR — Read Model-Specific Registers.</li>
+<li>WRMSR —Write Model-Specific Registers.</li>
+<li>RDPMC — Read Performance-Monitoring Counter.</li>
+<li>RDTSC — Read Time-Stamp Counter.</li>
+</ul>
+
+
+<p>如果在CPL非0的状态下执行这些指令，将会产生一个general-protection exception (#GP) 。至于这些指令都是做什么的，这里也不一一解释了。</p>
+
+<h3>Memory的保护</h3>
+
+<p>这是这篇博文重点关注的内容，主要分为两个部分：Segmentation和Paging。</p>
+
+<h4>段机制（Segmentation）</h4>
+
+<p>下图是利用段机制将内存分成不同段（代码段，数据段等）的一个例子：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-2.png" title="Protected Flat Model" alt="segmentation" /></p>
+
+<p>在这个设计中，有很多段寄存器，通过每个段寄存器可以分别找到其对应的段描述符，然后获得相应的段的基地址，大小，权限等信息。</p>
+
+<p>下图是一个利用段机制寻址的例子：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-3.png" title="Logical Address to Linear Address Translation" alt="segmentation translation" /></p>
+
+<p>段寻址，即给定一个logical address，将其转换为linear address，分为以下几步：</p>
+
+<ul>
+<li>第一，根据情况判断需要寻找的是什么类型的地址（代码？还是数据？由logical address中的segment selector获得）；</li>
+<li>第二，根据所需类型，得到相应的段寄存器（<code>cs</code>，或者<code>ds</code>等）；</li>
+<li>第三，通过段寄存处的第3位到底15位，得到一个特定的段描述符（segment descriptor）；</li>
+<li>第四，根据描述符中的信息（base, limit, access）等，对该logical address进行检查，并且获得对应的linear address（base+offset)；</li>
+</ul>
+
+
+<p>下图是段选择子的示意图：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-4.png" title="Segment selector" alt="segment selector" /></p>
+
+<p>段选择子会被存在段寄存器中，比如之前提到的<code>cs</code>，其中最低2位为RPL（Requested Privilege Level），不过要注意的是，<code>cs</code>段寄存器的最低位为CPL，其它的都是RPL。另外，第3位表示该从GDT还是LDT寻找对应的段描述符，后面的bits就是对应的index了。</p>
+
+<p>下图是段描述符的示意图：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-5.png" title="Segment descriptor" alt="segment descriptor" /></p>
+
+<p>这里不一一解释，可以直接去查Intel文档。总的来说，它就是定义了某个特定的段所对应的基地址，大小，以及相应的权限。这里最重要的权限位就是DPL（Descriptor privilege level），会在之后权限检查的时候使用。</p>
+
+<p>需要声明的是，段寻址主要应用在32位的系统中，在64位的系统上，已经不再采用段寻址了，logical address即为linear address。但是这并不意味着段机制被关闭，段机制是通过设置<code>CR0</code>上的<code>PE flag</code>来开启的，在<code>PE flag</code>开启之后，除非将其清空，否则是无法关闭段保护机制的。这里所说的不用段寻址是指将那些不需要的段描述符的base和limit都设为0，同时如果不需要段机制保护的话也将相应的权限位清空即可。虽然如此，在64位的系统中，关于CPL的信息依然还能通过<code>cs</code>寄存器读取，而且<code>gs</code>和<code>fg</code>两个段寄存器被用作了其他用途。</p>
+
+<p>关于段保护机制，主要是对前面提到的CPL，DPL和RPL进行检查，主要发生在以下三个场景中：</p>
+
+<ul>
+<li>当某个进程需要装载一个新的段选择子：</li>
+</ul>
+
+
+<p><img src="http://ytliu.info/images/2016-09-30-6.png" title="x86 Segment loading" alt="segment loading" /></p>
+
+<p>它会判断当前的CPL和RPL是否权限都比相应的DPL的权限高（Max(CPL, RPL) &lt;= DPL），如果是，则允许加载新的段选择子，否则产生GP。</p>
+
+<ul>
+<li>当某个进程需要访问某个段中的内容：</li>
+</ul>
+
+
+<p><img src="http://ytliu.info/images/2016-09-30-7.png" title="x86 Segmentation data access" alt="segmentation data" /></p>
+
+<p>该检查的逻辑同上。</p>
+
+<ul>
+<li>当某个进程中一个段的代码需要跳转到另外一个段的代码中。</li>
+</ul>
+
+
+<p>这个过程比较复杂，它的段描述符被称为门描述符（gate descriptor），一共有四种门描述符：<code>call-gate</code>，<code>interrupt-gate</code>，<code>trap-gate</code>，<code>task-gate</code>。每一种的检查都有一些细微的区别，但是总体的规则是差不多的，下图举了一个IDT（Interrupt Descriptor Table）的例子：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-30-8.png" title="Interrupt Descriptor with Privilege Check" alt="Interrupt-gate descriptor" /></p>
+
+<p>这里有两个DPL，一个是<code>interrupt-gate</code>描述符中的DPL，还有一个是该门描述符中指向的目标代码段的DPL，在这里为0。在发生一个interrupt的时候，它需要检查CPL是否比目标代码段的DPL更低权限（即CPL >= DPL），因为interrupt不允许高权限往低权限跳转。另外，对于软件产生的interrupt，比如<code>int n</code>，还要再检查一下CPL是否比<code>interrupt-gate</code>描述符的DPL更高（即CPL &lt;= gate DPL）。否则用户态就可以任意调用interrupt了。</p>
+
+<p>可以说，在64位系统上，关于数据访问的段保护机制已经完全由paging机制代替了，其它两个还会涉及到相应的检查。</p>
+
+<h4>RPL (Request Privilege Level)</h4>
+
+<p>最后来说一下为什么需要有<code>RPL</code>这个概念，它的主要作用是允许高特权级（比如内核态）的代码在为低特权级提供服务的时候，通过较低的权限来加载段。</p>
+
+<p><a href="https://iambvk.wordpress.com/2007/10/10/notes-on-cpl-dpl-and-rpl-terms/">这里</a>举了一个例子：</p>
+
+<p>假设有一个设备驱动跑在内核态，它为上层用户态进程提供了一个服务，即能够直接将一部分数据从磁盘拷贝到用户态进程的数据段。因此，用户态的进程需要将数据段的信息（如段选择子，地址和需要拷贝的数据大小）提供给该驱动。</p>
+
+<p>由于该驱动在内核态，因此一个用户态的进程能够通过伪造数据段的信息，欺骗该驱动将数据拷贝到另一个内核态的数据段中。这种攻击就被称为权限提升（privilege escalation）。</p>
+
+<p>那么，<code>RPL</code>是怎么解决这个问题的呢？</p>
+
+<p>还是上面的例子，当驱动加载目标段的段选择子的时候，将其<code>RPL</code>修改成用户态的权限（即3）。由于数据段的检查逻辑保证<code>CPL &lt;= DPL</code>和<code>RPL &lt;= DPL</code>两个条件同时满足，因此上面提到的权限提升的攻击就会因为<code>RPL（3） &lt;= DPL（0）</code>而造成protection-fault。</p>
+
+<p>所以说，这里的关键就是，当内核态的代码为用户态的进程提供服务的时候，应该要预先将其RPL所代表的权限暂时降低。</p>
+
+<h4>回答开头的那个问题</h4>
+
+<p>用户态的程序之所以不能访问内核的数据，不能执行内核的代码，同时不能执行一些特权指令，在32位系统中，这主要是由特权级、segmentation和paging机制共同决定的，而在64位系统中，这主要是由特权级和paging机制决定的。用户态的进程所能看到的页表，内核页对应页表项的权限位标记了S(upervisor)位，因此，当进程处于用户态时，<code>CPL</code>
+为3，当然就不能访问内核数据，执行内核代码，以及执行特权指令了。</p>
+
+<h3>总结</h3>
+
+<p>最后总结一下，在64位系统还没有出来的时候，段机制是被广泛应用的。当64位出现，能够访问的地址空间变得特别大，就不需要再将内存划分成多个段进行管理了（否则复杂度增加），转而采用一种扁平化的模型（Flat model），另外，页表机制的出现，也使得不同权限级别之间的数据访问保护和隔离也不再需要段保护机制来做，而是直接通过设置页表项中的<code>U/S</code>, <code>R/W</code>, <code>P</code>, <code>NX</code>等权限位即可达到原来的目的。因此，segmentation这套机制，在64位系统中的利用价值就不如以前了。不过，如之前所说，<code>cs</code>段选择子依然可以帮助软件了解当前运行的特权级，<code>gs</code>, <code>fs</code>两个段选择子也另寻用处，这个就是后话了。另外，对于不同特权级之间的控制流转换，包括不同门描述符的利用，这个还是和原来的机制一样。因此，可以说segmentation这套机制在64位系统中依然还有用武之地，甚至我觉得它们可以找到一些新的利用场景，来优化当前的系统。</p>
+
+<p>以上。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[TLB的那些事儿]]></title>
+    <link href="http://ytliu.github.io/blog/2016/09/16/tlbde-na-xie-shi-er/"/>
+    <updated>2016-09-16T09:39:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2016/09/16/tlbde-na-xie-shi-er</id>
+    <content type="html"><![CDATA[<p>这两天因为某些原因，好好地研究了一下Intel的手册，比较系统地学习了一下和TLB相关的知识。以下内容主要来自Intel手册第三卷的第4章，第11章和第28章。</p>
+
+<!-- more -->
+
+
+<p>我们知道，现在内存寻址基本采用的是页表翻译机制，即给定一个虚拟地址，经过2~4层页表，得到一个物理地址。虽然该过程一般由硬件（MMU）完成，但是也会有一定的延迟。因此，为了加速页表翻译的过程，一般的处理器都会有一个翻译信息的缓存机制，在Intel中，有两个相关的机制：<code>TLB</code>和<code>paging-structure cache</code>。</p>
+
+<p>TLB，cache的关系如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2016-09-16-1.png" title="Cache Structure of the Intel Core i7 Processors" alt="i7" /></p>
+
+<p>当处理器在获取指令或者读取数据的时候，每当遇到一个虚拟地址，会首先通过TLB等地址翻译缓存机制查找该虚拟地址对应的物理地址，如果没有找到对应的条目，则通过内存翻译硬件机制<code>MMU</code>通过走页表的方式查找相应的物理地址，当得到确切的物理地址之后，则会通过cache找到物理地址对应的内存数据，如果cache中没有相应的数据，再去内存中读取。</p>
+
+<h4>PCID</h4>
+
+<p>在介绍<code>TLB</code>和<code>paging-structure cache</code>之前，有必要先提一下PCID。PCID的全称是<code>Process-Context Identifiers</code>，如果没有PCID，那么运行在处理器上的软件每次切换CR3，都会造成整个处理器的地址翻译缓存信息（包括<code>TLB</code>和<code>paging-structure cache</code>）被刷掉。而PCID则是优化了这一过程。可以这么说，每个进程有自己的一个PCID，这使得进程间的切换不用刷掉处理器中对应的地址翻译缓存信息。</p>
+
+<p>每个进程的PCID由CR3的0:11共12个bits组成，只有在<code>CR4.PCIDE = 1</code>的情况下才有PCID一说，否则当前的PCID只能是<code>000H</code>。</p>
+
+<p>当logical processor在<code>TLB</code>和<code>paging-structure cache</code>里面创建条目的时候，它会将该条目和当前的PCID挂钩，当翻译地址需要使用这些条目的时候，它也只会查找那些和当前PCID匹配的条目。</p>
+
+<p>注：logical processor的数目一般和processor是一样的，不过当processor支持超线程（hyper-threading）的时候，每个processor上一般会有两个logical processor。</p>
+
+<p>硬件enforce了以下两个关于PCID的规则：</p>
+
+<ul>
+<li>如果<code>IA32_EFER.LMA = 0</code>或者<code>CR3[11:0] != 000H</code>，则将<code>CR4.PCIDE</code>从0改为1会造成<code>general-protection exception (#GP)</code>；</li>
+<li>如果<code>CR4.PCIDE = 1</code>，则将<code>CR0.PG</code>改为0会造成<code>general-protection exception</code>。</li>
+</ul>
+
+
+<h4>TLB</h4>
+
+<p>TLBs的全称是<code>translation lookaside buffers</code>，它存储了<code>page number</code>（由虚拟地址的高位组成）到<code>page frame</code>（由虚拟地址的高位组成）的映射。另外，<code>page number</code>和<code>page offset</code>（由虚拟地址的地位组成）的界线由<code>page size</code>决定：</p>
+
+<ul>
+<li>32-bit paging
+
+<ul>
+<li>如果是大页（4M），则<code>page number</code>由虚拟地址的31:22位决定；</li>
+<li>如果是普通页（4K），则<code>page number</code>由虚拟地址的31:12位决定。</li>
+</ul>
+</li>
+<li>PAE paging
+
+<ul>
+<li>如果是大页（2M），则<code>page number</code>由虚拟地址的31:21位决定；</li>
+<li>如果是普通页（4K），则<code>page number</code>由虚拟地址的31:12位决定。</li>
+</ul>
+</li>
+<li>IA-32e paging
+
+<ul>
+<li>如果是超大页（1G），则<code>page number</code>由虚拟地址的47:30位决定；</li>
+<li>如果是大页（2M），则<code>page number</code>由虚拟地址的47:21位决定；</li>
+<li>如果是普通页（4K），则<code>page number</code>由虚拟地址的47:12位决定。</li>
+</ul>
+</li>
+</ul>
+
+
+<p>TLB中的每个条目存储了以下信息：</p>
+
+<ul>
+<li><code>page number</code>所对应的<code>page frame</code>；</li>
+<li>在页表寻址过程中得到的访问权限：
+
+<ul>
+<li>The logical-AND of the R/W flags.</li>
+<li>The logical-AND of the U/S flags.</li>
+<li>The logical-OR of the XD flags (necessary only if IA32_EFER.NXE = 1).</li>
+</ul>
+</li>
+<li>在页表寻址过程中得到的其它属性：
+
+<ul>
+<li>The dirty flag</li>
+<li>The memory type</li>
+</ul>
+</li>
+</ul>
+
+
+<h4>Paging-Structure Caches</h4>
+
+<p>除了TLB缓存虚拟地址到物理地址的映射之外，还有一个被称为<code>paging-structure cache</code>的机制，即用于缓存虚拟地址到某一个页表项地址的映射，包括：</p>
+
+<ul>
+<li>PML4 cache (IA-32e paging only)：缓存虚拟地址的47:39位到<code>PML4E</code>物理地址的映射；</li>
+<li>PDPTE cache (IA-32e paging only)：缓存虚拟地址的47:30位到<code>PDPTE</code>物理地址的映射；</li>
+<li>PDE cache：
+
+<ul>
+<li>For 32-bit paging，缓存虚拟地址的31:22位到<code>PDE</code>物理地址的映射；</li>
+<li>For PAE paging，缓存虚拟地址的31:21位到<code>PDE</code>物理地址的映射；</li>
+<li>For IA-32e paging，缓存虚拟地址的47:21位到<code>PDE</code>物理地址的映射；</li>
+</ul>
+</li>
+</ul>
+
+
+<h4>Global Pages</h4>
+
+<p>除了可以用PCID标记特定的进程的地址翻译缓存信息之外，也可以通过global page的机制标记相应的地址翻译缓存信息。</p>
+
+<p>首先，这需要CR4.PGE设置成1，之后，如果PTE（或者大页的最有一级页表项）中的<code>G bit</code>（即第8个bit）是1的话,则该TLB条目就被标记成global。需要注意的一点是，
+global page这个标记对<code>paging-structure caches</code>不适用，它只能标记TLB中的条目。</p>
+
+<p>logical processor可以通过被标记成global的TLB条目来翻译一个和当前PCID项不同的虚拟地址。</p>
+
+<h4>翻译虚拟地址的步骤</h4>
+
+<pre><code>* 如果在TLB中找到对应虚拟地址到物理地址的映射，则直接使用；
+* 否则，在PDE cache中查找，如果有match，则获得相应的PTE的物理地址；
+* 否则，在PDPTE cache中查找，如果有match，则获得相应的PDE的物理地址；
+* 否则，在PML4 cache中查找，如果有match，则获得相应的PDPTE的物理地址；
+* 否则，就直接从CR3中获得PML4的物理地址。
+</code></pre>
+
+<h4>其它需要注意的事项</h4>
+
+<p>在寻址过程中，只有当四级页表中（对于IA32-e来说）每一个条目的<code>P flag</code>都是1，且所有的<code>reserved bits</code>都是0的情况下才会填上相应虚拟地址的TLB条目。<code>paging-structure cache</code>也类似。另外，在缓存该翻译信息之前，会先把<code>accessed flag</code>设置为1。</p>
+
+<p>而且，对于prefetch和speculative execution造成的地址翻译也有可能被缓存下来。</p>
+
+<p>另外一点很重要的是，如果软件修改了某一个相应的paging-structure条目，TLB和paging-structure cache里面的条目都可能还存在，这就需要开发者意思到这点，并且能够手动的调用相应的invalidate的指令。</p>
+
+<p>另外还有一个有趣的问题是：Multiple Cached Entries for a Single Paging-Structure Entry，即同一个页表项可能会存在不同的地址翻译缓存，文中给出了两种可能造成该情况的场景：</p>
+
+<ul>
+<li>假设两个PML4E指向了同一个PDPT，因此对于这个PDPT中的任意一个PDPTE，都有可能会有两个<code>paging-structure cache</code>中的条目引用它，因为它们的虚拟地址项是不同的。</li>
+<li>假设某个PML4E指向了PML4本身，这样，所有47:39位为0，或者47:30为0，或者47:21为0，以及47:12为0的这些虚拟地址都是指向PML4的物理地址，因此，PML4的物理地址就可能会有很多的<code>TLB</code>和<code>paging-structure cache</code>引用它。</li>
+</ul>
+
+
+<h4>TLBs and Paging-Structure Caches的invalidate机制</h4>
+
+<p>以下操作会invalidate TLB和paging-structure cache相关的条目：</p>
+
+<ul>
+<li>INVLPG：一个参数：线性地址。该操作会invalidate所有和该线性地址和当前PCID相关的TLB和paging-structure cache条目，以及global TLB条目；</li>
+<li>INVPCID：两个参数：INVPCID type 和 INVPCID descriptor。四种type:
+
+<ul>
+<li>Individual-address，即只invalidate一个特定的虚拟地址翻译；</li>
+<li>Single-context，即只invalidate某个PCID相关的所有的虚拟地址翻译；</li>
+<li>All-context, including globals，即可以invalidate掉所有PCID对应的虚拟地址翻译，包括global page标记的TLB条目；</li>
+<li>All-context，同上，但是不能invalidate掉global page标记的TLB条目；</li>
+</ul>
+</li>
+<li>MOV to CR0：如果将<code>CR0.PG</code>从1变成0，将会invalidate所有PCID的<code>TLB</code>和<code>paging-structure cache</code>的条目，包括global；</li>
+<li>MOV to CR3：
+
+<ul>
+<li>如果<code>CR4.PCIDE</code>为0，会invalidate<code>PCID</code>为000H的<code>TLB</code>和<code>paging-structure cache</code>的条目，不包含global；</li>
+<li>If <code>CR4.PCIDE</code>为1，且源地址的第63位为0，将源地址的第11:0位作为PCID，invalidate掉相应PCID的<code>TLB</code>和<code>paging-structure cache</code>条目；</li>
+<li>If <code>CR4.PCIDE</code>为1，且源地址的第63位为1，则不会invalidate任何条目；</li>
+</ul>
+</li>
+<li>MOV to CR4：
+
+<ul>
+<li>如果它修改了<code>CR4.PGE</code>的值，或者将<code>CR4.PCID</code>的值从1改成0，则invalidate所有<code>TLB</code>和<code>paging-structure cache</code>的条目，包含global；</li>
+<li>如果它修改了<code>CR4.PAE</code>的值，或者将<code>CR4.SMEP</code>的值从0改为1，则invalidate当前PCID的<code>TLB</code>和<code>paging-structure cache</code>的条目。</li>
+</ul>
+</li>
+<li>Task switch：如果task switch修改了CR3的值，则将PCID为000H的<code>TLB</code>和<code>paging-structure cache</code>的条目进行invalidate。</li>
+<li>page fault exception会invalidate和造成page fault相关的虚拟地址所对应的<code>TLB</code>和<code>paging-structure cache</code>的条目。</li>
+</ul>
+
+
+<h4>多核相关</h4>
+
+<p>在多核环境中，当某个核修改了相应的地址翻译信息需要进行invalidation的时候，也需要考虑其它核的<code>TLB</code>和<code>paging-structure cache</code>的缓存了相关的条目。这种地址翻译修改的传递被称为<code>TLB shootdown</code>，该过程一般是通过<code>memory-based semaphores</code>或者<code>interprocessor interrupts (IPI)</code>。文中给了一个低效的实现方案：</p>
+
+<pre><code>* 除了当前的logical processor之外，暂停其它所有的logical processor；
+* 让当前的logical processor修改相应的地址翻译信息；
+* 让所有的logical processor invalidate相应的`TLB`和`paging-structure cache`条目；
+* 恢复所有logical processor的执行。
+</code></pre>
+
+<p>当然可能会有一些优化的方案，但是需要考虑很多情况，这里就不详细介绍了。</p>
+
+<h4>虚拟化相关</h4>
+
+<p>虚拟化环境增加了一层额外的地址翻译，EPT。同时由于在CPU中多了一个root和non-root模式，因此增加了一个virtual processor的概念，相应的，在地址翻译缓存这块也就多增加了一个<code>virtual-processor identifiers（VPID）</code>的机制进行优化。</p>
+
+<p>在一般情况下，如果发生VMX transition（即vmexit或者vmenter），则会invalidate相应logical processor的TLB，加入了VPID的特性，每个logical processor就可以同时管理多个线性地址空间的TLB，而不需要每次发生VMX transition的时候都invalidate。</p>
+
+<p>VPID在以下三种情况下为000H：</p>
+
+<pre><code>* Outside VMX operation.
+* In VMX root operation.
+* In VMX non-root operation when the “enable VPID” VM-execution control is 0.
+</code></pre>
+
+<p>当VMCS的<code>VM-execution control</code>中<code>enable VPID</code>被设为1的时候，VMX non-root模式下VPID由当前logical processor中VMCS的<code>VM-execution control</code>的VPID域来决定。</p>
+
+<p>另外，VPID和PCID是可以同时被使用的。</p>
+
+<p>在EPT被开启的情况下，<code>TLB</code>和<code>paging-structure cache</code>中可能会缓存以下信息：</p>
+
+<ul>
+<li>Guest-physical mappings，包括了<code>guest-physical page number</code>到<code>physical page frame</code>的映射（存储在<code>TLB</code>中），以及guest-physiaddress的高位到EPT页表页的物理地址的映射（存储在<code>paging-structure cache</code>中）；</li>
+<li>Combined mappings，包括了<code>linear page number</code>到<code>physical page frame</code>的映射（存储在<code>TLB</code>中），以及<code>linear page number</code>到相应页表页的物理地址的映射（存储在<code>paging-structure cache</code>中）。</li>
+</ul>
+
+
+<p>除此之外还有一个叫做<code>linear mapping</code>，在EPT开启的情况下不会被缓存，它主要映射了线性地址的映射，和非硬件虚拟化的TLB机制类似。</p>
+
+<p>在地址翻译缓存条目的创建和使用过程中，可能会涉及到PCID，VPID和EP4TA（即EPT-PML4-table，表示当前EPTP第51:12位的值）。</p>
+
+<p>在和虚拟化相关的TLB invalidation中，相关的操作如下所示：</p>
+
+<ul>
+<li>和VMX不相关的invalidation指令（如INVLPG和INVPCID），会invalidate当前VPID的<code>linear mappings</code>和<code>combined mappings</code>；</li>
+<li>EPT violation会invalidate当前EP4TA相关的<code>guest-physical mappings</code>，以及和该guest-physical address相应的linear address的<code>combined mappings</code>；</li>
+<li>如果<code>enable VPID</code>位为0，VM entries和VM exits会invalidate掉VPID为0000H的所有<code>linear mappings</code>和<code>combined mappings</code>；</li>
+<li>INVVPID指令，会invalidate掉<code>linear mappings</code>和<code>combined mappings</code>。带两个参数：INVVPID type 和 INVVPID descriptor。四种type:
+
+<ul>
+<li>Individual-address，即只invalidate一个特定的虚拟地址翻译；</li>
+<li>Single-context，即只invalidate某个VPID相关的所有的虚拟地址翻译；</li>
+<li>All-context，即可以invalidate掉所有VPID（除了000H）对应的虚拟地址翻译；</li>
+<li>Single-context-retaining-globals，同single-context，但是不能invalidate掉global page标记的TLB条目；</li>
+</ul>
+</li>
+<li>INVEPT指令，会invalidate掉<code>guest-physical mappings</code>和<code>combined mappings</code>。带两个参数：INVEPT type 和 INVEPT descriptor。两种type:
+
+<ul>
+<li>Single-context，即只invalidate某个EP4TA相关的所有的虚拟地址翻译；
+
+<ul>
+<li>All-context，即可以invalidate所有EP4TA相关的所有的虚拟地址翻译；</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

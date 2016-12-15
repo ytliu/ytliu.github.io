@@ -1,0 +1,1069 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Linux内存初始化（C语言部分） - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Linux 内存初始化 内核启动">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Linux内存初始化（C语言部分）</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-03-15T11:04:00+08:00" pubdate data-updated="true">Mar 15<span>th</span>, 2016</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>这篇博客接着<a href="http://ytliu.info/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">上篇博客</a>，继续介绍Linux内核启动过程中内存的初始化过程。</p>
+
+<p>相比于汇编代码，分析C代码有一个优势，因为在之前的汇编代码中已经开启了分页模式，所以可以通过一些symbol直接在某些函数上设置断点，然后通过gdb进行调试。如何用gdb调试内核可以参考<a href="http://ytliu.info/blog/2014/10/22/debugging-linux-kernel-using-gdb-and-qemu/">这篇博客</a>。</p>
+
+<!-- more -->
+
+
+<h3>进入x86_64_start_kernel</h3>
+
+<p>之前我们讲到，在<code>secondary_startup_64</code>最后，我们通过far return进入了C语言实现的函数<code>x86_64_start_kernel</code>，那么这篇我们就从这个函数开始讲起。</p>
+
+<p>这个函数在<code>arch/x86/kernel/head64.c</code>文件中，该函数有一个参数，是<code>char * real_mode_data</code>，这个参数是在之前通过<code>movq  %rsi, %rdi</code>传进来的。</p>
+
+<p>在该函数的开头，先做了一些sanity检查：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * Build-time sanity checks on the kernel image and module</span>
+</span><span class='line'><span class="cm">   * area mappings. (these are purely build-time and produce no code)</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">(</span><span class="n">MODULES_VADDR</span> <span class="o">&lt;</span> <span class="n">__START_KERNEL_map</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">(</span><span class="n">MODULES_VADDR</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">&lt;</span> <span class="n">KERNEL_IMAGE_SIZE</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">(</span><span class="n">MODULES_LEN</span> <span class="o">+</span> <span class="n">KERNEL_IMAGE_SIZE</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="o">*</span><span class="n">PUD_SIZE</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">((</span><span class="n">__START_KERNEL_map</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">PMD_MASK</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">((</span><span class="n">MODULES_VADDR</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">PMD_MASK</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">MODULES_VADDR</span> <span class="o">&gt;</span> <span class="n">__START_KERNEL</span><span class="p">));</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">(</span><span class="o">!</span><span class="p">(((</span><span class="n">MODULES_END</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">PGDIR_MASK</span><span class="p">)</span> <span class="o">==</span>
+</span><span class='line'>        <span class="p">(</span><span class="n">__START_KERNEL</span> <span class="o">&amp;</span> <span class="n">PGDIR_MASK</span><span class="p">)));</span>
+</span><span class='line'>  <span class="n">BUILD_BUG_ON</span><span class="p">(</span><span class="n">__fix_to_virt</span><span class="p">(</span><span class="n">__end_of_fixed_addresses</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">MODULES_END</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>主要是针对Module地址的检查（module被映射在<code>0xffffffffa0000000</code>上面）。</p>
+
+<p>之后做了一个操作，将之前建立的<code>identity-map</code>给清除掉了，因为我们现在已经用高地址进行页表翻译了，所以那个identity-map也就没有用了：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/* Wipe all early page tables except for the kernel symbol map */</span>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="n">__init</span> <span class="nf">reset_early_page_tables</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">i</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">PTRS_PER_PGD</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">early_level4_pgt</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">pgd</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">next_early_pgt</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">write_cr3</span><span class="p">(</span><span class="n">__pa</span><span class="p">(</span><span class="n">early_level4_pgt</span><span class="p">));</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Kill off the identity-map trampoline */</span>
+</span><span class='line'>  <span class="n">reset_early_page_tables</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意这里有一个<code>__pa(early_level4_pgt)</code>，我们来看一下<code>__pa</code>的定义：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="nf">__phys_addr_nodebug</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">x</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* use the carry flag to determine if x was &lt; __START_KERNEL_map */</span>
+</span><span class='line'>  <span class="n">x</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="p">((</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">y</span><span class="p">)</span> <span class="o">?</span> <span class="n">phys_base</span> <span class="o">:</span> <span class="p">(</span><span class="n">__START_KERNEL_map</span> <span class="o">-</span> <span class="n">PAGE_OFFSET</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define __phys_addr(x)  __phys_addr_nodebug(x)</span>
+</span><span class='line'><span class="cp">#define __pa(x)   __phys_addr((unsigned long)(x))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后调用<code>clear_bss</code>，即将bss中的内容清零：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/* Don&#39;t add a printk in there. printk relies on the PDA which is not initialized </span>
+</span><span class='line'><span class="cm">   yet. */</span>
+</span><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="n">__init</span> <span class="nf">clear_bss</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">memset</span><span class="p">(</span><span class="n">__bss_start</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>         <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">__bss_stop</span> <span class="o">-</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">__bss_start</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* clear bss before set_intr_gate with early_idt_handler */</span>
+</span><span class='line'>  <span class="n">clear_bss</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后创建idtr gate：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kr">inline</span> <span class="kt">void</span> <span class="nf">native_load_idt</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">desc_ptr</span> <span class="o">*</span><span class="n">dtr</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">asm</span> <span class="k">volatile</span><span class="p">(</span><span class="s">&quot;lidt %0&quot;</span><span class="o">::</span><span class="s">&quot;m&quot;</span> <span class="p">(</span><span class="o">*</span><span class="n">dtr</span><span class="p">));</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define load_idt(dtr) native_load_idt(dtr)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">NUM_EXCEPTION_VECTORS</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">set_intr_gate</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">early_idt_handlers</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span><span class='line'>  <span class="n">load_idt</span><span class="p">((</span><span class="k">const</span> <span class="k">struct</span> <span class="n">desc_ptr</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">idt_descr</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后调用<code>copy_bootdata</code>：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="n">__init</span> <span class="nf">copy_bootdata</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">real_mode_data</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">char</span> <span class="o">*</span> <span class="n">command_line</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">cmd_line_ptr</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">memcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">boot_params</span><span class="p">,</span> <span class="n">real_mode_data</span><span class="p">,</span> <span class="k">sizeof</span> <span class="n">boot_params</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">sanitize_boot_params</span><span class="p">(</span><span class="o">&amp;</span><span class="n">boot_params</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">cmd_line_ptr</span> <span class="o">=</span> <span class="n">get_cmd_line_ptr</span><span class="p">();</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">cmd_line_ptr</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">command_line</span> <span class="o">=</span> <span class="n">__va</span><span class="p">(</span><span class="n">cmd_line_ptr</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">memcpy</span><span class="p">(</span><span class="n">boot_command_line</span><span class="p">,</span> <span class="n">command_line</span><span class="p">,</span> <span class="n">COMMAND_LINE_SIZE</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">copy_bootdata</span><span class="p">(</span><span class="n">__va</span><span class="p">(</span><span class="n">real_mode_data</span><span class="p">));</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里面主要是copy一些boot的参数，之后调用<code>load_ucode_bsp</code>和<code>early_printk</code>，这里都不详述。</p>
+
+<p>然后设置<code>init_level4_pgt</code>：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">clear_page</span><span class="p">(</span><span class="n">init_level4_pgt</span><span class="p">);</span>
+</span><span class='line'>  <span class="cm">/* set init_level4_pgt kernel high mapping*/</span>
+</span><span class='line'>  <span class="n">init_level4_pgt</span><span class="p">[</span><span class="mi">511</span><span class="p">]</span> <span class="o">=</span> <span class="n">early_level4_pgt</span><span class="p">[</span><span class="mi">511</span><span class="p">];</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>后来还有一些函数调用和boot相关的，这里也不细说，最后调用<code>start_kernel</code>：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">asmlinkage</span> <span class="kt">void</span> <span class="n">__init</span> <span class="nf">x86_64_start_kernel</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">real_mode_data</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">x86_64_start_reservations</span><span class="p">(</span><span class="n">real_mode_data</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="n">__init</span> <span class="nf">x86_64_start_reservations</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">real_mode_data</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">start_kernel</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>start_kernel</h3>
+
+<p>下面进入<code>start_kernel</code>函数，该函数定义在<code>init/main.c</code>文件中。</p>
+
+<p>里面调用了很多函数来做各种目的的初始化，其中和内存初始化相关的函数调用如下：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">asmlinkage</span> <span class="kt">void</span> <span class="n">__init</span> <span class="nf">start_kernel</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">setup_arch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">command_line</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">setup_per_cpu_areas</span><span class="p">();</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">build_all_zonelist</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">page_alloc_init</span><span class="p">();</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">mm_init</span><span class="p">();</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">setup_per_cpu_pageset</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如下图所示（截图自<a href="http://guojing.me/linux-kernel-architecture/posts/init-mm-management/">这里</a>)：</p>
+
+<p><img src="http://ytliu.info/images/2016-03-15-1.png" title="start kernel" alt="start_kernel" /></p>
+
+<p>下面我们逐个函数进行介绍。</p>
+
+<h4>setup_arch</h4>
+
+<p>x86的<code>setup_arch</code>定义在<code>arch/x86/kernel/setup.c</code>文件中，其中和内存初始化相关的函数如下所示：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="n">__init</span> <span class="nf">setup_arch</span><span class="p">(</span><span class="kt">char</span> <span class="o">**</span><span class="n">cmdline_p</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">setup_memory_map</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">e820_reserve_setup_data</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">init_mm</span><span class="p">.</span><span class="n">start_code</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">_text</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">init_mm</span><span class="p">.</span><span class="n">end_code</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">_etext</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">init_mm</span><span class="p">.</span><span class="n">end_data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">_edata</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">init_mm</span><span class="p">.</span><span class="n">brk</span> <span class="o">=</span> <span class="n">_brk_end</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">e820_add_kernel_range</span><span class="p">();</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">cleanup_highmap</span><span class="p">();</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">init_mem_mapping</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">early_trap_pf_init</span><span class="p">();</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">x86_init</span><span class="p">.</span><span class="n">paging</span><span class="p">.</span><span class="n">pagetable_init</span><span class="p">();</span> <span class="c1">// native_pagetable_init() -&gt; paging_init (arch/x86/mm/init_64.c)</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中，前面一直是在通过BIOS获得E820内存分布（e820请查阅<a href="http://ytliu.info/blog/2015/07/30/xende-qi-dong-zhi-nei-cun-xiang-guan-shi-xian/">这篇博客</a>)，以及初始化<code>init_mm</code>。我们从<code>cleanup_highmap</code>开始分析，该函数在<code>arch/x86/mm/init_64.c</code>中：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm"> * The head.S code sets up the kernel high mapping:</span>
+</span><span class='line'><span class="cm"> *</span>
+</span><span class='line'><span class="cm"> *   from __START_KERNEL_map to __START_KERNEL_map + size (== _end-_text)</span>
+</span><span class='line'><span class="cm"> *</span>
+</span><span class='line'><span class="cm"> * phys_base holds the negative offset to the kernel, which is added</span>
+</span><span class='line'><span class="cm"> * to the compile time generated pmds. This results in invalid pmds up</span>
+</span><span class='line'><span class="cm"> * to the point where we hit the physaddr 0 mapping.</span>
+</span><span class='line'><span class="cm"> *</span>
+</span><span class='line'><span class="cm"> * We limit the mappings to the region from _text to _brk_end.  _brk_end</span>
+</span><span class='line'><span class="cm"> * is rounded up to the 2MB boundary. This catches the invalid pmds as</span>
+</span><span class='line'><span class="cm"> * well, as they are located before _text:</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="kt">void</span> <span class="n">__init</span> <span class="nf">cleanup_highmap</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">vaddr</span> <span class="o">=</span> <span class="n">__START_KERNEL_map</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">vaddr_end</span> <span class="o">=</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">KERNEL_IMAGE_SIZE</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">end</span> <span class="o">=</span> <span class="n">roundup</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">_brk_end</span><span class="p">,</span> <span class="n">PMD_SIZE</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">pmd_t</span> <span class="o">*</span><span class="n">pmd</span> <span class="o">=</span> <span class="n">level2_kernel_pgt</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * Native path, max_pfn_mapped is not set yet.</span>
+</span><span class='line'><span class="cm">   * Xen has valid max_pfn_mapped set in</span>
+</span><span class='line'><span class="cm">   *  arch/x86/xen/mmu.c:xen_setup_kernel_pagetable().</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">max_pfn_mapped</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">vaddr_end</span> <span class="o">=</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="p">(</span><span class="n">max_pfn_mapped</span> <span class="o">&lt;&lt;</span> <span class="n">PAGE_SHIFT</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(;</span> <span class="n">vaddr</span> <span class="o">+</span> <span class="n">PMD_SIZE</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">vaddr_end</span><span class="p">;</span> <span class="n">pmd</span><span class="o">++</span><span class="p">,</span> <span class="n">vaddr</span> <span class="o">+=</span> <span class="n">PMD_SIZE</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">pmd_none</span><span class="p">(</span><span class="o">*</span><span class="n">pmd</span><span class="p">))</span>
+</span><span class='line'>      <span class="k">continue</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">vaddr</span> <span class="o">&lt;</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">_text</span> <span class="o">||</span> <span class="n">vaddr</span> <span class="o">&gt;</span> <span class="n">end</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">set_pmd</span><span class="p">(</span><span class="n">pmd</span><span class="p">,</span> <span class="n">__pmd</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这段代码非常好理解，加上看注释，可以知道其功能就是将小于<code>_text</code>和大于<code>_brk_end</code>的地址都从页表中unmap掉。</p>
+
+<p>接下来是<code>init_mem_mapping</code>这个函数，该函数位于<code>arch/x86/mm/init.c</code>：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="n">__init</span> <span class="nf">init_mem_mapping</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">end</span> <span class="o">=</span> <span class="n">max_pfn</span> <span class="o">&lt;&lt;</span> <span class="n">PAGE_SHIFT</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* the ISA range is always mapped regardless of memory holes */</span>
+</span><span class='line'>  <span class="n">init_memory_mapping</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ISA_END_ADDRESS</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">memory_map_top_down</span><span class="p">(</span><span class="n">ISA_END_ADDRESS</span><span class="p">,</span> <span class="n">end</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">max_pfn</span> <span class="o">&gt;</span> <span class="n">max_low_pfn</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="cm">/* can we preseve max_low_pfn ?*/</span>
+</span><span class='line'>    <span class="n">max_low_pfn</span> <span class="o">=</span> <span class="n">max_pfn</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">load_cr3</span><span class="p">(</span><span class="n">swapper_pg_dir</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">__flush_tlb_all</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">early_memtest</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_pfn_mapped</span> <span class="o">&lt;&lt;</span> <span class="n">PAGE_SHIFT</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里面虽然代码少，但是信息量还是蛮大的，我们一个一个来看。</p>
+
+<p>首先是<code>init_memory_mapping</code>：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm"> * Setup the direct mapping of the physical memory at PAGE_OFFSET.</span>
+</span><span class='line'><span class="cm"> * This runs before bootmem is initialized and gets pages directly from</span>
+</span><span class='line'><span class="cm"> * the physical memory. To access them they are temporarily mapped.</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">__init_refok</span> <span class="nf">init_memory_mapping</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">start</span><span class="p">,</span>
+</span><span class='line'>                 <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">end</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">map_range</span> <span class="n">mr</span><span class="p">[</span><span class="n">NR_RANGE_MR</span><span class="p">];</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">nr_range</span><span class="p">,</span> <span class="n">i</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">pr_info</span><span class="p">(</span><span class="s">&quot;init_memory_mapping: [mem %#010lx-%#010lx]</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+</span><span class='line'>         <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">memset</span><span class="p">(</span><span class="n">mr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mr</span><span class="p">));</span>
+</span><span class='line'>  <span class="n">nr_range</span> <span class="o">=</span> <span class="n">split_mem_range</span><span class="p">(</span><span class="n">mr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nr_range</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">ret</span> <span class="o">=</span> <span class="n">kernel_physical_mapping_init</span><span class="p">(</span><span class="n">mr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">start</span><span class="p">,</span> <span class="n">mr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">end</span><span class="p">,</span>
+</span><span class='line'>               <span class="n">mr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">page_size_mask</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">add_pfn_range_mapped</span><span class="p">(</span><span class="n">start</span> <span class="o">&gt;&gt;</span> <span class="n">PAGE_SHIFT</span><span class="p">,</span> <span class="n">ret</span> <span class="o">&gt;&gt;</span> <span class="n">PAGE_SHIFT</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">return</span> <span class="n">ret</span> <span class="o">&gt;&gt;</span> <span class="n">PAGE_SHIFT</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里注释中提到的<code>PAGE_OFFSET</code>值为<code>0xffff880000000000</code>（<code>0xffff880000000000</code>到<code>0xffffc7ffffffffff</code>为所有物理地址的direct mapping）。</p>
+
+<p>这里有两个主要的函数，我们先来看<code>split_mem_range</code>（位于<code>arch/x86/mm/init.c</code>）：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">int</span> <span class="n">__meminit</span> <span class="nf">split_mem_range</span><span class="p">(</span><span class="k">struct</span> <span class="n">map_range</span> <span class="o">*</span><span class="n">mr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nr_range</span><span class="p">,</span>
+</span><span class='line'>             <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">start</span><span class="p">,</span>
+</span><span class='line'>             <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">end</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>里面代码比较复杂，和之前在分析xen代码中某个函数有点像，这里就不逐段分析。简单说一下它做了什么吧。<code>split_mem_range</code>的作用就是将整个物理地址段进行了一个分类，把所有地址分为三类：</p>
+
+<ul>
+<li>大于1G的地址段</li>
+<li>2M到1G的地址段</li>
+<li>其它</li>
+</ul>
+
+
+<p>然后将<code>start</code>到<code>end</code>的物理地址段分别塞进这些段中，然后将每个段的信息保存在<code>mr</code>这个数据结构中。这个数据结构包括了每个地址段的起始地址、结束地址、以及alignment。最后有一个merge过程，将<code>mr</code>中相邻且alignment相同的项进行合并。</p>
+
+<p>最后分出来的地址段的结果如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2016-03-15-2.png" title="split_mem_range" alt="split_mem_range" /></p>
+
+<p>另外一个函数为<code>kernel_physical_mapping_init</code>（位于<code>arch/x86/mm/init_64.c</code>）：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">__meminit</span>
+</span><span class='line'><span class="nf">kernel_physical_mapping_init</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">start</span><span class="p">,</span>
+</span><span class='line'>           <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">end</span><span class="p">,</span>
+</span><span class='line'>           <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">page_size_mask</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="n">bool</span> <span class="n">pgd_changed</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">next</span><span class="p">,</span> <span class="n">last_map_addr</span> <span class="o">=</span> <span class="n">end</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">start</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">__va</span><span class="p">(</span><span class="n">start</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">end</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">__va</span><span class="p">(</span><span class="n">end</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">addr</span> <span class="o">=</span> <span class="n">start</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">for</span> <span class="p">(;</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">;</span> <span class="n">start</span> <span class="o">=</span> <span class="n">next</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">pgd_t</span> <span class="o">*</span><span class="n">pgd</span> <span class="o">=</span> <span class="n">pgd_offset_k</span><span class="p">(</span><span class="n">start</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">pud_t</span> <span class="o">*</span><span class="n">pud</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">next</span> <span class="o">=</span> <span class="p">(</span><span class="n">start</span> <span class="o">&amp;</span> <span class="n">PGDIR_MASK</span><span class="p">)</span> <span class="o">+</span> <span class="n">PGDIR_SIZE</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">pgd_val</span><span class="p">(</span><span class="o">*</span><span class="n">pgd</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>      <span class="n">pud</span> <span class="o">=</span> <span class="p">(</span><span class="n">pud_t</span> <span class="o">*</span><span class="p">)</span><span class="n">pgd_page_vaddr</span><span class="p">(</span><span class="o">*</span><span class="n">pgd</span><span class="p">);</span>
+</span><span class='line'>      <span class="n">last_map_addr</span> <span class="o">=</span> <span class="n">phys_pud_init</span><span class="p">(</span><span class="n">pud</span><span class="p">,</span> <span class="n">__pa</span><span class="p">(</span><span class="n">start</span><span class="p">),</span>
+</span><span class='line'>             <span class="n">__pa</span><span class="p">(</span><span class="n">end</span><span class="p">),</span> <span class="n">page_size_mask</span><span class="p">);</span>
+</span><span class='line'>      <span class="k">continue</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">pud</span> <span class="o">=</span> <span class="n">alloc_low_page</span><span class="p">();</span>
+</span><span class='line'>    <span class="n">last_map_addr</span> <span class="o">=</span> <span class="n">phys_pud_init</span><span class="p">(</span><span class="n">pud</span><span class="p">,</span> <span class="n">__pa</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="n">__pa</span><span class="p">(</span><span class="n">end</span><span class="p">),</span>
+</span><span class='line'>             <span class="n">page_size_mask</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">spin_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">init_mm</span><span class="p">.</span><span class="n">page_table_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">pgd_populate</span><span class="p">(</span><span class="o">&amp;</span><span class="n">init_mm</span><span class="p">,</span> <span class="n">pgd</span><span class="p">,</span> <span class="n">pud</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">spin_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">init_mm</span><span class="p">.</span><span class="n">page_table_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">pgd_changed</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">pgd_changed</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">sync_global_pgds</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">__flush_tlb_all</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">return</span> <span class="n">last_map_addr</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这是一个非常关键的函数，它的作用就是填充页表，将所有之前探寻到并且分割好的物理地址映射到对应的虚拟内存中，并在页表中体现出来。我们来逐段分析：</p>
+
+<p>首先通过<code>__va</code>这个宏将物理地址转换成其对应的（direct mapping）虚拟地址，即加上<code>0xffff880000000000</code>。</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">start</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">__va</span><span class="p">(</span><span class="n">start</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">end</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">__va</span><span class="p">(</span><span class="n">end</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后就是传统的走页表过程了，这里有个宏需要说明：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#define swapper_pg_dir init_level4_pgt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">struct</span> <span class="n">mm_struct</span> <span class="n">init_mm</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">pgd</span> <span class="o">=</span> <span class="n">swapper_pg_dir</span><span class="p">,</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define pgd_offset(mm, address) ((mm)-&gt;pgd + pgd_index((address)))</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define pgd_offset_k(address) pgd_offset(&amp;init_mm, (address))</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">pgd_t</span> <span class="o">*</span><span class="n">pgd</span> <span class="o">=</span> <span class="n">pgd_offset_k</span><span class="p">(</span><span class="n">start</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>也就是说，在这个时候，pgt_dir从原来的<code>early_level4_pgt</code>变成了<code>init_level4_pgt</code>，这个数据结构同样是在<code>arch/x86/kernel/head_64.S</code>中定义的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">init_level4_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span>   <span class="n">level3_ident_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_KERNPG_TABLE</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">org</span>    <span class="n">init_level4_pgt</span> <span class="o">+</span> <span class="n">L4_PAGE_OFFSET</span><span class="o">*</span><span class="mi">8</span><span class="p">,</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span>   <span class="n">level3_ident_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_KERNPG_TABLE</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">org</span>    <span class="n">init_level4_pgt</span> <span class="o">+</span> <span class="n">L4_START_KERNEL</span><span class="o">*</span><span class="mi">8</span><span class="p">,</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="cm">/* (2^48-(2*1024*1024*1024))/(2^39) = 511 */</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span>   <span class="n">level3_kernel_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_PAGE_TABLE</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">level3_ident_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span> <span class="n">level2_ident_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_KERNPG_TABLE</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">511</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">0</span>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">level2_ident_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="cm">/* Since I easily can, map the first 1G.</span>
+</span><span class='line'><span class="cm">   * Don&#39;t set NX because code runs from these pages.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">PMDS</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">__PAGE_KERNEL_IDENT_LARGE_EXEC</span><span class="p">,</span> <span class="n">PTRS_PER_PMD</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>因此，加上<code>init_level4_pgt</code>这个页表后，内存的分布图如下所示：</p>
+
+<p><img src="http://ytliu.info/images/2016-03-15-3.png" title="init level4 pgt" alt="init level4 pgt" /></p>
+
+<p>所以<code>kernel_physical_mapping_init</code>后面的代码就是根据不同<code>mr</code>数据结构中的地址段将这个页表进行填充，这里就不详述了。</p>
+
+<p>在执行完<code>init_memory_mapping</code>之后，<code>init_mem_mapping</code>函数又执行了一个<code>memory_map_top_down</code>函数，里面其实也是根据不同的地址段，连续调用<code>init_range_memory_mapping</code>，从而间接调用<code>init_memory_mapping</code>函数。</p>
+
+<p>最后，将<code>swapper_pg_dir</code>加载进<code>cr3</code>，完成页表的转换。</p>
+
+<p>现在让我们回到<code>setup_arch</code>，调用<code>paging_init</code>（位于<code>arch/x86/mm/init_64.c</code>）。里面主要完成一些zones的初始化，不详述。</p>
+
+<p>再次回到<code>start_kernel</code>，在<code>setup_arch</code>之后还陆续调用了几个和percpu以及memory zones，memory allocator相关的函数，这里也不详细说了。</p>
+
+<p>这个系列就先简单介绍到这里，其实后面还有很多内容没有详细介绍，主要目的是搞清楚内核是如何创建页表的。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-03-15T11:04:00+08:00" pubdate data-updated="true">Mar 15<span>th</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/linux/'>Linux</a>, <a class='category' href='/blog/categories/system/'>System</a>, <a class='category' href='/blog/categories/tutorial/'>Tutorial</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/" title="Previous Post: Linux内存初始化（汇编部分）">&laquo; Linux内存初始化（汇编部分）</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/09/16/tlbde-na-xie-shi-er/" title="Next Post: TLB的那些事儿">TLB的那些事儿 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/';
+        var disqus_url = 'http://ytliu.github.io/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

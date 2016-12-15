@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: OCaml | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/ocaml/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Redexer and Ocaml]]></title>
+    <link href="http://ytliu.github.io/blog/2013/03/10/redexer-and-ocaml/"/>
+    <updated>2013-03-10T09:53:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2013/03/10/redexer-and-ocaml</id>
+    <content type="html"><![CDATA[<p>在<a href="http://ytliu.info/blog/2013/03/01/dr-android-and-mr-hide-xidashiyin-fa-de-gu-shi/">上一篇博客</a>是一个用ruby和OCaml写的Dalvik binary rewriter，它提供了unparse, htmlunparse, id, combine, info, classes, api, opstat, cg, cfg, dom, pdom, dump_method等功能，还可以自己扩展相应的功能，具体的可以参看它的<a href="https://github.com/plum-umd/redexer">github主页</a>。</p>
+
+<p>redexer主要原理就是将<code>.dex</code>文件按照<a href="http://source.android.com/tech/dalvik/dex-format.html">Dalvik Executable Format</a>映射到内存中的数据结构，然后根据这些数据结果进行分析，可以达到比较高的性能。</p>
+
+<p>这里主要想要说说<a href="http://en.wikipedia.org/wiki/OCaml">OCaml</a>这个语言。</p>
+
+<!-- more -->
+
+
+<p>OCaml的全称是Object Caml，是一个有OO扩展的函数式语言（Functional Language），看了看它的语法，和我们程序语言理论里面的那个simPL非常的像，也和当时学FP的时候讲的Haskell很像。</p>
+
+<p>查了查functional language和imperative language有什么不同，在wiki上似乎有一个最大的区别在于：</p>
+
+<pre><code>It emphasizes the application of functions, in contrast to the imperative programming style, 
+which emphasizes changes in state. The most significant differences stem from the fact that 
+functional programming avoids side effects, which are used in imperative programming to implement 
+state and I/O. 
+</code></pre>
+
+<p>然后在<a href="http://stackoverflow.com/questions/2078978/functional-programming-vs-object-oriented-programming">stack overflow</a>里面有一个蛮经典的回答”When do you choose functional programming over object oriented ?“</p>
+
+<p><img src="http://ytliu.info/images/2013-03-10-1.png" title="answer" alt="stackoverflowans" /></p>
+
+<p>另外，在OCaml里面有很多FP的特性，比如 static type system, type inference, parametric polymorphism, tail recursion, pattern matching, first class lexical closures, functors (parametric modules), exception handling, and incremental generational automatic garbage collection等等，这些会在之后对OCaml的学习中慢慢弄清楚来吧~</p>
+]]></content>
+  </entry>
+  
+</feed>

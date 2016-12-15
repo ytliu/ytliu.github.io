@@ -1,0 +1,788 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/page/4">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/13/kvm-memory-management-using-hardware-assisted-paging/">KVM: Memory Management Using Hardware Assisted Paging</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-09-13T14:39:00+08:00" pubdate data-updated="true">Sep 13<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/09/13/kvm-memory-management-using-hardware-assisted-paging/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This post will introduce the memory mechanism in current KVM code, mostly in Intel IA-32e mode (long-mode-paging). More specifically, it mainly includes the initinalization and overall mechanism of KVM&#8217;s two dimentional paging, as well as the page fault handling process, and a little bit of TLB, and paging-structure caches and their invalidation mechanims in virtualization environment.</p>
+
+<p>This post makes some references to the two blogs: <a href="http://zhongshugu.wordpress.com/2010/06/17/ept-in-kvm/">EPT in kvm</a> and <a href="http://blog.stgolabs.net/2012/03/kvm-hardware-assisted-paging.html">kvm: hardware assisted paging</a>, and the information of TLB and paging-structure cache is mainly from <a href="http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-software-developer-system-programming-manual-325384.html">Intel Manual</a>. Others are from my notes of reading KVM codes.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/09/13/kvm-memory-management-using-hardware-assisted-paging/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji/">Moto G 救砖升级刷CM小记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-19T20:57:00+08:00" pubdate data-updated="true">Jul 19<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天感觉自己爽爽哒，完成了我Motorola Moto g的“救砖”之行，还升了级，刷了CyanogenMod，以及现在还在编译CM的android源码，准备自己定制一番。</p>
+
+<p>一切还得从昨天说起。</p>
+
+<p>在那个无比蛋疼的昨天，我为了做一个实验，想把我的moto g手机里面系统自带的openssl库给换掉，没想到刚换完一重启，整个手机就灰屏了，怎么都起不来，变成了传说中的“砖头”手机。那把我给郁闷的啊，因为刚开机就挂，adb也连不上，ssl库也恢复不了，只能想办法重新刷机了。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/07/19/moto-g-jiu-zhuan-sheng-ji-shua-cmxiao-ji/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/25/yue-mo-za-ji/">月末杂记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-06-25T20:25:00+08:00" pubdate data-updated="true">Jun 25<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/06/25/yue-mo-za-ji/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>又是一篇心情日记，没有任何营养的意识流，也就给自己存个档，各位看官请随意忽略。。。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/06/25/yue-mo-za-ji/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/21/zai-lu-xing-zhong-zhong-xin-ren-shi-zi-ji/">在旅行中重新认识自己——恋爱四周年记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-06-21T15:09:00+08:00" pubdate data-updated="true">Jun 21<span>st</span>, 2014</time>
+        
+         | <a href="/blog/2014/06/21/zai-lu-xing-zhong-zhong-xin-ren-shi-zi-ji/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>记得就在不久之前和斌哥讨论<code>旅行的意义</code>这个话题的时候他讲到，旅行最大的意义就是“在一个全新的环境中重新认识自己”。</p>
+
+<p>我一直都不相信那种所谓的“去一趟西藏就能洗涤心灵，就能找到人生真谛”这一套说法，或许是受到<a href="http://www.zhihu.com/question/20883474">知乎</a>的影响吧，我真的不能相信在经历了几十年的人生之后，你的心灵，你所谓的“三观”能够在一次短短几周的旅行中被洗涤，被“矫正”，如果真是这样，那你之前的人生真是活得太失败了。而且，我也不是很信服那套“旅行就是去认识更广阔的世界”的理论，在这个互联网时代，没有太多信息是你在家中得不到，一定要靠旅行才能获得的，甚至你去一次旅行，获得的领悟还不如去听一次“晓说”，看一次“动物世界”来得多，就算身临其境，你得到的总归也只是一些片面的感悟，只言片语，或许是你亲耳听到，也只不过来自寥寥几人，以及这寥寥几人并非一定真心的吐露罢了。更多的风俗，人们心中真实的想法，岂是几天的旅行驻足所能了解。至于旅行中遇到的人，更多的对自己来说也仅仅只是一个过客，一面之缘，虽是缘分，也不会改变你太多。如果仅仅是几天的交往就俨然成为“知心朋友”，那估计你的知心朋友也是数不胜数了吧。当然，我也不否认你能在旅途中碰上自己“相见恨晚”的友人，甚至遇到并相知未来的另一半，那你这趟旅行已经属于“人生之旅”，可是，一个人的人生之旅一生中又会有几次呢？特别是对于我这种慢热的选手来说，旅行中认识的人，留下更多的，可能还是他们所讲述的那些故事吧。</p>
+
+<p>以上是一堆胡扯，继续回到”重新认识自己“这个话题。斌哥的这套说法我还是比较信奉的，平日里的我们，过的基本上是类似于“三点一线”的生活，在一个熟悉的不能再熟悉的环境中，就算你想迷失自己都很困难。而在旅行的途中，在一个完全陌生，甚至连语言都不一定相通的地方，一个人的反应最能体现出最真实的自己。
+不管平日里你有多风光，在旅行中遇到困难你可能就变得毫无招架之力，不管一个人在平时看上去是多么的文弱，或许在真正需要一个人站出来的时候那个人就是他。在旅行中，特别是那种充满挑战的旅行中，我们可以重新认识身边的人，当然，更重要的，是重新认识自己。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/06/21/zai-lu-xing-zhong-zhong-xin-ren-shi-zi-ji/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">Blind Return Oriented Programming (BROP) Attack (3)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-06-02T20:32:00+08:00" pubdate data-updated="true">Jun 2<span>nd</span>, 2014</time>
+        
+         | <a href="/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This topic consists of 3 sessions:</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">BROP Principle - dump memory to attacker and do exploit</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">BROP Practice1 - attack conduct</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">BROP Practice2 - code analysis</a></li>
+</ul>
+
+
+<hr />
+
+<p><a href="http://www.scs.stanford.edu/brop/">Blind Return Oriented Programming (BROP) Website</a></p>
+
+<p><strong>Hacking Blind</strong>: <a href="http://www.scs.stanford.edu/brop/bittau-brop.pdf">paper</a> and <a href="http://www.scs.stanford.edu/brop/bittau-brop-slides.pdf">slide</a></p>
+
+<hr />
+
+<p>The principle of BROP can be found in the <a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">1st session</a> and the real attack exploit can be found in the <a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">2nd session</a>, and in this page I would like to write a code analysis blog which shows how I understand the code of the attack.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">Blind Return Oriented Programming (BROP) Attack (2)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-06-01T16:05:00+08:00" pubdate data-updated="true">Jun 1<span>st</span>, 2014</time>
+        
+         | <a href="/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This topic consists of 3 sessions:</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">BROP Principle - dump memory to attacker and do exploit</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">BROP Practice1 - attack conduct</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">BROP Practice2 - code analysis</a></li>
+</ul>
+
+
+<hr />
+
+<p><a href="http://www.scs.stanford.edu/brop/">Blind Return Oriented Programming (BROP) Website</a></p>
+
+<p><strong>Hacking Blind</strong>: <a href="http://www.scs.stanford.edu/brop/bittau-brop.pdf">paper</a> and <a href="http://www.scs.stanford.edu/brop/bittau-brop-slides.pdf">slide</a></p>
+
+<hr />
+
+<p>Following the <a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">1st session</a>, which talked about the principle of BROP attack, this page will discuss about how to conduct the real exploit in a Linux system.</p>
+
+<p>This session is more like a kind of tutorial about how I conduct one of the 3 attacks conducted by the authors (specifically, attack nginx 1.4.0 with a buffer overflow bug - <a href="http://cvedetails.com/cve/2013-2028">CVE-2013-2028</a>, and finally can execute the shell) in my PC.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">Blind Return Oriented Programming (BROP) Attack (1)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-31T10:00:00+08:00" pubdate data-updated="true">May 31<span>st</span>, 2014</time>
+        
+         | <a href="/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This topic consists of 3 sessions:</p>
+
+<ul>
+<li><a href="http://ytliu.info/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">BROP Principle - dump memory to attacker and do exploit</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/01/blind-return-oriented-programming-brop-attack-er/">BROP Practice1 - attack conduct</a></li>
+<li><a href="http://ytliu.info/blog/2014/06/02/blind-return-oriented-programming-brop-attack-san/">BROP Practice2 - code analysis</a></li>
+</ul>
+
+
+<hr />
+
+<p><a href="http://www.scs.stanford.edu/brop/">Blind Return Oriented Programming (BROP) Website</a></p>
+
+<p><strong>Hacking Blind</strong>: <a href="http://www.scs.stanford.edu/brop/bittau-brop.pdf">paper</a> and <a href="http://www.scs.stanford.edu/brop/bittau-brop-slides.pdf">slide</a></p>
+
+<hr />
+
+<p>This paper is surely one of the best security papers I&#8217;ve ever read these years! Cool, fabulous, terrific, gorgeous, superb, sensuous&#8230;I would like to use any &#8220;good&#8221; word I can tell to describe it. And what&#8217;s more, the attack code is open sourced! I&#8217;ve read and talked about so many times about ROP attack, but actually I&#8217;ve never conducted or tried one in reality myself, but this time, I not only tried the &#8220;legendary&#8221; ROP attack, it is even the <strong>Blind</strong> one!</p>
+
+<p>In this page, I will assume you have basic knowledge about Return Oriented Programming (ROP), so that I just explain what the BROP is and how they conduct it.</p>
+
+<p>This BROP is really cool and smart, I hope I can throw light on it and make you clear.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/05/31/blind-return-oriented-programming-brop-attack-yi/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/28/netmap-setup/">Netmap Setup</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-28T14:39:00+08:00" pubdate data-updated="true">May 28<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/05/28/netmap-setup/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I&#8217;ve recently read the paper <a href="http://info.iet.unipi.it/~luigi/papers/20120503-netmap-atc12.pdf">netmap: a novel framework for fast packet I/O</a> published in ATC 2012 as its best paper award. And I also try to setup it in my mini-pc, with Realtek whose driver is r8169, which is supported by netmap.</p>
+
+<p>However since they only support r8169 before 3.4 linux kernel, and my kernel version is 3.13.7, so I need to write my own r8169 driver patch. Fortunately the r8169 code is not quite different between these two kernel versions, it is trivial to do so.</p>
+
+<p>Let&#8217;s see how to setup the netmap environment and test it:</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/05/28/netmap-setup/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/27/note-about-madvice/">Note About Madvice</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-27T10:32:00+08:00" pubdate data-updated="true">May 27<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/05/27/note-about-madvice/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Today I&#8217;ve tried to learn and test the <code>madvice()</code> system call.</p>
+
+<p>One problem about <code>mmap()</code> system call is that it simply setups the mapping between the disk file and the virtual memory, but delay the actual data loading whenever the application requires. So if you want to read a large file sequentially, there will be many page faults happening in this process, which may cause low performance I/O.</p>
+
+<p>To solve such problem, we can use <code>madvice()</code> system call together with <code>mmap()</code>. As you can see from the <code>madvice(2)</code> manpage, you can see that:</p>
+
+<blockquote><p>madvise - give advice about use of memory</p></blockquote>
+
+<p>The prototype is as follows:</p>
+
+<pre><code>#include &lt;sys/mman.h&gt;
+int madvise(void *addr, size_t length, int advice);
+</code></pre>
+
+<p>As the manpage says, <code>madvice()</code> can give kernel the advices about how to handle paging in the address range beginning at address addr and with size length bytes. There&#8217;re many <code>advice</code> arguments as shown in the manpage, for example,</p>
+
+<p><code>MADV_SEQUENTIAL</code> can tell kernel that we will read the page in sequential order, so that <em>pages in the given range can be aggressively read ahead, and may be freed soon after they are accessed.</em></p>
+
+<p><code>MADV_WILLNEED</code> can tell kernel that we are expected to access the memory in the near future, hence, <em>it might be a good idea to read some pages ahead.</em></p>
+
+<p>And so on&#8230;</p>
+
+<p>Meanwhile, <code>madvice()</code> system call should not influence the semantics of the application, but may influence its performance (mostly used to improve the performance).</p>
+
+<p>Based on the concept, I just write two simple program, to simply test whether it may improve the I/O performance.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/05/27/note-about-madvice/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby/">My First Alfred 2 Workflow by Ruby</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-14T14:54:00+08:00" pubdate data-updated="true">Apr 14<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>These two days I&#8217;m studying how to effiently use Alfred 2. Yesterday I bought its <a href="https://buy.alfredapp.com/">Powerpack Single License</a> (17 Euro), so that I can import or create my own Workflow!</p>
+
+<p>I should say it is really fun to do such things, it makes me believing that I can take more control over my own Mac Air.</p>
+
+<p>In this post I will show how to write a simple workflow using ruby. The code can be downloaded from my <a href="https://github.com/ytliu/alfred2-ascii-translator">github page</a>, it is a very simple program that can translate between each character and its corresponding ASCII code, just like this:</p>
+
+<p>You can translate from an array of decimal ASCII code to their characters:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-1.png" title="My Alfred 2 workflow - ascii translator 1" alt="ascii effect 1" /></p>
+
+<p>Or from hexadecimal ASCII code to their characters:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-2.png" title="My Alfred 2 workflow - ascii translator 2" alt="ascii effect 2" /></p>
+
+<p>Or from characters to their corresponding ASCII codes:</p>
+
+<p><img src="http://ytliu.info/images/2014-04-14-3.png" title="My Alfred 2 workflow - ascii translator 3" alt="ascii effect 3" /></p>
+
+<p>So now let&#8217;s begin!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/04/14/my-first-alfred-2-workflow-by-ruby/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/5/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/3/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader&#8217;s blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao&#8217; weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Others | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/others/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[知识整理（2015.1）]]></title>
+    <link href="http://ytliu.github.io/blog/2015/01/24/zhi-shi-zheng-li-%282015-dot-1%29/"/>
+    <updated>2015-01-24T13:28:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2015/01/24/zhi-shi-zheng-li-(2015-dot-1)</id>
+    <content type="html"><![CDATA[<p>从上大学开始到现在，我们学过多少的知识，尝试过多少的技能？特别是对于程序员来说，每天都可能遇到新的东西，听别人讲解或者自己去查询新的知识，但是这些所谓的知识大部分只能在大脑中贮存那么几天，最多几周，那些我们曾经以为自己看懂了就永远都不会忘记的东西又有多少被那个过于自信的自己所遗忘了呢？当自己想要重新去涉及相关领域的时候甚至都不记得该从那里去找了。有时候，我甚至回想前一天看过什么的时候都已然忘记！</p>
+
+<p>确实，现在有很多很方便的软件，或者相应的方法来记录这些，比如evernote，甚至单纯地采用书签。然而单纯的记录和鼠标点击都远远不能达到好的知识学习的效果。在现实生活中，我们想要学习一个知识点，往往都会花上大量的时间和精力在良莠不齐的网页中搜索到那些靠谱的、解释清楚的博客或者文档。再花上时间去阅读和理解。对于我们这种普通人来说，看过的东西大部分会在很短的时间内忘掉，就算当时感觉完全理解了，也会在未来的某一天里不经意地彻底忘记。这种事对我来说发生过太多次了，以至于我经常在某些时候觉得自己掌握了很多知识，充满了自信，而过了一段时间之后又变得颓然无助。</p>
+
+<p>从这个月开始我尝试记录“技术日记”，每天总结一下当天所查询、理解的知识，并且记录下对于我来说比较有用的博客或者的文档出处，以便于日后查询。当记录了一个月之后我依然觉得这样还是不够，我觉得除了每天记录之外，每隔一段时间的回顾和总结也是非常必要的。于是我决定把这个总结作为每个月的常规任务，记录在博客上，或许能够更好地激励和督促我自己，甚至也可能会在不经意间带给别人些许方便呢。</p>
+
+<p>从这次开始，进行2015年1月的知识整理，并不会非常详细，仅仅是当做一个月知识的回顾，并且记录下一些对自己产生启发效果或者科普功能的博客和文档的链接。</p>
+
+<p>这个月的关键字：IOCTL, MSI-X, Eventfd, Namespaces, QOM, Linux Kernel, Inline Assembly, Segement Register, TLS, PCI Device Driver, Xen I/O, BDF Notation, Signal, CPU Privilege Level.</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h4>IOCTL</h4>
+
+<p>推荐LWN的这篇科普文：<a href="http://lwn.net/Articles/119652/">The new way of ioctl</a></p>
+
+<ul>
+<li>原来的IOCTL: 采用内核大锁（big kernel lock: BKL）</li>
+<li>unlocked_ioctl: 优化，采用自定义的锁（self-defined lock）</li>
+<li>compat_ioctl: 当32位的进程需要在64位的系统上调用（whenever a 32-bit process calls ioctl() on a 64-bit system），需要做一些类型转换的操作。</li>
+</ul>
+
+
+<hr />
+
+<h4>MSI-X</h4>
+
+<p><a href="http://lwn.net/Articles/44139/">MSI-X How To</a></p>
+
+<p>另外，在Linux内核的文档中（linux-src/Documentation/PCI/MSI-HOWTO.txt）也有最新的详细的描述。</p>
+
+<p><a href="http://ytliu.info/notes/linux/msix_how_to.html">这里是我对这个文档进行的整理</a></p>
+
+<hr />
+
+<h4>Eventfd</h4>
+
+<p><a href="http://man7.org/linux/man-pages/man2/eventfd.2.html">这里是eventfd的man page</a>，讲的还是比较详细的，有一个简单例子。</p>
+
+<hr />
+
+<h4>Namespaces</h4>
+
+<p>还是推荐<a href="http://lwn.net/Articles/531114/">LWN的那几篇介绍吧</a></p>
+
+<p>这里稍微介绍下，linux的namespace一个最重要的作用是用来支持Linux Container（LXC）的，到目前为止包含6种namespaces（按照出现的时间顺序排列）：</p>
+
+<ul>
+<li><strong>Mount namespace</strong> (Linux 2.4.19)：用于隔离不同进程可见的fs mount point，其中一个作用有点像chroot，和chroot不同的是，mount namespace更安全和更灵活。它还有其它用法。</li>
+<li><strong>UTS namespace</strong> (Linux 2.6.19): 隔离两个标示符：nodename和domainname，由uname()返回，由sethostname()和setdomainname()两个syscall进行设置。UTS允许container中有自己的hostname和domain name.</li>
+<li><strong>IPC namespace</strong> (Linux 2.6.19): 隔离IPC资源（System V IPC object和POSIX message queues），现在感觉有了PID的namespace之后好像不怎么用了吧。</li>
+<li><strong>PID namespace</strong> (Linux 2.6.24) 隔离PID number。即不同PID namespace的进程可以有相同的PID。其中一个好处是container可以在host间迁移，同时保持里面进程原有的PID。另外，它可以允许每个container里面都有自己的init（PID 1）进程，在执行初始化和回收子进程的任务）。也就是说，在一个PID namespace中，每个进程会有两个PID，一个是PID namespace里面的PID，一个是外面host看到的PID</li>
+<li><strong>Network namespace</strong> (Linux 2.6.24 - Linux 2.6.29): 提供网络资源的隔离。每个network namespace有自己的网络设备，IP地址，IP路由表，/proc/net 目录，端口号等等。</li>
+<li><strong>User namespace</strong> (Linux 2.6.23 - Linux 3.8): 对user和group ID number进行隔离。也就是说，一个进程的user ID和group ID在user namespace内外可能不一样。从Linux 3.8开始，一个unprivilege的进程可以创建user namespaces，这产生了一些新的可能性，也会产生一些安全性问题。</li>
+</ul>
+
+
+<hr />
+
+<h4>Qemu Object Model (QOM)</h4>
+
+<p><a href="http://www.linux-kvm.org/wiki/images/0/0b/Kvm-forum-2013-Modern-QEMU-devices.pdf">这个slide</a>介绍了Qemu设备模型的发展历史。</p>
+
+<p><a href="http://wiki.qemu.org/Features/QOM">WIKI的这篇</a>介绍了QOM和Qdev的区别。</p>
+
+<p><a href="http://mnstory.net/wp-content/uploads/2014/10/qemu-device-simulation/qemu-device-simulation.pdf">这个文档</a>详细地介绍了QOM。</p>
+
+<p>当然也可以看<a href="http://ytliu.info/blog/2015/01/10/qemushe-bei-chu-shi-hua/">我写的这篇博客</a>，里面也有一些说明。</p>
+
+<hr />
+
+<h4>Linux Kernel - read/write file</h4>
+
+<p>这个点主要是说明如何在内核里面读写文件。</p>
+
+<p>事实上在内核里面是不建议对文件进行读写操作的。</p>
+
+<p><a href="http://lkml.iu.edu/hypermail/linux/kernel/0005.3/0061.html">这个mailing list</a>里面简单说明了原因。</p>
+
+<p>而在<a href="http://www.linuxjournal.com/article/8110">这个博客中</a>更详细地解释了这件事，不过如果你确实要这么做，它也举了个例子。</p>
+
+<p>这是一个<a href="http://bbs.chinaunix.net/thread-1945223-1-1.html">中文博客</a>，同样了举了个例子说明如何在内核中读写文件（如果你真的要这么做的话）</p>
+
+<p><a href="http://ytliu.info/notes/linux/file_ops_in_kernel.html">这里</a>是我对这个问题的整理。</p>
+
+<hr />
+
+<h4>Linux Kernel - kmalloc, kzalloc, kcalloc, vmalloc</h4>
+
+<p>简单地说，这几个malloc的区别在于：</p>
+
+<ul>
+<li>kzalloc zeroes the memory before returning a pointer</li>
+<li><p>kcmalloc allocates memory for an array, it is not a replacement for kmalloc :</p>
+
+<p>  void *kcalloc(size_t n, size_t size, gfp_t flags)</p></li>
+<li><p>vmalloc is the same as kmalloc, except that it allocates memory that is only virtually contiguous. The underlying physical memory can be discontiguous.</p></li>
+</ul>
+
+
+<p><a href="http://lwn.net/Articles/147014/">LWN的这篇文章</a>说明了为什么要引入kcalloc，以及之后的kzalloc:</p>
+
+<ul>
+<li><code>kcalloc</code>是用于代替<code>kmalloc()/memset()</code>的组合的，</li>
+<li>而<code>kzaloc</code>主要是去掉<code>kcalloc</code>的第一个参数n，因为在大部分情况下它等于<code>1</code>。</li>
+</ul>
+
+
+<hr />
+
+<h4>Inline Assembly</h4>
+
+<p><a href="http://www.ibm.com/developerworks/library/l-ia/">这篇IBM的文档</a>较清楚地介绍了汇编语言和内联汇编的语法。</p>
+
+<p><a href="http://www.delorie.com/djgpp/doc/brennan/brennan_att_inline_djgpp.html">这个</a>和<a href="http://www.ibiblio.org/gferg/ldp/GCC-Inline-Assembly-HOWTO.html">这个</a>是两篇比较简单清楚的科普文档。</p>
+
+<p><a href="http://staff.ustc.edu.cn/~xlanchen/cailiao/x86%20Assembly%20Programming.htm">这个是X86汇编编程的一个简化版的查询文档</a>。</p>
+
+<p><a href="http://www.cs.virginia.edu/~evans/cs216/guides/x86.html">这个事X86汇编的Guide</a>就比较详细的文档。</p>
+
+<hr />
+
+<h4>Segment Register</h4>
+
+<p><a href="http://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for#">这个</a>和<a href="http://reverseengineering.stackexchange.com/questions/2006/how-are-the-segment-registers-fs-gs-cs-ss-ds-es-used-in-linux">这个</a>是两个问答网站上关于gs、fs等segment register的提问，有一些比较详细的回答。</p>
+
+<p><a href="http://www.mouseos.com/arch/segment_registers.html">这个文档</a>介绍了segment寄存器的结构。</p>
+
+<p><a href="http://www.eecg.toronto.edu/~amza/www.mindsec.com/files/x86regs.html">这个文档</a>列举了X86的所有寄存器及其简介。</p>
+
+<hr />
+
+<h4>Thread Local Storage (TLS)</h4>
+
+<p><a href="http://www.longene.org/techdoc/0328131001224576926.html">这个</a>是一篇中文的关于TLS的介绍，比较长，而且主要是关于Windows的。</p>
+
+<p><a href="http://www.uml.org.cn/embeded/201207131.asp">这个博客</a>是Linux TLS的介绍，比较清楚。</p>
+
+<hr />
+
+<h4>PCI Device Driver</h4>
+
+<p><a href="http://nairobi-embedded.org/linux_pci_device_driver.html">Writing a PCI Device Driver, A Tutorial with a QEMU Virtual Device</a> 非常详细地介绍了如何写一个Qemu的PCI设备驱动，采用的是Qemu的Inter-VM share memory来做介绍，非常赞！</p>
+
+<p>另外，在Linux内核的文档中（<code>linux-src/Documentation/PCI/pci.txt</code>）也有最新的详细的描述介绍如何写一个PCI device driver。</p>
+
+<hr />
+
+<h4>Xen I/O</h4>
+
+<p><a href="http://www.mulix.org/lectures/xen-iommu/xen-io.pdf">这是一个介绍Xen I/O的科普slide</a></p>
+
+<p>而<a href="http://www.informit.com/articles/article.aspx?p=1160234">这一篇文章</a>摘自那本《The Definitive Guide to the Xen Hypervisor》书。</p>
+
+<p>其实了解Xen I/O最好的资料是上面提到的这本书，以及去查阅相应的代码。</p>
+
+<p>当然还有一些文档：</p>
+
+<ul>
+<li><a href="http://www.xenproject.org/users/getting-started.html">这个文档</a>是<code>Xen Get Started</code>。</li>
+<li><a href="http://xmodulo.com/install-paravirtualized-xen-guest.html">这个</a>介绍了如何安装一个PV的虚拟机。</li>
+<li><a href="http://twobit.us/2010/07/xen-network-driver-domain-wh/">这个博客</a>和<a href="http://wiki.xen.org/wiki/Driver_Domain">这个文档</a>也说明了如何安装一个network driver domain。</li>
+<li><a href="http://wiki.xenproject.org/wiki/Category:HowTo">这里</a>列举了大部分Xen相关的文档。</li>
+<li><a href="http://wiki.xen.org/wiki/Xen_PCI_Passthrough">这个WIKI</a>介绍了Xen PCI passthrough</li>
+</ul>
+
+
+<hr />
+
+<h4>BDF Notation</h4>
+
+<p><a href="http://wiki.xen.org/wiki/Bus:Device.Function_(BDF)_Notation">这个Xen的Wiki</a>详细并且清楚地科普了BDF的相关知识</p>
+
+<hr />
+
+<h4>Signal in Linux</h4>
+
+<p><a href="http://cs-pub.bu.edu/fac/richwest/cs591_w1/notes/wk3_pt2.PDF">这个slide</a>对signal介绍的蛮清楚的。</p>
+
+<p><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">这个文档</a>对Signal介绍地更为全面。</p>
+
+<hr />
+
+<h4>CPU Privilege Level</h4>
+
+<p><a href="http://xu3stones.blog.163.com/blog/static/2059571362012103094448554/">这篇中文博客</a>前面的对CPL，DPL，RPL的名词解释部分还不错，但是后面有点看不懂。</p>
+
+<p><a href="https://iambvk.wordpress.com/2007/10/10/notes-on-cpl-dpl-and-rpl-terms/">这个英文笔记</a>其实对这三种权限级别介绍的更为简单，但是清楚，特别是最后对RPL的介绍所举的那个例子。</p>
+
+<p><a href="http://ytliu.info/notes/linux/cpl_dpl_rpl.html">这里</a>是我基于上面这篇英文笔记对这几个名词解释的整理。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[杂]]></title>
+    <link href="http://ytliu.github.io/blog/2012/02/19/za/"/>
+    <updated>2012-02-19T18:08:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2012/02/19/za</id>
+    <content type="html"><![CDATA[<p>总的来说这周过得是比较颓废的，花了太多时间在金庸上，晚睡早起的，不过我并不后悔，没有什么好后悔的，做了就是做了，而且过程还挺开心的，好好制定接下来的计划并实行就好了。</p>
+
+<p>看了射雕，真的很羡慕小说中人物的生活，很喜欢靖哥哥和蓉儿，有的时候我会想，如果真有一个那样子的世界，而我又身处其中，那又会怎么样呢？我也能像郭靖那样这么真诚地对待自己和他人吗？从一开始我就感觉很讨厌杨康，可是看完了回头想想杨康真的做的就完全不对吗？作为一个人多为自己考虑又哪里错了呢？喜欢郭靖还有很重要的原因是他功夫好，可是有时候又真的很为他担心，太过于坚持原则。说到底，我还是最喜欢蓉儿和后期的靖哥哥，真的真的好羡慕他们两人，我知道这是虚构，可是为什么就不能相信世界上真的有这样的一对呢~还有，我在想，在现实生活中，真的能像郭靖那样真诚地对待他人吗？路上看到需要帮助的人你能毫不犹豫地给予施舍？给别人的承诺就算再难也要实现？为了心爱的人能付出所有的一切，包括自己的生命？可是世间又是那么地充满不公，充盈着欺瞒与腐败，作为一个如此普通的人，没有拯救世界的能力，又何来如此真诚而无条件的信心呢？所以我有时憧憬着那些武林中的生活，固然世间充满着不公，固然人依然是如此的渺小，很多时候却更有可能单纯依靠努力改变一些什么。说不清楚什么，或许是虚拟世界的完美性的虚构带来的幻觉吧……</p>
+
+<p>武林中的世界将要告一段落，回到现实生活中，这周主要的工作是两篇paper的rebuttal和依旧的读paper，从PC的review其实可以从一定程度上看出最后的结果了，不过依然带着些侥幸心理，还是要等到最后吧。在后来重新搭建CFIMon的时候发现虽然只是经过了短短2、3个月，很多东西依然忘记了，主要还是因为1.理解的不够深，2.没有很好地记录下来吧。比如那个禁止linux地址空间布局随机化的</p>
+
+<pre><code>    echo 0 &gt; /proc/sys/kernel/randomize_va_space    
+</code></pre>
+
+<p>如果当时能记下来这次就能省去好多时间了。这就是为什么今年"记笔记"是我一个很大的计划的原因了。真的越来越感觉到自己记忆的易失和笔头的重要性了。</p>
+
+<p>还有这周印象很深的是在讨论CFIMon处理signal的问题的时候，斌哥问我关于linux中对signal处理的问题，说来惭愧，当时在写这篇paper的时候我对这个还是一知半解的，甚至到现在还把signal的处理和interrupt的处理混起来了。希望能在这里把这东西说清楚:</p>
+
+<!-- more -->
+
+
+<p>当一个进程需要向另一个进程发送一个signal时，它是通知kernel产生这个signal，并将接受方进程的某个flag(ULK中说的是TIF_SIGPEDING)置好，当然这个时候并不是能马上告诉接受进程有signal需要处理，而是像ULK上说的：</p>
+
+<pre><code>    The kernel checks for the existence of pending signals every time it finishes handling an interrupt or an exception.
+</code></pre>
+
+<p>也就是说只有在某个进程运行时需要处理中断或异常即将返回该进程执行时才会检查是否有未处理的signal，再对其进行处理。对于signal的处理主要有三种情况：</p>
+
+<pre><code>    1，ignore
+    2，the default action，通常是SIGSTOP
+    3，用户注册的相对应的signal handler
+</code></pre>
+
+<p>对于前面两种情况很容易理解和实现，这里主要要说的是第三种情况，这个情况的麻烦在于它要先从kernel态切换到user态执行handler，之后再切回kernel态，直到回到进程在进入kernel之前的状态，而这些就要很仔细地考虑栈里面数据和进程状态的维护了。在ULK中用了一张图来表示整个过程：
+<img src="http://ytliu.info/images/2012-02-19-1.jpg" title="The process of catching a signal from ULK" alt="Catching a Signal" /></p>
+
+<p>简单来说整个流程是这样的：在处理完中断或异常将从kernel态回到用户态之前，kernel会调用do_signal()函数，在这个函数里面会调用handle_signal()函数，这个函数首先创建用户态所需要的栈环境，这个栈是长这样的：
+<img src="http://ytliu.info/images/2012-02-19-2.jpg" title="the frame on the user mode stack from ULK" alt="Frame on the User Mode Stack" /></p>
+
+<p>其实主要就是把return address改成用户自行定义的signal handler的入口，然后进入用户态，执行相应的代码，当执行结束之后，会根据栈顶的pretcode，调用一个sigreturn()或rt_sigreturn()系统调用，回到kernel态，执行流继续下去。其实这里面还有很多细节的，包括那些栈里面内容的含义，如何处理嵌套signal等等，这些需要更仔细地参阅相关资料了。</p>
+
+<p>最后依然是写写这周看的paper，这周本来是想把Oakland'11扫一遍的，不过自己看paper的效率实在是低，加上觉得前面看的几篇确实都蛮有意思的，就多花了些时间，这个专题还是下周来写吧，另外这周给自己选的paper是6.858的preparation的第一篇，叫</p>
+
+<pre><code>    Baggy Bounds Checking: An Efficient and Backwards-Compatible Defense against Out-of-Bounds Errors
+</code></pre>
+
+<p>是发在usenix security 2009上的，主要是因为它是课程的pre-reading，其实我自己本身对这方面不是很熟悉，也不是太感兴趣，在这里就简单介绍下吧：</p>
+
+<p>这篇主要是做memory bounds checking，在文中首先提出要做bound checking主要要考虑两点，第一效率高，第二向后兼容性，这里先归纳下传统memory errors detection的方法：</p>
+
+<pre><code>    static technique;
+    dynamic technique (with or without source code);
+    control flow integrity, taint trcking;
+    system support (fat pointer, splay tree to map memory...)
+</code></pre>
+
+<p>这些方法按照作者的说法要不效率太低，要不需要改变整个系统指针结构的layout，不能向后兼容，要么检查的错误有限制（其实本文也有很大的限制啦）...而作者做这个Baggy bounds checker的最大的insight是，现在linux里面很流行的buddy allocator的特性，所有allocate出来的页的大小都是2的指数大小，于是对于内存区域size和allignment的限制能够很大程度地减小内存的利用，提高检察效率。举个例子，对于传统的保存pointer信息的结构，至少需要8个bytes的空间（4位保存pointer起始地址，4位保存pointer指向内存的大小）而对于baggy来说，只需要一个byte的大小（e = log2(size)）。至于pointer的起始地址，由于在baggy系统里内存被分为slot-size（implementation中是16-bytes)的一个个slots，于是</p>
+
+<pre><code>    size = 1 &lt;&lt; e
+    base = p &amp; ~(size-1)
+</code></pre>
+
+<p>而记录这个e的table是一个占用内存1/slot-size大小的array，每一个slot一个byte表示，于是举个例子：</p>
+
+<pre><code>    对于指针运算：p' = p + i
+    bound的检查：size = 1 &lt;&lt; table[p&gt;&gt;slot_size]
+                 base = p &amp; ~(size-1)
+                 p' &gt;= base &amp;&amp; p' - base &lt; size
+    检查的优化：（p~p')&gt;&gt;table[p&gt;&gt;slot_size] == 0
+</code></pre>
+
+<p>这个优化也很好理解，对于计算出的指针p'，如果它不越界，当且仅当它和p的不同只发生在e least significant bits上。这个baggy bounds checker的整个流程是这样的：
+<img src="http://ytliu.info/images/2012-02-19-3.png" title="Architecture" alt="Overall System Architecture" /></p>
+
+<p>当然这中间还有很多细节，我不想一一列出来讲，而且说实话我也看的不是很懂，最后想提提这个paper的limitation，这个最后作者也有说到，除了它列出的几点：</p>
+
+<pre><code>    arithemtic on integers holding addresses is unchecked
+    does not address temporal memory safety violations
+    cannot protect from memory errors in subobjects such as structure fields
+</code></pre>
+
+<p>我还有几点不是很确定算不算，第一个，在它的实现中slot-size为16bytes，也就是说所有memory allocator出来的内存大小都要大于16bytes（否则会有两个objects指在同一个slot里面），那么对于比如integer指针，岂不是很浪费？padding过多会造成大量的内存浪费，当然按照作者的说法这个可以做一个权衡，但是如何权衡或许用户并不是很清楚。第二，对于non-instrumented的第三方library的checking，按照作者的说法将默认size设为<code>2^31</code>，我不懂这样做会不会有很大的副作用，另外，只能在修改过的应用程序中检查memory bounds violation，对于library中的指针运算依然没办法，而library的code我想应该比用户自己的application多出很多吧，也不见得vulnerability会少啊。</p>
+
+<p>另外在MIT 6.858的lecture-2里面也是讲相关知识的，这里想补充一些"How to prevent buffer overflows"</p>
+
+<pre><code>    Approach 0: use a type-save language (Java, C#, Python..)
+    Approach 1: try to find bugs (analysis tools, fuzzers)
+    Approach 2: canaries (StackGuard, gcc's SSP)
+    Approach 3: bounds checking
+    Approach 4: non-executable memory (AMD's NX bit, Windows DEP, W^X...)
+    Approach 5: randomized memory address (ASLR, stack randomization...)
+</code></pre>
+
+<p>下周打算把Oakland'11完成，至于其它任务吗，还没想好咯。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[开篇仪式]]></title>
+    <link href="http://ytliu.github.io/blog/2011/12/21/kai-pian-yi-shi/"/>
+    <updated>2011-12-21T15:58:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2011/12/21/kai-pian-yi-shi</id>
+    <content type="html"><![CDATA[<p>其实很早就一直在想要写博客了，之前也尝试过（<a href="http://blog.csdn.net/microtrain016" title="microtrain016's blog">一只小小小鸟</a>），但是最后还是没有坚持下来。   <br/>
+昨天看了鹏老大的一篇博文 - <a href="http://mindhacks.cn/2011/11/04/how-to-interview-a-person-for-two-years/">《怎样花两年时间去面试一个人》</a>，真的很有感触，其实我不能算一个geek，技术其实也挺一般的，在自己看来离人才还差得远，但是里面提到的"书单计划"和"github计划"应该是一个慢慢积累的过程，我还有半年的本科生涯，之后还有至少五年的博士，我没有要急于找工作的负担，为什么不趁这个最最珍贵的时间来积累呢？我一直相信于"厚积薄发"，还记得本科的时候看着自己与其他人的距离我写下"时间会拉近人与人之间的差距"，三年过去我觉得自己做到了一些，超过了一些当时在我心目中的牛人。但当我进入PPI，当我开始要考虑自己的博士生涯的时候发现，自己又成了一个更高层次的弱者，我为此感到兴奋，我未来的生活又可以在这种激情中度过，只是在这慢慢的积累中我希望看到一点一滴的进步，我很清楚自己在发散思维上的弱势，我急需一些方法提高。</p>
+
+<p>我写博客是希望将自己在这个学习的过程中的感悟、收获以一种相比于记忆更不会消逝的方式记录下来，如果还能引起别人带来那么一丁点儿的共鸣那再好不过了，我从不祈求于自己能写出多么牛逼的技术文章，任何技术上的收获、生活中的感悟我都会记录下来，我从不认为文字分所谓的"贫贱贵富"，只要是自己的就是最真实的。</p>
+
+<p>至于为什么要用Octopress+Github，是因为我们实验室的两个大牛（<a href="http://blog.yxwang.me">zellux</a>和<a href="http://chenyufei.info">ChenYufei</a>）都开始尝试着用了它，而且我也想感受用vi写博文的感觉所以就尝试写段时间，我希望这个尝试能一直进行下去。也希望能从中得到那些我希望得到的东西。</p>
+
+<p>开篇结束，坚持是未来最大的挑战！</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Markdown语法测试]]></title>
+    <link href="http://ytliu.github.io/blog/2011/12/21/markdownyu-fa-ce-shi/"/>
+    <updated>2011-12-21T15:17:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2011/12/21/markdownyu-fa-ce-shi</id>
+    <content type="html"><![CDATA[<p><a href="http://ytliu.info">http://ytliu.info</a></p>
+
+<p>[mctrain](http://ytliu.info "mctrain's blog")  <br/>
+<a href="http://ytliu.info" title="mctrain's blog">mctrain</a>  <br/>
+<a href="http://ytliu.info" title="mctrain's blog">mctrain-2</a> <br/>
+<img src="http://ytliu.info/images/search.png" title="pic" alt="pic" /></p>
+
+<pre><code>    #title1
+</code></pre>
+
+<h1>title1</h1>
+
+<pre><code>    ##title2
+</code></pre>
+
+<h2>title2</h2>
+
+<pre><code>    ###title3
+</code></pre>
+
+<h3>title3</h3>
+
+<pre><code>    ####title4
+</code></pre>
+
+<h4>title4</h4>
+
+<pre><code>    #####title5
+</code></pre>
+
+<h5>title5</h5>
+
+<pre><code>    ######title6
+</code></pre>
+
+<h6>title6</h6>
+
+<pre><code>    *italic*
+</code></pre>
+
+<p><em>italic</em></p>
+
+<pre><code>    **bold**
+</code></pre>
+
+<p><strong>bold</strong></p>
+
+<pre><code>    ***italic&amp;bold***
+</code></pre>
+
+<p><strong><em>italic&amp;bold</em></strong></p>
+
+<pre><code>    &gt;highlight
+</code></pre>
+
+<blockquote><p>highlight</p></blockquote>
+
+<pre><code>    &lt;html&gt; *a* &lt;/html&gt;
+</code></pre>
+
+<p><html> <em>a</em> </html></p>
+
+<ul>
+<li>1</li>
+<li>2</li>
+<li><p>3</p></li>
+<li><p>first</p></li>
+<li>second</li>
+<li>third</li>
+<li>fourth</li>
+</ul>
+
+
+<p>hr-high</p>
+
+<hr />
+
+<p>hr-below</p>
+
+<blockquote><p>highlight</p>
+
+<blockquote><p>highlight again</p></blockquote></blockquote>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Awesome code snippet</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="p">[</span><span class="n">rectangle</span> <span class="nl">setX:</span> <span class="mi">10</span> <span class="nl">y:</span> <span class="mi">10</span> <span class="nl">width:</span> <span class="mi">20</span> <span class="nl">height:</span> <span class="mi">20</span><span class="p">];</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>Javascript Array Syntax</span><a href='http://j.mp/pPUUmW'>MDN Documentation </a></figcaption> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'><span class="kd">var</span> <span class="nx">arr1</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">(</span><span class="nx">arrayLength</span><span class="p">);</span>
+</span><span class='line'><span class="kd">var</span> <span class="nx">arr2</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">(</span><span class="nx">element0</span><span class="p">,</span> <span class="nx">element1</span><span class="p">,</span> <span class="p">...,</span> <span class="nx">elementN</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+]]></content>
+  </entry>
+  
+</feed>

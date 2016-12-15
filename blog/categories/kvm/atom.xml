@@ -1,0 +1,900 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Kvm | Mctrain's Blog]]></title>
+  <link href="http://ytliu.github.io/blog/categories/kvm/atom.xml" rel="self"/>
+  <link href="http://ytliu.github.io/"/>
+  <updated>2016-12-15T11:12:49+08:00</updated>
+  <id>http://ytliu.github.io/</id>
+  <author>
+    <name><![CDATA[Liu Yutao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[史上最详细的kvm_mmu_page结构和用法解析]]></title>
+    <link href="http://ytliu.github.io/blog/2014/11/24/shi-shang-zui-xiang-xi-de-kvm-mmu-pagejie-gou-he-yong-fa-jie-xi/"/>
+    <updated>2014-11-24T13:15:00+08:00</updated>
+    <id>http://ytliu.github.io/blog/2014/11/24/shi-shang-zui-xiang-xi-de-kvm-mmu-pagejie-gou-he-yong-fa-jie-xi</id>
+    <content type="html"><![CDATA[<p>这段时间在研究KVM内存虚拟化的代码，看的那叫一个痛苦。网上大部分能找到的资料，不管是中文的还是英文的，写的都非常含糊，很多关键的数据结构和代码都讲的闪烁其辞，有些就是简单的把KVM的文档翻译了一下，但是KVM的文档也让人（至少让我）看的挺费解的，只能着眼于代码，一直挣扎到如今，终于有那么一点开窍了。</p>
+
+<p>于是乎，本着“利己又为人”的原则，我决定将这段时间自己所理解的东西倾情奉献出，特别是对kvm_mmu_page这个最为关键的数据结构，以及它在handle EPT violation时每个域的作用和意义。</p>
+
+<p>需要说明的是，这篇博客并不是一个针对初学者理解“内存虚拟化”的教程，“内存虚拟化”涉及到的很多概念需要读者去翻阅其它资料来获取，以下内容均建立在读者已经了解了“内存虚拟化”的基本概念的基础上，比如对于什么是影子页表（Shadow page table），什么是EPT等，请自行google。以下内容大部分是我阅读目前KVM的文档和源码，以及在运行时生成log进行验证来确定的。</p>
+
+<p>我会尽最大的努力让以下内容足够完整和准确，如果读者发现有什么不清楚或者觉得不正确的地方，望请告知。这篇博文也会实时并且持续更新。</p>
+
+<!-- more -->
+
+
+<p>现在开始进入“史上最详细的”系列：</p>
+
+<p>我们知道在KVM最新的内存虚拟化技术中，采用的是两级页表映射tdp (two-dimentional paging)，客户虚拟机采用的是传统操作系统的页表，被称做guest page table (GPT)，记录的是客户机虚拟地址（GVA）到客户机物理地址（GPA）的映射；而KVM维护的是第二级页表extended page table (EPT，注：AMD的体系架构中其被称为NPT，nested page table，在这篇文章中统一采用Intel的称法EPT)，记录的是虚拟机物理地址（GPA）到宿主机物理地址（HPA）的映射。</p>
+
+<p>在介绍主体内容之前，需要先统一下几个缩写（摘自KVM文档：linux/Documentation/virtual/kvm/mmu.txt）：</p>
+
+<ul>
+<li>pfn: host page frame number，宿主机中某个物理页的帧数</li>
+<li>hpa: host physical address，宿主机的物理地址</li>
+<li>hva: host virtual address，宿主机的虚拟地址</li>
+<li>gfn: guest page frame number，虚拟机中某个物理页的帧数</li>
+<li>gpa: guest physical address，虚拟机的物理地址</li>
+<li>gva: guest virtual address，虚拟机的虚拟地址</li>
+<li>pte: page table entry，指向下一级页表或者页的物理地址，以及相应的权限位</li>
+<li>gpte: guest pte，指向GPT中下一级页表或者页的gpa，以及相应的权限位</li>
+<li>spte: shadow pte，指向EPT中下一级页表或者页的hpa，以及相应的权限位</li>
+<li>tdp: two dimentional paging，也就是我们所说的EPT机制</li>
+</ul>
+
+
+<p>以上唯一需要解释的是spte，在这里被叫做shadow pte，如果不了解的话，会很容易和以前的shadow paging机制搞混。</p>
+
+<p>KVM在还没有EPT硬件支持的时候，采用的是影子页表（shadow page table）机制，为了和之前的代码兼容，在当前的实现中，EPT机制是在影子页表机制代码的基础上实现的，所以EPT里面的pte和之前一样被叫做shadow pte，这个会在之后进行详细的说明。</p>
+
+<h2>两级页表寻址 (tdp)</h2>
+
+<p>其实这个不是重点，就简单地贴张图吧：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-1.png" title="tdp" alt="tdp" /></p>
+
+<p>在上图中，包括guest CR3在内，算上PML4E、PDPTE、PDE、PTE，总共有5个客户机物理地址（GPA），这些GPA都需要通过硬件再走一次EPT，得到下一个页表页相对应的宿主机物理地址。</p>
+
+<p>接下来，也就是这篇博文主要的关注点，给定一个GPA，如何通过EPT计算出其相对应的HPA呢？换句话说，如果发生一个EPT violation，即在客户虚拟机中发现某个GPA没有映射到相对应的HPA，那么在KVM这一层会进行什么操作呢？</p>
+
+<h2>EPT</h2>
+
+<p>下图是EPT的总体结构：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-2.png" title="ept overview" alt="ept overview" /></p>
+
+<p>和传统的页表一样，EPT的页表结构也是分为四层（PML4、PDPT、PD、PT），EPT Pointer (EPTP)指向PML4的首地址，在没有大页（huge page）的情况下（大页会在以后的博文中说明，这篇博文不考虑大页的情况），一个gpa通过四级页表的寻址，得到相应的pfn，然后加上gpa最后12位的offset，得到hpa，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-3.png" title="ept walk" alt="ept walk" /></p>
+
+<h3>物理页与页表页</h3>
+
+<p>在这个过程中，有两种不同类型的页结构：物理页（physical page）和页表页（MMU page）。物理页就是真正存放数据的页，而页表页，顾名思义，就是存放页表的页，而且存放的是EPT的页表。其中，第四级（level-4）页表，也就是EPTP指向的那个页表，是所有MMU pages的根（root），它只有一个页，包含512（4096/8）个页表项（PML4E），每个页表项指向一个第三级（level-3）的页表页（PDPT），类似的，每个PDPT页表页也是512个页表项指向下一级页表，直到最后一级（level-1）PT，PT中的每个页表项（PTE）指向的是一个物理页的页帧（pfn）异或上相对应的access bits。</p>
+
+<p>物理页和页表页除了功能和里面存储的内容不同外，它们被创建的方式也是不同的：</p>
+
+<ul>
+<li>物理页可以通过内核提供的<code>__get_free_page</code>来创建，该函数最后会通过底层的<code>alloc_page</code>来返回一段指定大小的内存区域。</li>
+<li>页表页则是从<code>mmu_page_cache</code>获得，该page cache是在KVM模块初始化vcpu的时候通过linux内核中的slab机制分配好作为之后MMU pages的cache使用的。</li>
+</ul>
+
+
+<p>在KVM的代码实现中，每个页表页（MMU page）对应一个数据结构kvm_mmu_page。这个数据结构是理解整个EPT机制的关键，接下来的篇幅就主要围绕这个<code>kvm_mmu_page</code>进行分析。</p>
+
+<h3>ept violation处理流程</h3>
+
+<p>在引入这个数据结构之前，我们先来整体了解下在发生ept violation之后KVM是如何进行处理的（也可参考<a href="http://blog.csdn.net/lux_veritas/article/details/9284635">这篇博文</a>)：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-4.png" title="ept violation handle" alt="ept violation handle" /></p>
+
+<p><code>handle_ept_violation</code>最终会调用到<code>arch/x86/kvm/mmu.c</code>里面的<code>tdp_page_fault</code>。在该函数中，有两个大的步骤：</p>
+
+<ul>
+<li>gfn_to_pfn：在这个过程中，通过gfn->memslot->hva->pfn这一系列步骤得到最后的pfn，这个过程以后会专门用一篇博客来描述；</li>
+<li>__direct_map：这个函数所做的事情就是把上一步中得到的pfn和gfn的映射关系反映在EPT中，该过程是这篇博文介绍的重点。</li>
+</ul>
+
+
+<p>顺便提一句，为什么这里叫<code>direct_map</code>呢，即这里的<code>direct</code>是什么意思呢？在我的理解中，这个<code>direct</code>和<code>shadow</code>是相对应的，<code>direct</code>是指在EPT的模式下进行映射，而<code>shadow</code>是在之前shadow paging的模式下进行映射，这主要反映在后面的<code>kvm_mmu_get_page</code>传参过程中（请参阅之后的介绍）。</p>
+
+<p><code>__direct_map</code>的主要逻辑如下（可参阅<a href="http://blog.csdn.net/lux_veritas/article/details/9284635">这里</a>的解释）：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">int</span> <span class="nf">__direct_map</span><span class="p">(</span><span class="n">args</span><span class="p">...)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">for_each_shadow_entry</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="p">(</span><span class="n">u64</span><span class="p">)</span><span class="n">gfn</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">PAGE_SHIFT</span><span class="p">,</span> <span class="n">iterator</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">if</span> <span class="p">(</span><span class="n">iterator</span><span class="p">.</span><span class="n">level</span> <span class="o">==</span> <span class="n">level</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">mmu_set_spte</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">iterator</span><span class="p">.</span><span class="n">sptep</span><span class="p">,</span> <span class="n">ACC_ALL</span><span class="p">,</span>
+</span><span class='line'>         <span class="n">write</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">emulate</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">gfn</span><span class="p">,</span> <span class="n">pfn</span><span class="p">,</span>
+</span><span class='line'>         <span class="n">prefault</span><span class="p">,</span> <span class="n">map_writable</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="k">break</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">is_shadow_present_pte</span><span class="p">(</span><span class="o">*</span><span class="n">iterator</span><span class="p">.</span><span class="n">sptep</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">u64</span> <span class="n">base_addr</span> <span class="o">=</span> <span class="n">iterator</span><span class="p">.</span><span class="n">addr</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">base_addr</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">=</span> <span class="n">PT64_LVL_ADDR_MASK</span><span class="p">(</span><span class="n">iterator</span><span class="p">.</span><span class="n">level</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">pseudo_gfn</span> <span class="o">=</span> <span class="n">base_addr</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">PAGE_SHIFT</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sp</span> <span class="o">=</span> <span class="n">kvm_mmu_get_page</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">pseudo_gfn</span><span class="p">,</span> <span class="n">iterator</span><span class="p">.</span><span class="n">addr</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">iterator</span><span class="p">.</span><span class="n">level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+</span><span class='line'>            <span class="mi">1</span><span class="p">,</span> <span class="n">ACC_ALL</span><span class="p">,</span> <span class="n">iterator</span><span class="p">.</span><span class="n">sptep</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">link_shadow_page</span><span class="p">(</span><span class="n">iterator</span><span class="p">.</span><span class="n">sptep</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="nb">true</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">emulate</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>这里的函数代码将映射的建立分成两种情况：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">iterator</span><span class="p">.</span><span class="n">level</span> <span class="o">==</span> <span class="n">level</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">mmu_set_spte</span><span class="p">(...);</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="o">!</span><span class="n">is_shadow_present_pte</span><span class="p">(</span><span class="o">*</span><span class="n">iterator</span><span class="p">.</span><span class="n">sptep</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">kvm_mmu_get_page</span><span class="p">(...);</span>
+</span><span class='line'>  <span class="n">link_shadow_page</span><span class="p">(...);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>简单来说，<code>__direct_map</code>这个函数是根据传进来的gpa进行计算，从第4级（level-4）页表页开始，一级一级地填写相应页表项，这些都是在<code>for_each_shadow_entry(vcpu, (u64)gfn &lt;&lt; PAGE_SHIFT, iterator)</code>这个宏定义里面实现的，这里不展开。这两种情况是这样子的：</p>
+
+<ul>
+<li>第一种情况是指如果当前页表页的层数（<code>iterator.level</code>）是最后一层（<code>level</code>）的页表页，那么直接通过调用<code>mmu_set_spte</code>（之后会细讲）设置页表项。</li>
+<li>第二种情况是指如果当前页表页<code>A</code>不是最后一层，而是中间某一层（leve-4, level-3, level-2)，而且该页表项之前并没有初始化（<code>!is_shadow_present_pte(*iterator.sptep)</code>），那么需要调用<code>kvm_mmu_get_page</code>得到或者新建一个页表页<code>B</code>，然后通过<code>link_shadow_page</code>将其link到页表页<code>A</code>相对应的页表项中。</li>
+</ul>
+
+
+<h3>kvm_mmu_get_page</h3>
+
+<p>根据代码可能发生的前后关系，我们先来解释下第二种情况，即如何新建一个页表页，即之前所提到的kvm_mmu_page。</p>
+
+<p>这是<code>kvm_mmu_get_page</code>的声明：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="k">struct</span> <span class="n">kvm_mmu_page</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">kvm_mmu_get_page</span><span class="p">(</span><span class="k">struct</span> <span class="n">kvm_vcpu</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">gfn_t</span> <span class="n">gfn</span><span class="p">,</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>    <span class="n">gva_t</span> <span class="n">gaddr</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">direct</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">access</span><span class="p">,</span> <span class="n">u64</span> <span class="o">*</span><span class="n">parent_pte</span><span class="p">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>首先解释下传进来的参数都是什么意思：</p>
+
+<ul>
+<li>gaddr：产生该ept violation的gpa；</li>
+<li>gfn：gaddr通过某些计算得到的gfn，计算的公式是<code>(gaddr &gt;&gt; 12) &amp; ~((1 &lt;&lt; (level * 9)) - 1)</code>，这个会在之后进行解释；</li>
+<li>level：该页表页对应的level，可能取值为3，2，1；</li>
+<li>direct：在EPT机制下，该值始终为1，如果是shadow paging机制，该值为0；</li>
+<li>access：该页表页的访问权限；</li>
+<li>parent_pte：上一级页表页中指向该级页表页的页表项的地址。</li>
+</ul>
+
+
+<p>下面举个例子来说明：</p>
+
+<p>假设在<code>__direct_map</code>中，产生ept violation的gpa为0xfffff000，当前的level为3，这个时候，发现EPT中第3级的页表页对应的页表项为空，那么我们就需要创建一个第2级的页表页，然后将其物理地址填在第3级页表页对应的页表项中，那么传给<code>kvm_mmu_get_page</code>的参数很可能是这样子的：</p>
+
+<ul>
+<li>gaddr：0xfffff000；</li>
+<li>gfn: 0xc0000 (通过<code>(0xfffff000 &gt;&gt; 12) &amp; ~((1 &lt;&lt; (3 - 1) * 9) - 1)</code>得到）；</li>
+<li>level：2 （通过<code>3 - 1</code>得到）；</li>
+<li>direct：1；</li>
+<li>access：7（表示可读、可写、可执行）；</li>
+<li>parent_pte：0xffff8800982f8018（这个是第3级页表页相应的页表项的宿主机虚拟地址hva）；</li>
+</ul>
+
+
+<h4>struct kvm_mmu_page</h4>
+
+<p>接下来看看这个函数的返回值：<code>struct kvm_mmu_page</code>：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-5.png" title="kvm_mmu_page definition" alt="kvm_mmu_page definition" /></p>
+
+<p>以上是它的定义，该函数定义在<code>arch/x86/include/asm/kvm_host.h</code>中。那么它们分别是什么意思呢？这里先有一个大概的解释（有几个域还不确定，之后会持续更新），等会儿我们会通过一个具体的例子来说明：</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">kvm_mmu_page子域 </th>
+<th align="left"> 解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">link </td>
+<td align="left"> 将该页结构链接到kvm->arch.active_mmu_pages和invalid_list上，标注该页结构不同的状态</td>
+</tr>
+<tr>
+<td align="left">hash_link </td>
+<td align="left"> KVM中会为所有的mmu_page维护一个hash链表，用于快速找到对应的kvm_mmu_page实例，详见之后代码分析</td>
+</tr>
+<tr>
+<td align="left">gfn </td>
+<td align="left"> 通过kvm_mmu_get_page传进来的gfn，在EPT机制下，每个kvm_mmu_page对应一个gfn，shadow paging见gfns</td>
+</tr>
+<tr>
+<td align="left">role </td>
+<td align="left"> kvm_mmu_page_role结构，详见之后分析</td>
+</tr>
+<tr>
+<td align="left">spt </td>
+<td align="left"> 该kvm_mmu_page对应的页表页的宿主机虚拟地址hva</td>
+</tr>
+<tr>
+<td align="left">gfns </td>
+<td align="left"> 在shadow paging机制下，每个kvm_mmu_page对应多个gfn，存储在该数组中</td>
+</tr>
+<tr>
+<td align="left">unsync </td>
+<td align="left"> 用在最后一级页表页，用于判断该页的页表项是否与guest的翻译同步（即是否所有pte都和guest的tlb一致）</td>
+</tr>
+<tr>
+<td align="left">root_rount </td>
+<td align="left"> 用在第4级页表，标识有多少EPTP指向该级页表页</td>
+</tr>
+<tr>
+<td align="left">unsync_children </td>
+<td align="left"> 记录该页表页中有多少个spte是unsync状态的</td>
+</tr>
+<tr>
+<td align="left">parent_ptes </td>
+<td align="left"> 表示有哪些上一级页表页的页表项指向该页表页（之后会详细介绍）</td>
+</tr>
+<tr>
+<td align="left">mmu_valid_gen </td>
+<td align="left"> 该页的generation number，用于和<code>kvm-&gt;arch.mmu_valid_gen</code>进行比较，比它小表示该页是invalid的</td>
+</tr>
+<tr>
+<td align="left">unsync_child_bitmap </td>
+<td align="left"> 记录了unsync的sptes的bitmap，用于快速查找</td>
+</tr>
+<tr>
+<td align="left">write_flooding_count </td>
+<td align="left"> 在页表页写保护模式下，用于避免过多的页表项修改造成的模拟（emulation）</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>其中，<code>role</code>指向了一个<code>union kvm_mmu_page_role</code>结构，解释如下：</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">kvm_mmu_page_role子域 </th>
+<th align="left"> 解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">level </td>
+<td align="left"> 该页表页的层级</td>
+</tr>
+<tr>
+<td align="left">cr4_pae </td>
+<td align="left"> 记录了cr4.pae的值，如果是direct模式，该值为0</td>
+</tr>
+<tr>
+<td align="left">quadrant </td>
+<td align="left"> 暂时不清楚</td>
+</tr>
+<tr>
+<td align="left">direct </td>
+<td align="left"> 如果是EPT机制，则该值为1，否则为0</td>
+</tr>
+<tr>
+<td align="left">access </td>
+<td align="left"> 该页表页的访问权限，参见之后的说明</td>
+</tr>
+<tr>
+<td align="left">invalid </td>
+<td align="left"> 表示该页是否有效（暂时不确定）</td>
+</tr>
+<tr>
+<td align="left">nxe </td>
+<td align="left"> 记录了efer.nxe的值（暂时不清楚什么作用）</td>
+</tr>
+<tr>
+<td align="left">cr0_wp </td>
+<td align="left"> 记录了cr0.wp的值，表示该页是否写保护</td>
+</tr>
+<tr>
+<td align="left">smep_andnot_wp </td>
+<td align="left"> 记录了cr4.smep &amp;&amp; !cr0.wp的值（暂时不确定什么作用）</td>
+</tr>
+</tbody>
+</table>
+
+
+<h4>kvm_mmu_get_page源码分析</h4>
+
+<p>在了解了大部分子域的意义之后，我们来看下<code>kvm_mmu_get_page</code>的代码：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="k">struct</span> <span class="n">kvm_mmu_page</span> <span class="o">*</span><span class="nf">kvm_mmu_get_page</span><span class="p">(...)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">role</span> <span class="o">=</span> <span class="n">vcpu</span><span class="o">-&gt;</span><span class="n">arch</span><span class="p">.</span><span class="n">mmu</span><span class="p">.</span><span class="n">base_role</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">role</span><span class="p">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">level</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">role</span><span class="p">.</span><span class="n">direct</span> <span class="o">=</span> <span class="n">direct</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">role</span><span class="p">.</span><span class="n">direct</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">role</span><span class="p">.</span><span class="n">cr4_pae</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">role</span><span class="p">.</span><span class="n">access</span> <span class="o">=</span> <span class="n">access</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">for_each_gfn_sp</span><span class="p">(</span><span class="n">vcpu</span><span class="o">-&gt;</span><span class="n">kvm</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">gfn</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="n">mmu_page_add_parent_pte</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">parent_pte</span><span class="p">);</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="k">return</span> <span class="n">sp</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">sp</span> <span class="o">=</span> <span class="n">kvm_mmu_alloc_page</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">parent_pte</span><span class="p">,</span> <span class="n">direct</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">sp</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">return</span> <span class="n">sp</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">sp</span><span class="o">-&gt;</span><span class="n">gfn</span> <span class="o">=</span> <span class="n">gfn</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">sp</span><span class="o">-&gt;</span><span class="n">role</span> <span class="o">=</span> <span class="n">role</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">hlist_add_head</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">sp</span><span class="o">-&gt;</span><span class="n">hash_link</span><span class="p">,</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">vcpu</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">kvm</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">arch</span><span class="p">.</span><span class="n">mmu_page_hash</span><span class="p">[</span><span class="n">kvm_page_table_hashfn</span><span class="p">(</span><span class="n">gfn</span><span class="p">)]);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">sp</span><span class="o">-&gt;</span><span class="n">mmu_valid_gen</span> <span class="o">=</span> <span class="n">vcpu</span><span class="o">-&gt;</span><span class="n">kvm</span><span class="o">-&gt;</span><span class="n">arch</span><span class="p">.</span><span class="n">mmu_valid_gen</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">init_shadow_page_table</span><span class="p">(</span><span class="n">sp</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">sp</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>一开始会初始化<code>role</code>，在EPT机制下，<code>vcpu-&gt;arch.mmu.base_role</code>最开始是被初始化为0的：</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">init_kvm_tdp_mmu</span><span class="p">(</span><span class="k">struct</span> <span class="n">kvm_vcpu</span> <span class="o">*</span><span class="n">vcpu</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="p">...</span>
+</span><span class='line'><span class="n">context</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">base_role</span><span class="p">.</span><span class="n">word</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>然后调用<code>for_each_gfn_sp</code>查找之前已经使用过的<code>kvm_mmu_page</code>，该宏根据gfn的值在<code>kvm_mmu_page</code>结构中的hash_link进行，具体可参阅以下代码：</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">define</span> <span class="n">for_each_gfn_sp</span><span class="p">(</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">kvm</span><span class="p">,</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">sp</span><span class="p">,</span> <span class="n">_gfn</span><span class="p">)</span>  <span class="err">\</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">hlist_for_each_entry</span><span class="p">(</span><span class="n">_sp</span><span class="p">,</span>   <span class="err">\</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;&amp;</span><span class="n">amp</span><span class="p">;(</span><span class="n">_kvm</span><span class="p">)</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">arch</span><span class="p">.</span><span class="n">mmu_page_hash</span><span class="p">[</span><span class="n">kvm_page_table_hashfn</span><span class="p">(</span><span class="n">_gfn</span><span class="p">)],</span> <span class="n">hash_link</span><span class="p">)</span> <span class="err">\</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">((</span><span class="n">_sp</span><span class="p">)</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">gfn</span> <span class="o">!=</span> <span class="p">(</span><span class="n">_gfn</span><span class="p">))</span> <span class="p">{}</span> <span class="k">else</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>如果找到了，调用<code>mmu_page_add_parent_pte</code>，设置parent_pte对应的reverse map（reverse map一章会在之后对其进行详细的说明）；</li>
+<li>如果该gfn对应的页表页不存在，则调用<code>kvm_mmu_alloc_page</code>：</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="k">struct</span> <span class="n">kvm_mmu_page</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">kvm_mmu_alloc_page</span><span class="p">(...)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">kvm_mmu_page</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">sp</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">sp</span> <span class="o">=</span> <span class="n">mmu_memory_cache_alloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">vcpu</span><span class="o">-&gt;</span><span class="n">arch</span><span class="p">.</span><span class="n">mmu_page_header_cache</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">sp</span><span class="o">-&gt;</span><span class="n">spt</span> <span class="o">=</span> <span class="n">mmu_memory_cache_alloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">vcpu</span><span class="o">-&gt;</span><span class="n">arch</span><span class="p">.</span><span class="n">mmu_page_cache</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">list_add</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">sp</span><span class="o">-&gt;</span><span class="n">link</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">vcpu</span><span class="o">-&gt;</span><span class="n">kvm</span><span class="o">-&gt;</span><span class="n">arch</span><span class="p">.</span><span class="n">active_mmu_pages</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">sp</span><span class="o">-&gt;</span><span class="n">parent_ptes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">mmu_page_add_parent_pte</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">parent_pte</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">sp</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<ul>
+<li>改函数调用<code>mmu_memory_cache_alloc</code>从之前分配好的mmu page的memory cache中得到一个<code>kvm_mmu_page</code>结构体实例，然后将其插入<code>kvm-&gt;arch.active_mmu_pages</code>中，同时调用<code>mmu_page_add_parent_pte</code>函数设置parent pte对应的reverse map。</li>
+</ul>
+
+
+<h4>一个例子</h4>
+
+<p>讲到这里，我们来看一个例子：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-6.png" title="direct map" alt="direct map" /></p>
+
+<p>在上图中，我们假设需要映射gpa（0xfffff000）到其相对应的hpa（0x42faf000）。</p>
+
+<p>另外，对于每一个MMU page，我们都列出了其相对应的<code>kvm_mmu_page</code>对应的页结构中几个比较关键的域的值。</p>
+
+<p>对于gpa为<code>0xfffff000</code>的地址，其gfn为<code>0xfffff</code>，我们将其用二进制表示出来，并按照EPT entry的格式进行分割：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-7.png" title="direct map ept entry" alt="direct map ept entry" /></p>
+
+<p>比如，对于EPT pointer指向的第4级（level-4）页表页，它的<code>role.level</code>为4，它的<code>sp-&gt;spt</code>为该页表页的<code>hva</code>值<code>0xffff8800982f9000</code>。另外，对于最高层级的页表页来说，它的<code>sp-&gt;gfn</code>为0，表示gfn为0的地址可以通过寻址找到该页表页。而由于ept entry中第4段的index为0，所以改页表页的第1个页表项（PML4E）指向了下一层的页表页。</p>
+
+<p>同样的，对于第3级（level-3）页表页，它的<code>role.level</code>为3，<code>sp-&gt;spt</code>为该页表页的<code>hva</code>值<code>0xffff8800982f8000</code>。由上图可知，在ept entry中，它的上一层（即第4段）的index值为0，所以其<code>sp-&gt;gfn</code>也是0，同样表示gfn为0的地址可以通过寻址找到该页表页。另外，在该层的页表页中，其<code>parent_ptes</code>填的是上一层的页表页中指向该页表页的页表项的地址，即第4级页表页的第一个页表项的地址<code>0xffff8800982f9000</code>，而在ept entry中，由于第3段的index为3，所以该页表页的第3个页表项（PDPTE）指向了下一层的页表页。</p>
+
+<p>以此类推，到第2级（level-2）页表页，前面几项都和之前是类似的，而对于<code>sp-&gt;gfn</code>来说，由于它的上一层（第3层）的index值为3，那么通过计算公式<code>(gaddr &gt;&gt; 12) &amp; ~((1 &lt;&lt; (level * 9)) - 1)</code>可以得到以下的值：</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-8.png" title="direct map ept entry l1" alt="direct map ept entry l1" /></p>
+
+<p>将其转化为十六进制数，即可得到<code>0xc0000</code>，表示gfn为<code>0xc0000</code>的地址在寻址过程中会找到该页表页。而它的<code>parent_ptes</code>就指向了第3层页表页中第3个页表项的地址<code>0xffff8800982f8018</code>，ept entry中第2段的index <code>0xfff</code> 表示它最后一项页表项（PDE）指向了下一级的页表页。</p>
+
+<p>类似的，可以算出第1级页表页的<code>sp-&gt;gfn</code>为<code>0xffe00</code>，<code>parent_ptes</code>为<code>0xffff880060db7ff8</code>，同时，它的最后一个页表项（PTE）指向了真正的hpa<code>0x42faf000</code>。</p>
+
+<p><img src="http://ytliu.info/images/2014-11-24-9.png" title="direct map ept entry l1" alt="direct map ept entry l1" /></p>
+
+<p>到此为止，gpa被最终映射为hpa，并放映在EPT中，于是下次客户虚拟机应用程序访问该gpa的时候就不会再发生ept violation了。</p>
+
+<h3>reverse map</h3>
+
+<p>似乎讲到这里就该结束了？</p>
+
+<p>确实，基本上这篇博文的内容就要接近尾声了，只是还有那么一小点内容，关于reverse map。</p>
+
+<p>如果你倒回去看会发现，我们还有两个很重要的函数没有展开：</p>
+
+<ul>
+<li>mmu_page_add_parent_pte</li>
+<li>mmu_set_spte</li>
+</ul>
+
+
+<p>这两个函数是干什么的呢？其实它们都和reverse map有关。</p>
+
+<p>首先，对于低层级（level-3 to level-1）的页表页结构kvm_mmu_page，我们需要设置上一级的相应的页表项地址，然后通过<code>mmu_page_add_parent_pte</code>设置其parent_pte的reverse map：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">mmu_page_add_parent_pte</span><span class="p">(...)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">parent_pte</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">return</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">pte_list_add</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">parent_pte</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">sp</span><span class="o">-&gt;</span><span class="n">parent_ptes</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>另外一点，我说过，页分为两类，物理页和页表页，但是我之前没有说的一点是，页表页本身也被分为两类，高层级（level-4 to level-2）的页表页，和最后一级（level-1）的页表页。</p>
+
+<p>对于高层级的页表页，我们只需要调用<code>link_shadow_page</code>，将页表项的值和相应的权限位直接设置上去就好了，但是对于最后一级的页表项，我们除了设置页表项对应的值之外，还需要做另一件事，<code>rmap_add</code>：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">void</span> <span class="nf">mmu_set_spte</span><span class="p">(...)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="n">set_spte</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">sptep</span><span class="p">,</span> <span class="n">pte_access</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">gfn</span><span class="p">,</span> <span class="n">pfn</span><span class="p">,</span> <span class="n">speculative</span><span class="p">,</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>    <span class="nb">true</span><span class="p">,</span> <span class="n">host_writable</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'><span class="p">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">is_shadow_present_pte</span><span class="p">(</span><span class="o">*</span><span class="n">sptep</span><span class="p">))</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">was_rmapped</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">rmap_count</span> <span class="o">=</span> <span class="n">rmap_add</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">sptep</span><span class="p">,</span> <span class="n">gfn</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="k">static</span> <span class="kt">int</span> <span class="n">rmap_add</span><span class="p">(</span><span class="k">struct</span> <span class="n">kvm_vcpu</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">u64</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">spte</span><span class="p">,</span> <span class="n">gfn_t</span> <span class="n">gfn</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">sp</span> <span class="o">=</span> <span class="n">page_header</span><span class="p">(</span><span class="n">__pa</span><span class="p">(</span><span class="n">spte</span><span class="p">));</span>
+</span><span class='line'>  <span class="n">kvm_mmu_page_set_gfn</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">spte</span> <span class="o">-</span> <span class="n">sp</span><span class="o">-&gt;</span><span class="n">spt</span><span class="p">,</span> <span class="n">gfn</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">rmapp</span> <span class="o">=</span> <span class="n">gfn_to_rmap</span><span class="p">(</span><span class="n">vcpu</span><span class="o">-&gt;</span><span class="n">kvm</span><span class="p">,</span> <span class="n">gfn</span><span class="p">,</span> <span class="n">sp</span><span class="o">-&gt;</span><span class="n">role</span><span class="p">.</span><span class="n">level</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nf">pte_list_add</span><span class="p">(</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">spte</span><span class="p">,</span> <span class="n">rmapp</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>可以看到，不管是<code>mmu_page_add_parent_pte</code>，还是<code>mmu_set_spte</code>调用的<code>rmap_add</code>，最后都会调用到<code>pte_list_add</code>。</p>
+
+<p>那么问题来了，这货是干嘛的呢？</p>
+
+<p>翻译成中文的话，reverse map被称为反向映射，在上面提到的两个反向映射中，第一个叫parent_ptes，记录的是页表页和指向它的页表项对应的映射，另一个是每个gfn对应的反向映射rmap，记录的是该gfn对应的spte。</p>
+
+<p>我们举rmap为例，给定一个gfn，我们怎么找到其对应的rmap呢？</p>
+
+<ul>
+<li>首先，我们通过<code>gfn_to_memslot</code>得到这个gfn对应的memory slot（这个机制会在以后的博文中提到）；</li>
+<li>通过得到的slot和gfn，算出相应的index，然后从<code>slot-&gt;arch.rmap</code>数组中取出相应的rmap：</li>
+</ul>
+
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="n">__gfn_to_rmap</span><span class="p">(</span><span class="n">gfn_t</span> <span class="n">gfn</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>        <span class="k">struct</span> <span class="n">kvm_memory_slot</span> <span class="o">*</span><span class="n">slot</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">{</span>
+</span><span class='line'>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">idx</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="n">idx</span> <span class="o">=</span> <span class="n">gfn_to_index</span><span class="p">(</span><span class="n">gfn</span><span class="p">,</span> <span class="n">slot</span><span class="o">-&gt;</span><span class="n">base_gfn</span><span class="p">,</span> <span class="n">level</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">slot</span><span class="o">-&gt;</span><span class="n">arch</span><span class="p">.</span><span class="n">rmap</span><span class="p">[</span><span class="n">level</span> <span class="o">-</span> <span class="n">PT_PAGE_TABLE_LEVEL</span><span class="p">][</span><span class="n">idx</span><span class="p">];</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>有了gfn对应的rmap之后，我们再调用<code>pte_list_add</code>将这次映射得到的spte加到这个rmap中</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">static</span> <span class="kt">int</span> <span class="n">pte_list_add</span><span class="p">(</span><span class="k">struct</span> <span class="n">kvm_vcpu</span> <span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">vcpu</span><span class="p">,</span> <span class="n">u64</span> <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;</span><span class="n">spte</span><span class="p">,</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="n">pte_list</span><span class="p">)</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">{</span>
+</span><span class='line'>  <span class="k">struct</span> <span class="n">pte_list_desc</span> <span class="o">*</span><span class="n">desc</span><span class="p">;</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">if</span> <span class="p">(</span><span class="o">!*</span><span class="n">pte_list</span><span class="p">)</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">rmap_printk</span><span class="p">(</span><span class="s">&quot;pte_list_add: %p %llx 0-&amp;gt;1</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">spte</span><span class="p">,</span> <span class="o">*</span><span class="n">spte</span><span class="p">);</span>
+</span><span class='line'><span class="o">*</span><span class="n">pte_list</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">spte</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="o">*</span><span class="n">pte_list</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mi">1</span><span class="p">))</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">rmap_printk</span><span class="p">(</span><span class="s">&quot;pte_list_add: %p %llx 1-&amp;gt;many</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">spte</span><span class="p">,</span> <span class="o">*</span><span class="n">spte</span><span class="p">);</span>
+</span><span class='line'><span class="n">desc</span> <span class="o">=</span> <span class="n">mmu_alloc_pte_list_desc</span><span class="p">(</span><span class="n">vcpu</span><span class="p">);</span>
+</span><span class='line'><span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">sptes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">u64</span> <span class="o">*</span><span class="p">)</span><span class="o">*</span><span class="n">pte_list</span><span class="p">;</span>
+</span><span class='line'><span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">sptes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">spte</span><span class="p">;</span>
+</span><span class='line'><span class="o">*</span><span class="n">pte_list</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">desc</span> <span class="o">|</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="o">++</span><span class="n">count</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">rmap_printk</span><span class="p">(</span><span class="s">&quot;pte_list_add: %p %llx many-&amp;gt;many</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">spte</span><span class="p">,</span> <span class="o">*</span><span class="n">spte</span><span class="p">);</span>
+</span><span class='line'><span class="n">desc</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">pte_list_desc</span> <span class="o">*</span><span class="p">)(</span><span class="o">*</span><span class="n">pte_list</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="o">~</span><span class="mi">1ul</span><span class="p">);</span>
+</span><span class='line'><span class="k">while</span> <span class="p">(</span><span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">sptes</span><span class="p">[</span><span class="n">PTE_LIST_EXT</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">more</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="o">=</span> <span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">more</span><span class="p">;</span>
+</span><span class='line'>  <span class="n">count</span> <span class="o">+=</span> <span class="n">PTE_LIST_EXT</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">sptes</span><span class="p">[</span><span class="n">PTE_LIST_EXT</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">more</span> <span class="o">=</span> <span class="n">mmu_alloc_pte_list_desc</span><span class="p">(</span><span class="n">vcpu</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="o">=</span> <span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">more</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">sptes</span><span class="p">[</span><span class="n">i</span><span class="p">];</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+</span><span class='line'>  <span class="o">++</span><span class="n">count</span><span class="p">;</span>
+</span><span class='line'><span class="n">desc</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">sptes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">spte</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="p">}</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">count</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>看到这里你可能还是一头雾水，rmap到底是什么，为什么加一个rmap的项要那么复杂？</p>
+
+<p>好吧，其实我的理解是这样的：</p>
+
+<ul>
+<li>首先，rmap就是一个数组，这个数组的每个项都对应了这个gfn反向映射出的某个spte的地址；</li>
+<li>其次，由于大部分情况下一个gfn对应的spte只有一个，也就是说，大部分情况下这个数组的大小是1；</li>
+<li>但是，这个数组也可能很大，大到你也不知道应该把数组的大小设到多少合适；</li>
+<li>所以，总结来说，rmap是一个不确定大小，但是大部分情况下大小为1的数组。</li>
+</ul>
+
+
+<p>那么，怎么做？</p>
+
+<p>我想说，这是一个看上去很完美的设计！</p>
+
+<p>由于spte的地址只可能是8的倍数（自己想为什么），所以其第一位肯定是0，那么我们就利用这个特点：</p>
+
+<ul>
+<li>我们用一个<code>unsigned long *</code>来表示一个rmap，即上文中的<code>pte_list</code>；</li>
+<li>如果这个<code>pte_list</code>为空，则表示这个rmap之前没有创建过，那么将其赋值，即上文中<code>0-&gt;1</code>的情况；</li>
+<li>如果这个<code>pte_list</code>不为空，但是其第一位是<code>0</code>，则表示这个rmap之前已经被设置了一个值，那么需要将这个<code>pte_list</code>的值改为某个<code>struct pte_list_desc</code>的地址，然后将第一位设成<code>1</code>，来表示该地址并不是单纯的一个spte的地址，而是指向某个<code>struct pte_list_desc</code>，这是上文中<code>1-&gt;many</code>的情况；</li>
+<li>如果这个<code>pte_list</code>不为空，而且其第一位是<code>1</code>，那么通过访问由这个地址得到的<code>struct pte_list_desc</code>，得到更多的sptes，即上文中<code>many-&gt;many</code>的情况。</li>
+</ul>
+
+
+<p><code>struct pte_list_desc</code>结构定义如下：</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>arch/x86/kvm/mmu.c </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">pte_list_desc</span> <span class="p">{</span><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">u64</span> <span class="o">*</span><span class="n">sptes</span><span class="p">[</span><span class="n">PTE_LIST_EXT</span><span class="p">];</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">pte_list_desc</span> <span class="o">*</span><span class="n">more</span><span class="p">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>它是一个单链表的节点，每个节点都存有3个spte的地址，以及下一个节点的位置。</p>
+
+<p>好了，最后一个问题，rmap到底有什么用？</p>
+
+<p>当然，信息总归是有用的，特别是这些和映射相关的信息。</p>
+
+<p>举个例子吧，假如操作系统需要进行页面回收或换出，如果宿主机需要把某个客户机物理页换到disk，那么它就需要修改这个页的物理地址gpa对应的spte，将其设置成不存在。</p>
+
+<p>那么这个该怎么做呢？</p>
+
+<p>当然，你可以用软件走一遍ept页表，找到其对应的spte。但是，这样太慢了！这个时候你就会想，如果有一个gfn到spte的反向映射岂不方便很多！于是，reverse map就此派上用场。</p>
+
+<p>这里最后说一点，如果说有这么一个需求：宿主机想要废除当前客户机所有的MMU页结构，那么如何做最快呢？</p>
+
+<p>当然，你可以从EPTP开始遍历一遍所有的页表页，处理掉所有的MMU页面和对应的映射，但是这种方法效率很低。</p>
+
+<p>如果你还记得之前<code>kvm_mmu_page</code>结构里面的<code>mmu_valid_gen</code>域的话，你就可以通过将kvm->arch.mmu_valid_gen加1，那么当前所有的MMU页结构都变成了invalid，而处理掉页结构的过程可以留给后面的过程（如内存不够时）再处理，这样就可以加快这个过程。</p>
+
+<p>而当mmu_valid_gen值达到最大时，可以调用kvm_mmu_invalidate_zap_all_pages手动废弃掉所有的MMU页结构。</p>
+
+<hr />
+
+<p>完。</p>
+]]></content>
+  </entry>
+  
+</feed>

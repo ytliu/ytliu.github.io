@@ -1,0 +1,502 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Running Driver Domain on Xen - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Xen stub-domain driver-domain pv-on-hvm">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2015/02/04/running-driver-domain-on-xen">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Running Driver Domain on Xen</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-04T22:27:00+08:00" pubdate data-updated="true">Feb 4<span>th</span>, 2015</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>又是一篇和Xen相关的教程，主要介绍如何在Xen里面启动一个网卡的<code>driver domain</code>（也被称为<code>stub domain</code>），也就是说，该虚拟机专门用来为其它虚拟机提供网络服务（而不是把所有这些服务都交给<code>Domain 0</code>来做）。</p>
+
+<p>说句题外话，为什么最近这么多教程类型的博客，原因在于我发现每次我把这些东西记在博客里面的话，自己都会记得很深，但是记在Evernote里面经常就会忘记掉，况且记在博客里面还有可能为别人提供帮助，所以何乐而不为呢？</p>
+
+<!-- more -->
+
+
+<p>好了，废话说到这，开始进入正题。</p>
+
+<h3>为什么要使用<code>driver domain</code></h3>
+
+<p>可以参看<a href="http://wiki.xen.org/wiki/Device_Model_Stub_Domains">Xen的wiki</a>。</p>
+
+<p>主要有四点原因：</p>
+
+<ul>
+<li>安全性：把权限从<code>domain 0</code>里面剥离出来，也就是说就算客户虚拟机控制了<code>driver domain</code>，也不能拿<code>domain 0</code>如何；</li>
+<li>可扩展性：<code>driver domain</code>的资源不受<code>domain 0</code>的限制，所有和设备相关的资源都和该<code>driver domain</code>相关；</li>
+<li>隔离性：其实和安全性有点重复，主要是说<code>driver domain</code>里面的进程不会和<code>domain 0</code>里面的进程产生竞争关系，不管从安全性还是性能方面都能提供比较好的隔离性；</li>
+<li>高性能：如果在<code>domain 0</code>里面运行driver的进程，那么会产生<code>double scheduling</code>的问题，即driver要工作，必须首先等<code>domain 0</code>被调度，然后等<code>domain 0</code>中和driver相关的进程被调度；但是如果用了<code>driver domain</code>的话就没有这个问题了，只要等<code>driver domain</code>被调度就可以了（因为在<code>driver domain</code>里面只有一个进程）。</li>
+</ul>
+
+
+<p>使用<code>driver domain</code>可以提供多大的性能提升呢？可以参看<a href="http://www-archive.xenproject.org/files/xensummitboston08/SamThibault_XenSummit.pdf">这个slide</a>。</p>
+
+<h3>配置和启动<code>driver domain</code></h3>
+
+<p>好，下面开始进入教程。</p>
+
+<p>首先我们来一张使用网卡<code>driver domain</code>的架构图吧：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-04-1.png" title="driver domain" alt="driver domain" /></p>
+
+<p>其实主要就是如何进行网卡的passthrough，以及如何让客户虚拟机和<code>driver domain</code>进行匹配。</p>
+
+<p>至于相关的参考资料嘛，可以参考<a href="http://wiki.xen.org/wiki/Driver_Domain">这里</a>。</p>
+
+<h4>安装Xen和客户虚拟机</h4>
+
+<p>这个就不说了，参照<a href="http://ytliu.info/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/">上篇博客</a></p>
+
+<h4>Xen PCI Passthrough</h4>
+
+<p>参考资料来自<a href="http://wiki.xen.org/wiki/Xen_PCI_Passthrough">这里</a>。</p>
+
+<p>首先提一下IOMMU和PCI passthrough的关系：</p>
+
+<p>在正常情况下，一个设备可被配置成DMA到任意的宿主机的物理内存，但是这样会有两个问题：</p>
+
+<ul>
+<li>第一，客户虚拟机可以利用它来任意写Xen的内存，这样会有安全问题；</li>
+<li>第二，对于HVM模式的客户虚拟机来说，它看到的内存是被虚拟化的，但是对于设备来说却不是这样的，也就是说正常情况下HVM的虚拟机是看不到被设备访问的那块内存的，也就无法使用那块内存。</li>
+</ul>
+
+
+<p>那么如何让客户虚拟机的driver来操作真实硬件呢？这就引入了IOMMU，这套机制运行Xen来配置一个设备可以访问哪些内存，以及将这些内存也让客户虚拟机看到。</p>
+
+<p>所以说，在有IOMMU支持的硬件上，设备可以被passthrough给HVM和PV虚拟机，而在没有IOMMU支持的设备上，如果设备被passthrough给PV虚拟机，虽然可以正常运行，但是会有安全问题，另外，设备不能被passthrough给HVM虚拟机，因为HVM虚拟机看不到设备访问的那块内存。</p>
+
+<p>接下来我们就来看如何passthrough。</p>
+
+<p>简单来说，我们需要先把网卡和<code>domain 0</code>的连接先给取消掉，然后再把它分配给<code>driver domain</code>。</p>
+
+<p>首先我们得先知道我们的网卡设备是哪一个，以及它所对应的<a href="http://wiki.xen.org/wiki/Bus:Device.Function_(BDF">BDF</a>_Notation)，这个可以通过:</p>
+
+<pre><code>$ lspci
+</code></pre>
+
+<p>查看，得到它的BDF是<code>00:19.0</code>:</p>
+
+<p><img src="http://ytliu.info/images/2015-02-04-2.png" title="nic bdf" alt="nic bdf" /></p>
+
+<p>之后，就可以利用<code>xl</code>这套xen-tool里面提供的命令来将其从<code>domain 0</code>里面移除，并且加进Xen的<code>assignable</code>的设备集合里面：</p>
+
+<pre><code>$ sudo xl pci-assignable-add 00:19.0
+</code></pre>
+
+<p>这个时候运行<code>sudo xl pci-assignable-list</code>就可以看到：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-04-3.png" title="xl pci-assignale-list" alt="xl pci-assignale-list" /></p>
+
+<p>这之后，就可以启动我们的<code>driver domain</code>了。配置启动文件：</p>
+
+<figure class='code'><figcaption><span>driver-domain.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">builder</span><span class="o">=</span><span class="s2">&quot;hvm&quot;</span>
+</span><span class='line'><span class="nv">name</span> <span class="o">=</span> <span class="s2">&quot;driver-domain&quot;</span>
+</span><span class='line'><span class="nv">memory</span> <span class="o">=</span> 1024
+</span><span class='line'><span class="nv">vcpus</span> <span class="o">=</span> 2
+</span><span class='line'><span class="nv">pci</span><span class="o">=[</span> <span class="s1">&#39;00:19.0&#39;</span> <span class="o">]</span>
+</span><span class='line'><span class="nv">disk</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">&#39;file:/path/to/vm.img,xvda,rw&#39;</span> <span class="o">]</span>
+</span><span class='line'><span class="nv">boot</span><span class="o">=</span><span class="s2">&quot;cd&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意，这里主要就是增加了一行：</p>
+
+<figure class='code'><figcaption><span>dd.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">pci</span><span class="o">=[</span> <span class="s1">&#39;00:19.0&#39;</span> <span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后启动虚拟机：</p>
+
+<pre><code>$ sudo xl create driver-domain.cfg
+</code></pre>
+
+<p>这个时候如果进到虚拟机里面看，会发现它多了一个PCI设备，且可以联网：</p>
+
+<p><img src="http://ytliu.info/images/2015-02-04-4.png" title="network in driver domain" alt="network in driver domain" /></p>
+
+<p>而此时，宿主机已经连不上网了！</p>
+
+<p>这里需要注意的是我们需要在这个<code>driver domain</code>里面安装xen-tools，以及配置桥接网络，取名为<code>xenbr0</code>，供之后的客户虚拟机使用。</p>
+
+<p><img src="http://ytliu.info/images/2015-02-04-5.png" title="network in driver domain 2" alt="network in driver domain 2" /></p>
+
+<p>这些配置和<code>domain 0</code>里面的差不多，具体的可以参照我的<a href="http://ytliu.info/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/">上一篇博客</a>。</p>
+
+<h4>配置客户虚拟机</h4>
+
+<p>然后我们就可以配置客户虚拟机了，这一步非常简单，只需要在<code>vif</code>这个配置选项上的<code>backend</code>填上<code>driver-domain</code>（也就是<code>driver domain</code>的name），将<code>bridge</code>填上<code>xenbr0</code>（也就是driver domain的桥的名字）就可以了：</p>
+
+<figure class='code'><figcaption><span>guest-vm.cfg </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">builder</span><span class="o">=</span><span class="s2">&quot;hvm&quot;</span>
+</span><span class='line'><span class="nv">name</span> <span class="o">=</span> <span class="s2">&quot;guest vm&quot;</span>
+</span><span class='line'><span class="nv">memory</span> <span class="o">=</span> 1024
+</span><span class='line'><span class="nv">vcpus</span> <span class="o">=</span> 2
+</span><span class='line'><span class="nv">vif</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">&#39;bridge=xenbr0, model=e1000, backend=driver-domain&#39;</span><span class="o">]</span>
+</span><span class='line'><span class="nv">disk</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">&#39;file:/path/to/vm2.img,xvda,rw&#39;</span> <span class="o">]</span>
+</span><span class='line'><span class="nv">boot</span><span class="o">=</span><span class="s2">&quot;cd&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后启动虚拟机：</p>
+
+<pre><code>$ sudo xl create guest-vm.cfg
+</code></pre>
+
+<p>进入虚拟机之后试一下，发现它果然可以上网啦！</p>
+
+<p><img src="http://ytliu.info/images/2015-02-04-6.png" title="guest vm" alt="guest vm" /></p>
+
+<hr />
+
+<p>到这里，这一篇博客的内容就结束啦。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-04T22:27:00+08:00" pubdate data-updated="true">Feb 4<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/system/'>System</a>, <a class='category' href='/blog/categories/tutorial/'>Tutorial</a>, <a class='category' href='/blog/categories/virtualization/'>Virtualization</a>, <a class='category' href='/blog/categories/xen/'>Xen</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/02/02/running-xen-on-xen%3Axende-qian-tao-xu-ni-hua-ji-zhu/" title="Previous Post: Running Xen on Xen：Xen的嵌套虚拟化技术">&laquo; Running Xen on Xen：Xen的嵌套虚拟化技术</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/05/19/xia-tian-dao-liao/" title="Next Post: 夏天到了">夏天到了 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2015/02/04/running-driver-domain-on-xen/';
+        var disqus_url = 'http://ytliu.github.io/blog/2015/02/04/running-driver-domain-on-xen/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

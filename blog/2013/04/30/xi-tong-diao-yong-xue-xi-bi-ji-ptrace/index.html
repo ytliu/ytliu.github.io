@@ -1,0 +1,965 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>系统调用学习笔记 - ptrace和wait - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="ptrace wait">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/04/30/xi-tong-diao-yong-xue-xi-bi-ji-ptrace">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">系统调用学习笔记 - Ptrace和wait</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-30T09:46:00+08:00" pubdate data-updated="true">Apr 30<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>在系统安全这门课上讲到ptrace这个系统调用，我马上想到当年做CFIMon里面用到的ptrace:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">child</span><span class="p">(</span><span class="kt">char</span> <span class="o">**</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="cm">/*</span>
+</span><span class='line'><span class="cm">     * force the task to stop before executing the first</span>
+</span><span class='line'><span class="cm">     * user level instruction</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_TRACEME</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="p">......</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">execvp</span><span class="p">(</span><span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arg</span><span class="p">);</span>
+</span><span class='line'>    <span class="cm">/* not reached */</span>
+</span><span class='line'>    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后在parent的代码里面：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>    <span class="cm">/*</span>
+</span><span class='line'><span class="cm">     * wait for the child to exec</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="n">ret</span> <span class="o">=</span> <span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">status</span><span class="p">,</span> <span class="n">WUNTRACED</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">WIFEXITED</span><span class="p">(</span><span class="n">status</span><span class="p">))</span>
+</span><span class='line'>        <span class="n">errx</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s">&quot;task %s [%d] exited already status %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pid</span><span class="p">,</span> <span class="n">WEXITSTATUS</span><span class="p">(</span><span class="n">status</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="p">......</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">fds</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">fd</span> <span class="o">=</span> <span class="n">perf_event_open</span><span class="p">(</span><span class="o">&amp;</span><span class="n">fds</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">hw</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">fds</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">buf</span> <span class="o">=</span> <span class="n">mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">map_size</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fds</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="p">......</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/*</span>
+</span><span class='line'><span class="cm">     * effectively activate monitoring</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_CONT</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="p">......</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>先是waitpid，等待child调用execv，之后设置一系列参数（在这里是打开perf_event，并mmap一段内存区域），然后调用ptrace让child继续执行。</p>
+
+<p>其实到现在为止我也还不是很清楚ptrace的用法和waitpid那几个参数的意思，于是想好好学习下，在google上搜到了一篇翻译的<a href="http://www.kgdb.info/gdb/playing_with_ptrace_part_i/">玩转ptrace1</a>和<a href="http://www.kgdb.info/gdb/playing_with_ptrace_part_ii/">2</a>，这里归纳整理下，另外，在IBM的<a href="https://www.ibm.com/developerworks/cn/">developerWorks</a>上找到一篇介绍进程相关，以及waitpid的<a href="http://www.ibm.com/developerworks/cn/linux/kernel/syscall/part3/">博文</a>，也一起学习了。</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h3>僵尸进程和wait</h3>
+
+<p>在linux中，当一个进程退出（如调用exit等）后，并不是马上完全消失掉了，它还会留下一些踪迹，成为一个僵尸进程（Zombie）。作为一个僵尸进程来说，它已经放弃了几乎所有内存空间，没有任何可执行代码，也不能被调度，仅仅在进程列表中保留一个位置，记载该进程的退出状态等信息供其他进程收集，除此之外，僵尸进程不再占有任何内存空间。在僵尸进程记录了这个进程是怎么死亡的（是正常退出呢，还是出现了错误，还是被其它进程强迫退出的？），以及它占用的总系统CPU时间和总用户CPU时间分别是多少？还有发生页错误的数目和收到信号的数目等。</p>
+
+<p>而wait和waitpid这两个系统调用就是用来收集这些信息，并使得这个僵尸进程永远消失的。</p>
+
+<p>这两个系统调用的原型是这样子的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cp">#include &lt;sys/wait.h&gt;  </span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">pid_t</span> <span class="n">wait</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">status</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">pit_t</span> <span class="n">wait</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">pid</span><span class="p">,</span><span class="kt">int</span> <span class="o">*</span><span class="n">status</span><span class="p">,</span><span class="kt">int</span> <span class="n">options</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>对于wait来说，它是等待所有的子进程的退出， 而对比来看，waitpid增加了两个参数<code>pid</code>和<code>option</code>。</p>
+
+<p>对于pid来说，有四种情况：</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">pid         </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">pid == -1   </td>
+<td align="left"> 等待任一个子进程（与wait等效）；</td>
+</tr>
+<tr>
+<td align="left">pid > 0     </td>
+<td align="left"> 则等待其进程ID与pid相等的子进程。</td>
+</tr>
+<tr>
+<td align="left">pid == 0    </td>
+<td align="left"> 等待其组ID等于调用进程组ID的任一个子进程。</td>
+</tr>
+<tr>
+<td align="left">pid &lt; -1    </td>
+<td align="left"> 等待其组ID等于pid绝对值的任一子进程。</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>另外，如果参数status的值不是NULL，wait就会把子进程退出时的状态取出并存入其中，这是一个整数值，指出了子进程是正常退出还是被非正常结束的，以及正常结束时的返回值，或被哪一个信号结束的等信息。有一套专门的宏（macro）来对其进行操作：</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">macro               </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">WIFEXITED(status)   </td>
+<td align="left"> 若子进程是正常退出的，则为真，此时可以调用WEXITSTATUS(status)获得退出值</td>
+</tr>
+<tr>
+<td align="left">WEXITSTATUS(status) </td>
+<td align="left"> 若子进程是被异常终止的，则为真，此时可以调用WTERMSIG(status)获得使其终止的信号编号</td>
+</tr>
+<tr>
+<td align="left">WIFSTOPPED(status)  </td>
+<td align="left"> 若子进程是暂停状态，则为真，此时可以调用WTERMSIG(status)获得使其暂停的信号编号</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>到现在为止，还有一个参数叫option，它提供了一些额外的选项来控制waitpid，目前在Linux中只支持WNOHANG和WUNTRACED两个选项：</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">Option      </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">WNOHANG     </td>
+<td align="left"> waitpid在调用时发现没有已退出的子进程可收集，则返回0</td>
+</tr>
+<tr>
+<td align="left">WUNTRACED   </td>
+<td align="left"> 在所有符合条件的pid中，如果其中有已经stopped的进程，则立即返回（而对于traced的进程，即使没有该选项，如果其stopped了，也会立即返回）</td>
+</tr>
+</tbody>
+</table>
+
+
+<hr />
+
+<h3>ptrace笔记</h3>
+
+<p>ptrace可以做很多事，比如可以在用户层拦截和修改系统调用，在每次系统调用的时候改变子进程中的寄存器和内核映像，实现断点调试和系统调用的跟踪等等，具体的可以看玩转ptrace<a href="http://www.kgdb.info/gdb/playing_with_ptrace_part_i/">1</a>和<a href="http://www.kgdb.info/gdb/playing_with_ptrace_part_ii/">2</a>。这里对ptrace进行一个总结：</p>
+
+<p>ptrace这个系统调用的作用是允许一个进程（the tracing process）来跟踪和控制另外一个进程（the traced process）。它的原型是这样的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &lt;sys/ptrace.h&gt;</span>
+</span><span class='line'><span class="kt">long</span> <span class="n">ptrace</span><span class="p">(</span><span class="k">enum</span> <span class="n">__ptrace_request</span> <span class="n">request</span><span class="p">,</span> <span class="n">pid_t</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>第一个参数<code>request</code>决定了ptrace的行为与其它参数的使用方法，它可以有好多值，以下列出了几种比较常见的取值：</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">request             </th>
+<th align="left"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">PTRACE_TRACEME      </td>
+<td align="left"> 由子进程调用，让父进程跟踪自己（pid, addr, and data are ignored）</td>
+</tr>
+<tr>
+<td align="left">PTRACE_PEEKTEXT     </td>
+<td align="left"> 读取内存地址addr的值（data is ignored）</td>
+</tr>
+<tr>
+<td align="left">PTRACE_PEEKDATA     </td>
+<td align="left"> 同PTRACE_PEEKTEXT    </td>
+</tr>
+<tr>
+<td align="left">PTRACE_PEEKUSER     </td>
+<td align="left"> 读取tracee&#8217;s USER area的addr位移的数据（data is ignored）</td>
+</tr>
+<tr>
+<td align="left">PTRACE_POKETEXT     </td>
+<td align="left"> 将data中的值写入addr内存地址中</td>
+</tr>
+<tr>
+<td align="left">PTRACE_POKEDATA     </td>
+<td align="left"> 同PTRACE_POKETEXT</td>
+</tr>
+<tr>
+<td align="left">PTRACE_POKEUSER     </td>
+<td align="left"> 将data中的值写入tracee&#8217;s USER area的addr位移地址中</td>
+</tr>
+<tr>
+<td align="left">PTRACE_GETREGS      </td>
+<td align="left"> 将general-purpose寄存器写入data（addr is ignored）</td>
+</tr>
+<tr>
+<td align="left">PTRACE_GETFPREGS    </td>
+<td align="left"> 将 floating-point寄存器写入data（addr is ignored）</td>
+</tr>
+<tr>
+<td align="left">PTRACE_SETREGS      </td>
+<td align="left"> 修改tracee的general-purpose寄存器（addr is ignored)</td>
+</tr>
+<tr>
+<td align="left">PTRACE_SETFPREGS    </td>
+<td align="left"> 修改tracee的floating-point寄存器（addr is ignored)</td>
+</tr>
+<tr>
+<td align="left">PTRACE_CONT         </td>
+<td align="left"> 重启之前暂停的进程，如果data不为零，则代表发给进程的信号值（addr is ignored）</td>
+</tr>
+<tr>
+<td align="left">PTRACE_SYSCALL      </td>
+<td align="left"> 执行PTRACE_CONT，并且使进程进入syscall-enter-stop和syscall-exit-stop模式</td>
+</tr>
+<tr>
+<td align="left">PTRACE_SINGLESTEP   </td>
+<td align="left"> 执行PTRACE_CONT，并且进行单点跟踪</td>
+</tr>
+<tr>
+<td align="left">PTRACE_ATTACH       </td>
+<td align="left"> 发送一个SIGSTOP信号到pid进程，并开始进行跟踪（addr and data are ignored）</td>
+</tr>
+<tr>
+<td align="left">PTRACE_DETACH       </td>
+<td align="left"> 先detach，然后执行PTRACE_CONT。</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>除此之外，还有很多可用的取值，在linux的<a href="http://linux.die.net/man/2/ptrace">manpage</a>里面有很详细的描述。</p>
+
+<p>需要注意的是，这里所说的attach和之后的一系列操作都是针对<strong>thread</strong>而言的，对于多线程来说，每一个thread都可以单独地被attach到一个跟踪者（tracer）。</p>
+
+<p>在<a href="http://www.kgdb.info/gdb/playing_with_ptrace_part_i/">玩转ptrace1</a>中举了一个很有趣的例子，可以通过这个例子来理解这些request都是怎么用的。</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &lt;sys/ptrace.h&gt;</span>
+</span><span class='line'><span class="cp">#include &lt;sys/types.h&gt;</span>
+</span><span class='line'><span class="cp">#include &lt;sys/wait.h&gt;</span>
+</span><span class='line'><span class="cp">#include &lt;unistd.h&gt;</span>
+</span><span class='line'><span class="cp">#include &lt;linux/user.h&gt;</span>
+</span><span class='line'><span class="cp">#include &lt;sys/syscall.h&gt;</span>
+</span><span class='line'><span class="k">const</span> <span class="kt">int</span> <span class="n">long_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">long</span><span class="p">);</span>
+</span><span class='line'><span class="kt">void</span> <span class="nf">reverse</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">str</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>   <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">char</span> <span class="n">temp</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">for</span><span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">str</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">j</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">,</span> <span class="o">--</span><span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">temp</span> <span class="o">=</span> <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class='line'>        <span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">str</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+</span><span class='line'>        <span class="n">str</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="kt">void</span> <span class="nf">getdata</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">child</span><span class="p">,</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">,</span>
+</span><span class='line'>             <span class="kt">char</span> <span class="o">*</span><span class="n">str</span><span class="p">,</span> <span class="kt">int</span> <span class="n">len</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>   <span class="kt">char</span> <span class="o">*</span><span class="n">laddr</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">union</span> <span class="n">u</span> <span class="p">{</span>
+</span><span class='line'>            <span class="kt">long</span> <span class="n">val</span><span class="p">;</span>
+</span><span class='line'>            <span class="kt">char</span> <span class="n">chars</span><span class="p">[</span><span class="n">long_size</span><span class="p">];</span>
+</span><span class='line'>    <span class="p">}</span><span class="n">data</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">j</span> <span class="o">=</span> <span class="n">len</span> <span class="o">/</span> <span class="n">long_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">laddr</span> <span class="o">=</span> <span class="n">str</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">while</span><span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">data</span><span class="p">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKDATA</span><span class="p">,</span>
+</span><span class='line'>                          <span class="n">child</span><span class="p">,</span> <span class="n">addr</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">memcpy</span><span class="p">(</span><span class="n">laddr</span><span class="p">,</span> <span class="n">data</span><span class="p">.</span><span class="n">chars</span><span class="p">,</span> <span class="n">long_size</span><span class="p">);</span>
+</span><span class='line'>        <span class="o">++</span><span class="n">i</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">laddr</span> <span class="o">+=</span> <span class="n">long_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">j</span> <span class="o">=</span> <span class="n">len</span> <span class="o">%</span> <span class="n">long_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">if</span><span class="p">(</span><span class="n">j</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">data</span><span class="p">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKDATA</span><span class="p">,</span>
+</span><span class='line'>                          <span class="n">child</span><span class="p">,</span> <span class="n">addr</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">memcpy</span><span class="p">(</span><span class="n">laddr</span><span class="p">,</span> <span class="n">data</span><span class="p">.</span><span class="n">chars</span><span class="p">,</span> <span class="n">j</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">str</span><span class="p">[</span><span class="n">len</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="kt">void</span> <span class="nf">putdata</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">child</span><span class="p">,</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">,</span>
+</span><span class='line'>             <span class="kt">char</span> <span class="o">*</span><span class="n">str</span><span class="p">,</span> <span class="kt">int</span> <span class="n">len</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>   <span class="kt">char</span> <span class="o">*</span><span class="n">laddr</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">union</span> <span class="n">u</span> <span class="p">{</span>
+</span><span class='line'>            <span class="kt">long</span> <span class="n">val</span><span class="p">;</span>
+</span><span class='line'>            <span class="kt">char</span> <span class="n">chars</span><span class="p">[</span><span class="n">long_size</span><span class="p">];</span>
+</span><span class='line'>    <span class="p">}</span><span class="n">data</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">j</span> <span class="o">=</span> <span class="n">len</span> <span class="o">/</span> <span class="n">long_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">laddr</span> <span class="o">=</span> <span class="n">str</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">while</span><span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">memcpy</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">chars</span><span class="p">,</span> <span class="n">laddr</span><span class="p">,</span> <span class="n">long_size</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_POKEDATA</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span>
+</span><span class='line'>               <span class="n">addr</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">data</span><span class="p">.</span><span class="n">val</span><span class="p">);</span>
+</span><span class='line'>        <span class="o">++</span><span class="n">i</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">laddr</span> <span class="o">+=</span> <span class="n">long_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">j</span> <span class="o">=</span> <span class="n">len</span> <span class="o">%</span> <span class="n">long_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">if</span><span class="p">(</span><span class="n">j</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">memcpy</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">chars</span><span class="p">,</span> <span class="n">laddr</span><span class="p">,</span> <span class="n">j</span><span class="p">);</span>
+</span><span class='line'>        <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_POKEDATA</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span>
+</span><span class='line'>               <span class="n">addr</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">data</span><span class="p">.</span><span class="n">val</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>   <span class="n">pid_t</span> <span class="n">child</span><span class="p">;</span>
+</span><span class='line'>   <span class="n">child</span> <span class="o">=</span> <span class="n">fork</span><span class="p">();</span>
+</span><span class='line'>   <span class="k">if</span><span class="p">(</span><span class="n">child</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_TRACEME</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>      <span class="n">execl</span><span class="p">(</span><span class="s">&quot;/bin/ls&quot;</span><span class="p">,</span> <span class="s">&quot;ls&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>   <span class="p">}</span>
+</span><span class='line'>   <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>      <span class="kt">long</span> <span class="n">orig_eax</span><span class="p">;</span>
+</span><span class='line'>      <span class="kt">long</span> <span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+</span><span class='line'>      <span class="kt">int</span> <span class="n">status</span><span class="p">;</span>
+</span><span class='line'>      <span class="kt">char</span> <span class="o">*</span><span class="n">str</span><span class="p">,</span> <span class="o">*</span><span class="n">laddr</span><span class="p">;</span>
+</span><span class='line'>      <span class="kt">int</span> <span class="n">toggle</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>      <span class="k">while</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>         <span class="n">wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">status</span><span class="p">);</span>
+</span><span class='line'>         <span class="k">if</span><span class="p">(</span><span class="n">WIFEXITED</span><span class="p">(</span><span class="n">status</span><span class="p">))</span>
+</span><span class='line'>             <span class="k">break</span><span class="p">;</span>
+</span><span class='line'>         <span class="n">orig_eax</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKUSER</span><span class="p">,</span>
+</span><span class='line'>                           <span class="n">child</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">ORIG_EAX</span><span class="p">,</span>
+</span><span class='line'>                           <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>         <span class="k">if</span><span class="p">(</span><span class="n">orig_eax</span> <span class="o">==</span> <span class="n">SYS_write</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">if</span><span class="p">(</span><span class="n">toggle</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>               <span class="n">toggle</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class='line'>               <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKUSER</span><span class="p">,</span>
+</span><span class='line'>                                  <span class="n">child</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">EBX</span><span class="p">,</span>
+</span><span class='line'>                                  <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>               <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKUSER</span><span class="p">,</span>
+</span><span class='line'>                                  <span class="n">child</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">ECX</span><span class="p">,</span>
+</span><span class='line'>                                  <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>               <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKUSER</span><span class="p">,</span>
+</span><span class='line'>                                  <span class="n">child</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">EDX</span><span class="p">,</span>
+</span><span class='line'>                                  <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>               <span class="n">str</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">((</span><span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+</span><span class='line'>                                 <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span><span class="p">));</span>
+</span><span class='line'>               <span class="n">getdata</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">str</span><span class="p">,</span>
+</span><span class='line'>                       <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+</span><span class='line'>               <span class="n">reverse</span><span class="p">(</span><span class="n">str</span><span class="p">);</span>
+</span><span class='line'>               <span class="n">putdata</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">str</span><span class="p">,</span>
+</span><span class='line'>                       <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>               <span class="n">toggle</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>         <span class="p">}</span>
+</span><span class='line'>      <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_SYSCALL</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>   <span class="p">}</span>
+</span><span class='line'>   <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>首先子进程调用</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_TRACEME</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>来让父进程跟踪自己，当然，这个也可以通过在父进程中调用</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_ATTACH</span><span class="p">,</span> <span class="n">traced_process_id</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>来实现，之后子进程运行了<code>bin/ls</code>。当子进程发生系统调用的时候会将控制权转交入父进程，父进程通过</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">orig_eax</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKUSER</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">ORIG_EAX</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>来获得eax寄存器的值（从而判断调用的是哪个系统调用），之后继续通过<code>PTRACE_PEEKUSER</code>这个request来获得SYS_write系统调用的其它参数(ebx, ecx, edx)，当然，这个步骤还可以用</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#include &lt;linux/user.h&gt;</span>
+</span><span class='line'><span class="k">struct</span> <span class="n">user_regs_struct</span> <span class="n">regs</span><span class="p">;</span>
+</span><span class='line'><span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_GETREGS</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">regs</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>来替代，从而得到所有的寄存器的值regs。</p>
+
+<p>之后，父进程在getdata函数中通过</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">data</span><span class="p">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_PEEKDATA</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="n">addr</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>将文件名从ecx中获得，并在putdata函数中通过</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_POKEDATA</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="n">addr</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">data</span><span class="p">.</span><span class="n">val</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>将反转后的字符串写入寄存器ecx中，从而使得打出来的文件名是反转了的。</p>
+
+<p>最后，通过调用</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ptrace</span><span class="p">(</span><span class="n">PTRACE_SYSCALL</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>将控制权返还给子进程，同时让其进入syscall-enter-stop和syscall-exit-stop模式，即在进入和退出system call的时候都会stop，并将控制权交给父进程。</p>
+
+<p>这里有一个问题，就是当子进程调用PTRACE_TRACEME或者父进程调用PTRACE_ATTACH之后，在什么情况下会将子进程stop（从而将控制权交给父进程）呢？</p>
+
+<p>要回答这个问题，首先要知道当我们使用ptrace的时候，内核中发生了什么？这里有一段简要的说明：当一个进程调用了 ptrace(PTRACE_TRACEME, …)之后，内核为该进程设置了一个标记，注明该进程将被跟踪。内核中的相关原代码（位于<code>arch/i386/kernel/ptrace.c</code>）如下：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">request</span> <span class="o">==</span> <span class="n">PTRACE_TRACEME</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="cm">/* are we already being traced? */</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">current</span><span class="o">-&gt;</span><span class="n">ptrace</span> <span class="o">&amp;</span> <span class="n">PT_PTRACED</span><span class="p">)</span>
+</span><span class='line'>        <span class="k">goto</span> <span class="n">out</span><span class="p">;</span>
+</span><span class='line'>    <span class="cm">/* set the ptrace bit in the process flags. */</span>
+</span><span class='line'>    <span class="n">current</span><span class="o">-&gt;</span><span class="n">ptrace</span> <span class="o">|=</span> <span class="n">PT_PTRACED</span><span class="p">;</span>
+</span><span class='line'>    <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">goto</span> <span class="n">out</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>一次系统调用完成之后，内核察看那个标记，然后执行trace系统调用（如果这个进程正处于被跟踪状态的话）。其汇编的细节可以在 <code>arch/i386/kernel/entry.S</code>中找到。</p>
+
+<p>现在让我们来看看这个sys_trace()函数（位于<code>arch/i386/kernel/ptrace.c</code>）。它停止子进程，然后发送一个信号给父进程，告诉它子进程已经停滞，这个信号会激活正处于等待状态的父进程，让父进程进行相关处理。父进程在完成相关操作以后就调用ptrace(PTRACE_CONT, …)或者 ptrace(PTRACE_SYSCALL, …)，这将唤醒子进程，内核此时所作的是调用一个叫<code>wake_up_process()</code>的进程调度函数。其他的一些系统架构可能会通过发送SIGCHLD给子进程来达到这个目的。</p>
+
+<hr />
+
+<p>由此可以看出，通过ptrace和wait(waitpid)等系统调用，可以使得父进程在系统调用的级别做子进程的跟踪和检查，由此来做很多的事情，但是有一个问题是，由于ptrace并不能指定哪些系统调用被跟踪，因此所有系统调用都会被stop并且转移控制权，由此会产生比较大的overhead。</p>
+
+<p>总的来说，ptrace是一个非常强大的系统调用，这里只是介绍了其中几个比较常用的参数，更多的信息可以参照<a href="http://linux.die.net/man/2/ptrace">ptrace的manpage</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-30T09:46:00+08:00" pubdate data-updated="true">Apr 30<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/linux/'>Linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/04/28/xi-tong-diao-yong-xue-xi-bi-ji-linuxxi-tong-diao-yong-biao-%28zhuan-%29/" title="Previous Post: 系统调用学习笔记 - Linux系统调用表（转）">&laquo; 系统调用学习笔记 - Linux系统调用表（转）</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/05/04/androidde-na-xie-shi-cyanogenmod/" title="Next Post: Android的那些事 - CyanogenMod">Android的那些事 - CyanogenMod &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/04/30/xi-tong-diao-yong-xue-xi-bi-ji-ptrace/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/04/30/xi-tong-diao-yong-xue-xi-bi-ji-ptrace/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

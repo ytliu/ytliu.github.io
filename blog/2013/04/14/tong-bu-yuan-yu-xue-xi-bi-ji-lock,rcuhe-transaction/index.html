@@ -1,0 +1,502 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>同步原语学习笔记 - Lock，RCU和Transaction Memory - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2013/04/14/tong-bu-yuan-yu-xue-xi-bi-ji-lock%2Crcuhe-transaction">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">同步原语学习笔记 - Lock，RCU和Transaction Memory</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-14T14:24:00+08:00" pubdate data-updated="true">Apr 14<span>th</span>, 2013</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>这周最大的收获就是周四那天，感觉被洗脑了一样，上午P哥给我们讲他的<a href="http://ipads.se.sjtu.edu.cn/lib/exe/fetch.php?media=publications:reemu-ppopp13.pdf">ReEmu</a>，里面讲的最多的就是在它的replay系统中如何记录shared memory access order。还有一个就是Naruil下午讲的“The myth of lock &amp; scalability“，讲了lock，RCU，Transaction memory的一些基本原理和它们的发展过程，以及其中的一些scalability的问题。</p>
+
+<p>关于ReEmu，主要是说需要记录哪些non-determinism：里面主要讲了interrupt，DMA handling，在不同cores发生page fault时的走页表顺序问题，对于一些non-deterministic的指令，比如in/out的处理，以及在共享内存访问中不同核的访问顺序。其中最重要的就是memory access order，即如何记录read-after-write, write-after-write和write-after-read的方法。这篇paper最大的贡献在于它利用了CREW（Concurrent Read，Exclusive Write）和seqlock的特性，利用version极大地减小了原子操作的数量，减小了log的大小，提高了efficiency和scalability。具体如何做的还是直接看paper吧，这里就不详述了。</p>
+
+<p>这次主要想记的是Naruil关于一些同步原语的讲解。之前一直对Read-Write Lock, RCU，Transaction Memory等都只是一知半解，这几周由于海波和大爷的课，以及组会对这些都提到了好多，因此希望能把它们记下来做个笔记，省的自己又很快就忘记了。</p>
+
+<!-- more -->
+
+
+<p>slides在<a href="http://ipads.se.sjtu.edu.cn/courses/ads/slides/lec7-lock.pdf">这里</a>。</p>
+
+<p>刚开始有个印象很深的提法，他说在计算机中不同核（或者在分布式系统中不同机器）之间的交流一般只有两种方式：<strong>message passing</strong>和<strong>shared memory</strong>，而对于第二种shared memory的方式，其本质上也是一种message passing（比如在多核之间的SM其实就是inter-processor间cache的message passing）。</p>
+
+<p>还有一个印象很深的知识点就是对于我们平常提到的原子指令（比如test_and_set），只要是对于一个共享变量的原子指令，都会涉及到cache invalidation，即要把其它核的cache line都invalidate，这就是造成在多核环境下scalability上不去的原因，因为过多的原子指令将会造成in-flight的message太多（这个也是那篇<a href="http://pdos.csail.mit.edu/papers/linux:lock.pdf">Non-scalable locks are dangerous</a>强调的问题）。因此在同步原语中要想获得高的scalability，就必须减少对共享变量的原子操作（其实在ReEmu中它的目的也正是如此）。</p>
+
+<h3>Read-Write Lock</h3>
+
+<p>读写锁，顾名思义，就是将读锁和写锁分开来处理，对于读锁，它可以允许多个读者同时对一个共享变量进行读取，但是需要维护一个全局counter来记录读者的数量。当某个核产生一个写的请求，那么就不能再允许有新的读者进入critical section（CS），而写者也需要所有读者结束（即counter降为0）后才可以进入写的CS。在这里，一般的实现方式是这样的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">Read</span> <span class="n">object</span> <span class="n">begin</span>
+</span><span class='line'>  <span class="n">P</span><span class="p">(</span><span class="n">object</span><span class="p">.</span><span class="n">lock</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">AtomicAdd</span><span class="p">(</span><span class="n">object</span><span class="p">.</span><span class="n">activeReader</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">V</span><span class="p">(</span><span class="n">object</span><span class="p">.</span><span class="n">lock</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">Do</span> <span class="n">Actual</span> <span class="n">Read</span>
+</span><span class='line'>  <span class="n">AtomicAdd</span><span class="p">(</span><span class="n">object</span><span class="p">.</span><span class="n">activeReaders</span><span class="p">,</span> <span class="err">−</span><span class="mi">1</span><span class="p">)</span>
+</span><span class='line'><span class="n">end</span>
+</span><span class='line'><span class="n">Write</span> <span class="n">object</span> <span class="n">begin</span>
+</span><span class='line'>  <span class="n">P</span><span class="p">(</span><span class="n">object</span><span class="p">.</span><span class="n">lock</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">while</span> <span class="n">object</span><span class="p">.</span><span class="n">activeReaders</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">do</span> <span class="n">delay</span>
+</span><span class='line'>  <span class="n">Do</span> <span class="n">Actual</span> <span class="n">Write</span>
+</span><span class='line'>  <span class="n">V</span><span class="p">(</span><span class="n">object</span><span class="p">.</span><span class="n">lock</span><span class="p">)</span>
+</span><span class='line'><span class="n">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里值得注意的是，虽然它减小了读者和读者之间信号量（P/V）的竞争，但是读者在读之前需要对共享变量activeReader进行原子加，安装前面所说的，这就会造成cache line invalidate message数量的增加，不具有很好的可扩展性。</p>
+
+<p>为了减小等待message的时间，有一种解决方法叫GOLL:</p>
+
+<p><img src="http://ytliu.info/images/2013-04-14-1.png" title="GOLL" alt="GOLL" /></p>
+
+<p>即构造一棵二叉树，两个reader共享一个activeReader，而对于writer来说，只要其子节点存在activeReader，则它就为1。</p>
+
+<p>另外一种方法叫BR lock：</p>
+
+<p><img src="http://ytliu.info/images/2013-04-14-2.png" title="big reader lock" alt="BRLock" /></p>
+
+<p>和GOLL相比，它为每一个reader都维护一个变量，这样在reader之间都完全不会存在message，但是对于writer来说，它的overhead则增大了很多，在writer进入CS之前，需要所有的reader都发message给它。</p>
+
+<p>另外，如果我们为了增加公平性，采用一个ticket lock的形式，那么同样的，如果这个ticket是全局共享的，那么也会有同样的问题，于是就提出了一种叫做MCS lock的机制。</p>
+
+<h3>MCS Lock</h3>
+
+<p>MCS是由两个人(Mellor-Crummey and Scott)发明的算法，相比于需要维护一个全局变量的ticket based lock，在MCS lock中，每个进程只需要各自维护一个local variable，这个局部变量可以是一个用于spin的flag，用于标识自己是否拿到锁了。另外，存在一个全局的队列，拿锁的过程相当于向队列中插入一个结构体qnode，这个结构体包含了某个进程的flag——locked，和这个qnode指向的下一个qnode的地址：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">procedure</span> <span class="n">acquire_lock</span><span class="p">(</span> <span class="n">L</span><span class="o">:</span> <span class="o">*</span><span class="n">lock</span><span class="p">,</span> <span class="n">I</span><span class="o">:</span> <span class="o">*</span><span class="n">qnode</span> <span class="p">)</span>
+</span><span class='line'>  <span class="n">var</span> <span class="n">pred</span><span class="o">:</span> <span class="o">*</span><span class="n">qnode</span>
+</span><span class='line'>  <span class="n">I</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">:=</span> <span class="n">nil</span> <span class="c1">// Initially, no successor</span>
+</span><span class='line'>  <span class="n">pred</span> <span class="o">:=</span> <span class="n">swap</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">I</span><span class="p">)</span> <span class="c1">// Queue for lock</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">pred</span> <span class="mi">6</span><span class="o">=</span> <span class="n">nil</span> <span class="c1">// Lock was not free</span>
+</span><span class='line'>      <span class="n">i</span><span class="o">-&gt;</span><span class="n">locked</span> <span class="o">:=</span> <span class="nb">true</span> <span class="c1">// Prepare to spin</span>
+</span><span class='line'>      <span class="n">pred</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">:=</span> <span class="n">I</span> <span class="c1">// Link behind predecessor</span>
+</span><span class='line'>      <span class="n">repeat</span> <span class="k">while</span> <span class="n">I</span><span class="o">-&gt;</span><span class="n">locked</span> <span class="c1">// Busy wait for lock</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在这里，有一个变量<code>L</code>，它也是一个qnode，表示全局队列中最后一个拿锁插入的qnode，通过<code>swap(L, I)</code>（将I的值赋给L，并返回L的值），得到前一个拿锁的qnode pred，将它的next指向自己，并spin在自己的这个locked局部变量中。</p>
+
+<p>而释放锁的过程也就显而易见了：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">procedure</span> <span class="n">release_lock</span><span class="p">(</span> <span class="n">L</span><span class="o">:</span> <span class="o">*</span><span class="n">lock</span><span class="p">,</span> <span class="n">I</span><span class="o">:</span> <span class="o">*</span><span class="n">qnode</span> <span class="p">)</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">I</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">=</span> <span class="n">nil</span> <span class="c1">// No known successor</span>
+</span><span class='line'>      <span class="k">if</span> <span class="n">compare_and_swap</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">nil</span><span class="p">)</span>
+</span><span class='line'>          <span class="k">return</span> <span class="c1">// No successor, lock free</span>
+</span><span class='line'>      <span class="n">repeat</span> <span class="k">while</span> <span class="n">I</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">=</span> <span class="n">nil</span> <span class="c1">// Wait for successor</span>
+</span><span class='line'>  <span class="n">I</span><span class="o">-&gt;</span><span class="n">next</span><span class="o">-&gt;</span><span class="n">locked</span> <span class="o">:=</span> <span class="nb">false</span> <span class="c1">// Pass lock</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>先判断自己是不是最后一个拿锁的人，如果不是，则将下一个qnode的locked设成false，即将锁传递给下一个qnode。</p>
+
+<p>由于MCS lock是spin在自己的局部变量上的，所以就没有前面说过的scalability的问题。不过MCS对于核数比较少的情况似乎性能不是很好（这个我也不是很理解）。</p>
+
+<h3>RCU (Read-Copy-Updata)</h3>
+
+<p>除了lock之后，还有一种同步原语叫RCU：</p>
+
+<p><img src="http://ytliu.info/images/2013-04-14-3.png" title="RCU" alt="RCU" /></p>
+
+<p>RCU最大的特点在于writer可以在reader进行读取操作的时候直接修改，不过需要注意的是，这里的修改是这样的：</p>
+
+<ul>
+<li>首先对Shared_data进行一次拷贝（到一个新的地址B）；</li>
+<li>更新B指向的对象；</li>
+<li>将Shared_data原来的地址赋给一个新的变量Old_data；</li>
+<li>将Shared_data赋值为B。</li>
+</ul>
+
+
+<p>这样有一个问题就是，几个reader可能会在一段时间内读到的值是不一样的，有些读到的是old value，有些读到的是new value。但是可以保证的是，当执行完</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">Shared_data</span> <span class="o">=</span> <span class="n">B</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后，所有的reader读到的值都是改过后的值！</p>
+
+<p>另外这里还要考虑一个问题，那就是什么时候释放这个Old_data？</p>
+
+<p>这里注意在Reader的代码中，<code>rcu_read_lock()</code>会关闭中断，禁止在一个核中其它进程的抢断，而<code>rcu_read_unlock()</code>则会打开中断，恢复抢断机制。于是writer就可以根据reader进程是否进行过context switch来判断说是否对Shared_data的读过程是否全部结束了：</p>
+
+<p><img src="http://ytliu.info/images/2013-04-14-4.png" title="RCU Figure" alt="RCU figure 2" /></p>
+
+<p>RCU还要考虑的一个问题是在reader中是否能允许sleep？因为如果一个reader在读的过程中如果碰到一段IO操作，那么它如果不sleep的话，则会很大地浪费CPU资源，而如果sleep的话，则会发生一次context switch，而此时，读的过程其实并没有结束，与RCU的语义就不符了。</p>
+
+<p>对于这个问题，按照Naruil的说法，也产生了一系列研究，比如允许sleep的RCU等，这里就不展开了（其实是我也不懂啦）。</p>
+
+<p>和之前提到的RW lock等相比，RCU没有scalability的问题，性能会好很多。所以当前RCU被运用到Linux的很多地方，这里有一个插曲是说当年发明RCU的是作者是IBM的一个员工，它就靠着RCU这么一个东西在IBM待了20多年，而RCU也被申请了专利，像FreeBSD这些系统是不被允许使用RCU的。</p>
+
+<p>当然RCU还有很多问题，比如它有很多semantic的限制，对于那些不允许在一段时间内多个reader会读到不同值的情况就不能使用RCU。另外，RCU只能应用在一些比较简单的数据结构中，如果遇到比较复杂的数据结果就挂掉了，因为它需要程序员自己处理很多corner cases。</p>
+
+<h3>Transaction Memory</h3>
+
+<p>最后要讲的一个同步原语就是Transaction Memory（TM），这个最近几年很火的一个研究方向，特别是当Hardware TM（HTM）问世之后。</p>
+
+<p>安装Naruil的说法，TM的原理大概是这样的：在一个Transaction中，可以访问不同的对象（这个粒度可以自己控制，可以是几个cache line，几个page&#8230;)，而当访问了某个对象之后，它对应的cache line上就会有一个flag标识，当一个进程进行commit，则会将自己对应的那些cache line上的flag清楚，而对于其它访问了这些cache line的transaction，则会abort，并invalidate 这些cache line。</p>
+
+<p>TM的好处在于它可以非常细粒度地进行同步，并且避免了对lock这样一个额外的同步变量维护产生的cache message。</p>
+
+<hr />
+
+<p>同步原语真的是一个非常需要智商的领域，我最近对此感觉特别深刻。我想在这个领域里搞研究的应该都是一群智商超群的人吧:)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-14T14:24:00+08:00" pubdate data-updated="true">Apr 14<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/system/'>System</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/04/09/netfilterxue-xi-bi-ji-%28san-%29/" title="Previous Post: Netfilter学习笔记（三）">&laquo; Netfilter学习笔记（三）</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/04/28/xi-tong-diao-yong-xue-xi-bi-ji-linuxxi-tong-diao-yong-biao-%28zhuan-%29/" title="Next Post: 系统调用学习笔记 - Linux系统调用表（转）">系统调用学习笔记 - Linux系统调用表（转） &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2013/04/14/tong-bu-yuan-yu-xue-xi-bi-ji-lock%2Crcuhe-transaction/';
+        var disqus_url = 'http://ytliu.github.io/blog/2013/04/14/tong-bu-yuan-yu-xue-xi-bi-ji-lock%2Crcuhe-transaction/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

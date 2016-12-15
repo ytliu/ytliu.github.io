@@ -1,0 +1,1566 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载） - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="OSDI">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-12-15T10:04:00+08:00" pubdate data-updated="true">Dec 15<span>th</span>, 2016</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>这是一篇由我负责，我们实验室10位本硕博一起完成的OSDI见闻录，从参会者的角度详细阐述了我们对于2016年系统领域的盛会——OSDI的感受和理解。</p>
+
+<p>文章的内容由以下作者共同完成：</p>
+
+<ul>
+<li><a href="http://ipads.se.sjtu.edu.cn/yutao_liu">刘宇涛</a>，上海交通大学IPADS实验室博士五年级</li>
+<li><a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yang_hong">洪扬</a>，上海交通大学IPADS实验室博士四年级</li>
+<li><a href="http://ipads.se.sjtu.edu.cn:3000/pub/members/xiayang_wang/">王夏阳</a>，上海交通大学IPADS实验室博士三年级</li>
+<li><a href="http://ipads.se.sjtu.edu.cn:3000/pub/members/zeyu_mi/">糜泽羽</a>，上海交通大学IPADS实验室博士二年级</li>
+<li>华志超，上海交通大学IPADS实验室博士二年级</li>
+<li><a href="http://ipads.se.sjtu.edu.cn:3000/pub/members/mingyu_wu/">吴明瑜</a>，上海交通大学IPADS实验室博士二年级</li>
+<li><a href="http://ipads.se.sjtu.edu.cn:3000/pub/members/jiaxin_shi/">施佳鑫</a>，上海交通大学IPADS实验室硕士三年级</li>
+<li><a href="http://ipads.se.sjtu.edu.cn:3000/pub/members/mingkai_dong/">董明凯</a>，上海交通大学IPADS实验室硕士二年级</li>
+<li><a href="http://ipads.se.sjtu.edu.cn:3000/pub/members/xingda_wei/">魏星达</a>，上海交通大学IPADS实验室硕士二年级</li>
+<li><a href="http://dolobyte.net/">张云昊</a>，上海交通大学IPADS实验室本科四年级</li>
+</ul>
+
+
+<p>整篇文章按照时间顺序分为6个章节，连载发表在了ChinaSys的微信公众号CNSys上。这个博文是对其的一个转载，并且将所有内容整合在了一个篇幅里。希望对相关领域的人有所帮助吧！</p>
+
+<!-- more -->
+
+
+<hr />
+
+<p>今年OSDI在美国乔治亚洲的一个美丽小镇萨凡纳举办，萨凡纳曾经被评为全球最美的十大小镇之一，城中到处都是小广场和公园，电影《阿甘正传》中阿甘坐在长椅上讲故事的广场也是在这里取景。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/1.jpg" title="scenery 1" alt="1" />
+<img src="http://ytliu.info/images/osdi2016/2.jpg" title="scenery 2" alt="1" />
+<img src="http://ytliu.info/images/osdi2016/3.jpg" title="scenery 3" alt="3" />
+<img src="http://ytliu.info/images/osdi2016/4.jpg" title="scenery 4" alt="4" /></p>
+
+<p>这次上海交大IPADS实验室给我们11个<code>Ph.D. candidates</code>，以及<code>Ph.D.-candidate candidates</code>提供了参会的机会，可以说团队空前强大。整个会场中也时不时响起“I&#8217;m xxx, from Shanghai Jiao Tong University”的声音，也算是OSDI会史上难得一见的场景了。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/5.jpg" title="people 1" alt="5" />
+<img src="http://ytliu.info/images/osdi2016/6.jpg" title="people 2" alt="6" /></p>
+
+<p>今年OSDI收到了260篇提交的论文, 在经过48个reviewers三轮的评审意见和讨论之后，最终接收了47篇论文，创了OSDI接收论文数量的新高。这些论文覆盖了多个领域，包括安全，云计算，事务处理，存储，网络，形式化验证，图计算，机器学习系统支撑，编程语言，troubleshooting等。其中比较热门的话题（超过两篇论文被接受）有形式化验证，利用RDMA来加速transaction，fault tolerance，安全通信（secure communication），SGX等。</p>
+
+<p>整个会议由12个sessions组成，并且选出了三篇best papers：</p>
+
+<ul>
+<li>Push-Button Verification of File Systems via Crash Refinement</li>
+</ul>
+
+
+<blockquote><p>Helgi Sigurbjarnarson, James Bornholt, Emina Torlak, and Xi Wang, University of Washington</p></blockquote>
+
+<ul>
+<li>Ryoan: A Distributed Sandbox for Untrusted Computation on Secret Data</li>
+</ul>
+
+
+<blockquote><p>Tyler Hunt, Zhiting Zhu, Yuanzhong Xu, Simon Peter, and Emmett Witchel, The University of Texas at Austin</p></blockquote>
+
+<ul>
+<li>Early Detection of Configuration Errors to Reduce Failure Damage</li>
+</ul>
+
+
+<blockquote><p>Tianyin Xu, Xinxin Jin, Peng Huang, and Yuanyuan Zhou, University of California, San Diego; Shan Lu, University of Chicago; Long Jin, University of California, San Diego; Shankar Pasupathy, NetApp, Inc.</p></blockquote>
+
+<p>如果分别用一句最简单的话概括，第一篇论文展示了形式化证明的一种自动化解决思路；第二篇论文将SGX巧妙地利用在了distributed sandbox这么一个新的场景上；第三篇论文提出了一个有趣的关于configuration error的问题和相应的解决方案。我们会在接下来相应的session中详细地介绍它们。</p>
+
+<p>在之后的篇幅中，我们会按照会议安排的时间顺序，详细介绍每个session的内容，并且根据我们自己的理解对它们进行相应的评价和讨论。</p>
+
+<hr />
+
+<h3>Session~[Operating Systems I]</h3>
+
+<h4>>>> Push-Button Verification of File Systems via Crash Refinement &lt;&lt;&lt;</h4>
+
+<p><a href="https://www.usenix.org/conference/osdi16/technical-sessions/presentation/sigurbjarnarson">这篇论文</a>出自University of Washington的研究团队，由Helgi Sigurbjarnarson及其导师Xi Wang，与James Bornholt及其导师Emina Torlak组成。Prof. Wang在系统软件形式化验证领域已有<a href="https://www.usenix.org/system/files/conference/osdi14/osdi14-paper-wang_xi.pdf">Jitk</a>(OSDI&#8217;14)、<a href="http://locore.cs.washington.edu/papers/wilcox-verdi.pdf">Verdi</a>(PLDI&#8217;15)等工作，此次的成果给出了自动完成正确性验证的的一种方案。这篇论文是OSDI&#8217;16的三篇Best Paper之一。</p>
+
+<p>以往的形式化验证工作（如SOSP‘15的<a href="https://people.csail.mit.edu/nickolai/papers/chen-fscq.pdf">FSCQ</a>），一般借助机器辅助证明工具（如Coq）完成验证。在这种方案下，程序员需以工具本身所支持的程序语言完成系统实现，并人工撰写正确性的证明过程，最终由工具完成程序员所写的证明的正确性检查。在这种框架下，系统实现及证明需要耗费大量的人力成本。依照本文数据，FSCQ耗费了MIT的研究团队1.5年时间完成。而本文的工作借助微软开发的Z3工具，自动完成验证工作。</p>
+
+<p>本文所介绍的工具被命名为Yggdrasil。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/1-1.png" alt="1-1" /></p>
+
+<p>上图展示了Yggdrasil的工作流程。程序员需要提供最上方虚线框内的三部分内容：specification，implementation与consistency invariants。这三部分输入被交给工具的verifier进行分析验证。如果验证正确，按照verifier左侧的路径，代码实现会被翻译成c代码；如果验证失败，按照右侧的路径，Yggdrasil会展示导致系统崩溃的输入值。Yggdrasil还提供了实现的优化工具，可在一定程度上给出系统实现中可减少的flush操作。</p>
+
+<p>程序员需要指定一个抽象的文件系统正确性描述，如下图所示，</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/1-2.png" alt="1-2" />
+<img src="http://ytliu.info/images/osdi2016/1-3.png" alt="1-3" /></p>
+
+<p>整个文件系统记录的信息为inode之间关系和inode对应的元数据，可由若干map数据结构刻画。而lookup操作的基本性质由图中lookup()函数在对应的数据结构上的操作指定。其他操作可以类似定义。程序员需指明如何证明所实现的文件系统与上图所示的简易数据模型之间状态等价(state equivalence predicate)，这一结果可被记录为逻辑表达式。这一等价关系用来验证具体实现具有抽象模型所指定的功能。此外，程序员还需指定crash consistency的逻辑描述形式（consistency invariants），用来检查文件系统可达的各状态是否consistency，或足以恢复至consistency状态。</p>
+
+<p>Yggdrasil借助程序员指定的specification、state equivalence predicate与consistency invariants来证明具体文件系统实现(implementation)的正确性。Yggdrasil通过符号执行（Symbolic Execution）技术，将具体的实现转换为逻辑表达式，然后交由Z3分析证明。Yggdrasil具体的推理过程如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/1-4.png" alt="1-4" /></p>
+
+<p>上图中A系列表示specification之上的操作进展，B系列表示实际实现之上的操作进展。两个系列分别从硬盘状态S0和S1出发。Yggdrasil尝试证明具体的实现与抽象的file system specification可以完成等价的硬盘状态转换（从S0到S0&#8217;与从S1到S1&#8217;）。Yggdrasil首先默认S0与S1为等价且合法的硬盘状态（文件系统镜像），即S0与S1在指定的state equivalence predicate下等价，且S0与S1满足指定的consistency invariants。也就是说，S0和S1是等价的初始状态。在这个默认条件下，Yggdrasil对两个系列各自完成文件系统操作，即在A系列上执行specification所指定的操作，在B系列上执行具体实现的文件系统操作，进而得到了各自的执行结果，即硬盘状态S0&#8217;和S1&#8217;。Z3需要完成的工作，是借助程序员指定的consistency invariants分别计算S0&#8217;和S1&#8217;状态是否是consistency，也就是两个系列的执行结果是否能得到合法的文件系统状态。然后Z3还需借助state equivalence predicate判定S0&#8217;与S1&#8217;是否等价，也就是判定具体实现上的执行结果是否实现了specification所指定的功能。这一整套推理过程的结果，被称为B系列是A系列的crash refinement。</p>
+
+<p>如果出现了硬盘故障，具体实现中可能需要执行数据恢复程序。恢复结果的正确性既可以是恢复到整个文件系统操作完全不执行的状态（即右下角的S1），也可以是推进至完成操作的状态（S1&#8217;）。Z3需要证明恢复操作完成后的状态S1&#8217;满足consistency invariants。</p>
+
+<p>有了A系列的参照标准，B系列的证明只需要做自动“对照”，这是Yggdrasil能够实现自动验证的一个原因。但由于具体的文件系统实现较为复杂，对Z3施加了巨大压力。作者提出具体的文件系统实现应以层次化、模块化为指导思想，各个层次分别验证，以简化Z3的输入。本文介绍的文件系统实现应用了5个层次，高一层次需要证明是低一层次的crash refinement。</p>
+
+<p>作者在测试阶段，比较了经Yggdrasil验证的文件系统Yxv6+group_commit，发现其性能较未优化的Yxv6+sync和FSCQ有3-150倍的性能提升，比默认配置的ext4仅仅慢了10倍。</p>
+
+<h4>>>> Intermittent Computation without Hardware Support or Programmer Intervention &lt;&lt;&lt;</h4>
+
+<p>这篇论文是由Sandia国立实验室的Joel Van Der Woude和密歇根大学的<a href="http://www.impedimenttoprogress.com/">Matthew Hicks</a>合作完成，其中Matthew是A2（今年S&amp;P的best paper）的作者，同时他在今年ASPLOS上提出利用performance counter来实现一个防御RowHammer的软件方法ANVIL。</p>
+
+<p>这篇论文的题目提到一个关键词：<code>Intermittent computation</code>，即可间断的计算。这个场景主要发生在那些利用收集能源的方式进行供电的设备，比如利用太阳能供电的穿戴设备等。这些设备越来越流行，但是它们最大的问题在于，其能源的供应是不稳定的，因此很有可能会经常发生运行到一半就突然关机重启的现象，所以我们希望它们在重启之后能够从之前关机的状态继续执行，而不是完全从头再来，这就是所谓的可间断的计算。</p>
+
+<p>针对这个问题，最直接的方法就是在特定的时候记录checkpoint（即当前的运行时状态），然后在重启的时候加载这些状态。那么何时进行checkpoint就是该问题的关键，当前有两种可行的方案：第一，利用特殊的硬件，在即将关机之前将当前的运行时状态进行保存；第二，程序员手动在程序中某些特定的点插入相关逻辑，进行相关的checkpoint的保存。而本文提出了第三种可行的方案，该方案既不需要特殊的硬件支持（hardware support），也不需要程序员手动插桩（programmer intervention），而是<strong>利用编译器自动化地寻找特定的点进行插桩</strong>。</p>
+
+<p>因此，这篇论文最关键的贡献在于提出如何自动化地寻找那些特定的需要进行checkpoint的点，这里，第二个关键词出现了：<code>idempotent sections</code>，即具有幂等性特征的代码片段。它的意思是说如果一个代码片段在被重复多次执行的情况下也不会产生不一致的语义的话，那么这段代码片段就满足幂等性。而这篇论文的工作就是利用LLVM编译器来自动化地寻找那些<code>idempotent section</code>（之后简称为IS），并且在IS之间插入checkpoint的逻辑。</p>
+
+<p>那么具有怎样特性的代码片段是属于IS的呢？这里有一个很好的例子来说明：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/2-1.png" alt="2-1" /></p>
+
+<p>上图中的(b)，如果在<code>*b = 42</code>这条指令之后关机重启，那么就意味着这两条指令会被重新执行，那么最后会发现其执行的结果就和原先是不一致的（原先<code>a=y; b=42</code>，之后<code>a=42; b=42</code>）。而如果我们在这两条指令之间进行一个checkpoint（如上图(c)），则就可以避免这种不一致的情况。也就是说，这两条指令所组成的代码片段不是一个IS。</p>
+
+<p>这个例子能够很好地说明IS的一个非常重要的特定，即一个IS里面是不允许存在WAR（write after read）的！这也就是这篇论文提出的最关键的点。看上去很简单，但是非常有效，而且应用在了一个特别好的场景中。因此，这篇论文的重点就变成了如何通过程序分析的方法来寻找所有的那些WAR的依赖。当然，这里还要考虑很多corner case，比如虽然IS里面不能有WAR，但是可以有WARAW，以及对于一些特殊的指令（如<code>pop</code>），它们会违反IS的一些特性，因此都需要进行特殊的处理。最后它们还进行了一些优化，细节这里就不多说了。</p>
+
+<p>演讲完之后，作者回答了几个问题，比如<code>你们是如何解决inter-procedure的读写依赖分析的？</code>，以及<code>你们是如何解决在进行checkpoint的时候发生failure的？</code>对于第一个问题，他们其实并没有进行interprocedural的分析，只是非常保守地在每个函数的entry都会进行一次checkpoint。对于第二个问题，他们采用了一种称为<code>double buffering</code>的机制，即在进行checkpoint的时候使用一个新的buffer，只有在该checkpoint做完之后，才会原子性地将指针指向这个新的buffer。</p>
+
+<h4>>>> Machine-Aware Atomic Broadcast Trees for Multicores &lt;&lt;&lt;</h4>
+
+<p>这篇论文的作者来自<code>ETH Zurich</code>的<code>System group</code>，第一作者<a href="https://people.inf.ethz.ch/skaestle/">Stefan Kaestle</a>已经博士毕业，现在在Oracle，他博士期间的导师是<a href="https://www.inf.ethz.ch/personal/troscoe/">Timothy Roscoe</a>，喜欢别人称他Mothy。</p>
+
+<p>作者认为，当前并行编程中的同步机制的趋势将从shared memory慢慢转向message passing（具体原因可以去看paper），因此一个高效的message passing是实现高效同步机制的关键。在NUMA多处理器的系统架构中，基于message-passing的broadcast非常依赖于broadcast-tree的拓扑结构（topology），如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/3-1.png" alt="3-1" /></p>
+
+<p>作者发现，实现一个最优的broadcast tree是machine-dependent的，因此，这篇论文的主要贡献就是实现了一个库（Smelt），它能够自动地针对每种不同硬件的机器，创建一套near-optimal的inter-core的broadcast tree，同时提供相应的接口，通过message-passing的方式实现包括barrier在内的一系列操作，并得到很好的性能提升。</p>
+
+<p>在创建broadcast tree的过程中，主要先通过硬件寄存器提供的接口获得有用但是不全面的machine model，并结合一些micro-benchmark来得到比较完整的信息，这些信息主要包括core之间的结构关系，以及它们互相之间进行message-passing的效率。之后再通过一系列的算法，建立可能最优的broadcast tree。Smelt提供了一系列的接口，用于初始化，以及实现一些需要进行inter-core广播的操作。比如他们实现了一个smelt版本的barrier，比传统的基于share memory的barrier提高了三倍的性能，等等。</p>
+
+<p>总的来说，笔者对这个报告没有听的很懂，但是笔者觉得它解决了一个很有趣的问题。它首先发现了在NUMA多处理器的系统架构中，核与核之间的信息传输效率其实是不均等的，甚至是不对称的（相同两个核之间send和receive的代价不同），它对这些通过测试发现的结果进行更深入的研究，从而提出near-optimal broadcast tree这么一个场景，并且通过静态（hardware register derivation）和动态（micro-benchmark）相结合的方法得到比较精准的硬件信息，最后创建near optimal的tree topology。是一个比较典型的通过实验发现问题-深入探究-定义场景和问题-解决问题的研究过程。</p>
+
+<h4>>>> Light-Weight Contexts: An OS Abstraction for Safety and Performance &lt;&lt;&lt;</h4>
+
+<p>这篇论文的一作James Litton来自马里兰大学，是<a href="https://www.cs.umd.edu/people/bobby">Bobby Bhattacharjee</a>的学生。</p>
+
+<p>这是一篇笔者蛮喜欢的论文，它在进程和线程之间找到了一个很好的平衡，抽象出一个新的概念叫做light-weight context (lwC)，同时，将这个新的抽象应用在了几个非常匹配的场景上，达到了很好的效果。</p>
+
+<p>我们先来看下为什么要有lwC这个概念。总所周知，现在操作系统的隔离机制主要是通过进程来做的，每个进程都有自己的内存地址空间，文件描述符，credentials等信息。同时为了更好的共享，又在进程中抽象出了线程的概念，同个进程中的所有线程都共享一些地址空间，同时又能维护自己的运行时状态，包括寄存器、栈等。一切都看起来这么完美，那为什么还要一层中间的抽象lwC呢？</p>
+
+<p>问题就出在进程间的切换性能开销太大了，进程在切换是内核会涉及到一系列同步（synchronization）和调度（scheduling）相关的操作，大大增加了进程间切换的开销；而线程由于基本没有任何相互隔离的能力。因此，作者提出了一个lwC的概念。</p>
+
+<p>简单来说，一个进程可以包含多个lwC，但是和线程不同的是，每个lwC之间的内存地址空间，文件描述符，credentials等信息都是相互独立的，同时这些资源通过配置也可以互相间进行共享。下图描述了和lwC相关的系统调用接口：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/4-1.png" alt="4-1" /></p>
+
+<p><code>lwCreate</code>类似于<code>fork</code>，但是返回同一个PID，而且不会产生新的线程，新的lwC在被创建之后也不会被执行。所以，在某些场景中，被创建出来的新的lwC可以被当成原来lwC的一个snapshot，在将来的某个时候可以很快被恢复。<code>lwSwitch</code>则是用于线程在不同的lwCs之间进行切换。关于不同lwCs之间的关系，可以通过静态或者动态的方式进行定义。其中在静态方式中，<code>lwCreate</code>默认的规则是copy-on-write，但是该规则可以通过参数<code>resource-spec</code>进行修改，<code>resource-spec</code>是一堆C union的数组，每个数组元素表示一段地址空间，文件描述符，或者credentials，以及它们相应的选项，比如<code>LWC_COW</code>，或者<code>LWC_SHARED</code>。而动态规则定义则通过另外一个接口<code>lwOverlay</code>中的<code>resource-spec</code>参数进行定义。当然，如何定义哪些lwC能够调用<code>lwOverlay</code>则是由每个lwC的access capability来决定的，而access capability则是通过接口<code>lwRestrict</code>来定义。最后，父lwC还可以通过<code>lwSyscall</code>来定义子lwC的系统调用规则，比如它可以通过<code>LWC_SYSTRAP</code> flag来对子lwC中的某些系统调用进行拦截，从而决定每种系统调用的行为。</p>
+
+<p>通过对这些API的描述，其实可以发现，lwC非常适合诸如snapshot和rollback，隔离隐私数据，reference monitor等场景，报告和论文中都进行了详细的解释，这里就不阐述了。总的来说，lwC提出一个新的鉴于进程和线程之间的抽象，可以更加灵活地定义不同lwC之间的隔离机制，同时极大地减小了进程间相互切换所带来的性能损失（基本上只需要原来的一半时间）。另外，lwCs的代码已经开源：<a href="http://www.cs.umd.edu/projects/lwc/">http://www.cs.umd.edu/projects/lwc/</a></p>
+
+<hr />
+
+<h3>Session~[Cloud Systems I]</h3>
+
+<h4>>>> Altruistic Scheduling in Multi-Resource Clusers &lt;&lt;&lt;</h4>
+
+<p><a href="https://www.usenix.org/system/files/conference/osdi16/osdi16-grandl-altruistic.pdf">这篇论文</a>出自University of Wisconsin-Madison的博士生Robert Grandl，其导师Aditya Akella，以及University of Michigan的Mosharaf Chowdhury和Microsoft Research的Ganesh Ananthanarayanan。</p>
+
+<p>如今集群计算的任务调度器需要在三个目标之间权衡：任务分配资源的公平性、任务执行时间和集群资源利用效率。已有的诸多调度器着重保持公平性目标，实现各任务执行的相互隔离，而对于另外两个效率目标只能尽力而为。本文设计实现的调度器CARBYNE旨在平衡三个目标：在不牺牲公平性的同时，提高执行效率。</p>
+
+<p>作者关注了并发计算任务的两个重要特征：整个并行计算任务的完成时间取决于最慢一个任务的实行时间，以及用户只关心整个任务的执行效率而非单一子任务在调度时刻的执行状况。第一个特征意味着过多分配资源可能导致资源没有完全利用。第二个特征意味着牺牲短时间内的公平性不一定意味着任务整体的公平性和执行效率会变差。</p>
+
+<p>作者在微软的分析计算平台上发现，50%的时间里有20%的计算资源可以被重新分配给其他计算任务使用。CARBYNE倾向于把这些剩余资源分配将要执行结束的计算任务，并尽量将计算资源合并。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/5-1.png" alt="5-1" /></p>
+
+<p>上图是CARBYNE优化调度提升性能的一个简单例子。蓝色矩形和橙色矩形是两个计算任务，各自有许多子任务（S0、S1、S2）。由于内在属性限制，橙色任务中的S2需要等待S1和S0完成。如左图所示，一种调度策略是将一个橙色S1任务延迟到第二个时间片执行，空余资源允许一个蓝色任务S0使用。但这种策略在两个时间片内均产生了一定量的空闲资源。CARBYNE倾向于将任意时间片的资源打包充分利用，如右图所示，第二个时间片内可以空余出七成的资源，这样便获得了大量的可重新分配的资源给其他任务使用，同时蓝色任务的执行时间可以缩短至1个时间片，也没有影响橙色任务的执行时间。</p>
+
+<h4>>>> GRAPHENE: Packing and Dependency-Aware Scheduling for Data-Parallel Clusters &lt;&lt;&lt;</h4>
+
+<p>一作Robert Grandl是威斯康星麦迪逊的博士生，导师是Aditya Akella。值得一提的是，Grandl还是本Session第一篇Altruistic的作者，两篇文章都是关于服务器集群任务调度的。Akella在本次OSDI也还有两篇论文，真是非常的高产。其余几位作者都来自微软，本工作也主要是在微软完成的。</p>
+
+<p>首先普及一些基本概念。在流行的分布式编程框架中，Google的Map-Reduce可以说是最著名的。不过也由于其提供的抽象非常简洁，很多程序并不适合用Map-Reduce实现。由于很多程序的执行流本质上是一个DAG(有向无环图)，其他流行的框架都是将用户请求通过查询优化器转化为一个DAG，比如微软的Dryad和Apache的Spark。在这个DAG中，每个点表示一个框架原生支持的任务，边代表了数据流向。所以，在分布式框架的实现中，如何高效的调度这些任务成为了一个难题。</p>
+
+<p>本文针对的DAG具有以下特点：图中节点多而且复杂，不同节点代表的任务具有很高的异构性(任务所需的时间和资源差异很大)。作者说，在微软的服务器上，一个中型DAG大约有五层，上千个节点。之前调度主要使用Heuristic方法，比如着重优化关键路径(Critical Path)或者使用贪心算法最大化当前资源利用率。前者的主要问题是忽略了调度复杂DAG中的潜在并行性，后者关注的局部最优不一定能够实现全局最优。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/6-1.jpg" alt="6-1" /></p>
+
+<p>上图描述了一个Graphene如何调度一个DAG。首先通过离线分析，识别出一个“麻烦任务集合”(Troublesome Tasks)，就是图中用红色和字母T表示的区域。DAG其余部分被分为“麻烦任务集合”的祖先、同辈和后代，对应图中的P(Parent), S(Sibling), C(Child)区域。接下来用一个坐标系形象的表示调度：横坐标表示时间，纵坐标表示资源。首先把“麻烦集合”在坐标系中的区域表示出来，然后根据数据依赖(DAG中的边)将P、S、C进行资源分配。Graphene将一个调度问题，转化成为将DAG中每个点画在这张图上，使得这个图尽量的紧密，即资源利用效率越高。这样，作者做到了同时考虑并行性和全局最优。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/6-2.jpg" alt="6-1" /></p>
+
+<p>上图表现了调度两个Job时，Graphene和其他调度算法的比较。可以明显看出更多考虑并行性后调度效率的提升。作者说根据微软的测试，目前部署的调度算法距离最优调度大概还有50%左右的理论提升空间，Graphene做到了30%的程度。由于最优调度是NP问题，所以Graphene作为在线调度已经非常不错了。</p>
+
+<h4>>>> Firmament: fast, centralized cluster scheduling at scale &lt;&lt;&lt;</h4>
+
+<p>这篇文章的一作是Ionel Gog来自于剑桥大学。这篇的工作开源在了<a href="http://firmament.io/">http://firmament.io/</a>。</p>
+
+<p>在一个cluster中如何将任务schedule到机器是一个重要的问题，一个好的scheduler可以提高集群的利用率，application的运行性能以及更好的负载均衡。这篇文章提供了一个中心化的scheduler，名为Firmanent。Firmanent保留了中心化scheduler可以产生良好的placement的特性，同时可以支持成千上万台机器的cluster。</p>
+
+<p>目前总共有三种scheduler的架构，中心化的，分布式的以及混合的。这里只关注前两者。中心化的scheduler可以使用算法得出非常好的placement（根据全局信息），但是具有非常高的latency（几秒到几分钟）。这样便何难scale到很大的cluster上。分布式的scheduler使用一些简单的算法，可以很快的依赖于局部信息得出placement，但是往往不能得出比较好的placement。</p>
+
+<p>Firmenant基于state-of-the-art的中心化scheduler Quincy的flow based的算法来计算placement。下图展示了大致的算法。假设有4台机器，两个任务。其中T0有3个job，T1有两个。一个job可以连接一个machine（在这台机器调度），或者连接一个aggregator（表明任务没有被调度）。一个Min-cut-max-flow solver可以在这样定义的网络中找到最优的placement（流向machine的流）。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/7-1.png" alt="7-1" /></p>
+
+<p>Quincy的问题是在大集群上需要的开销特别大。下图是文中测试Quincy在大集群上的性能。在12,500机器的集群中，Quincy需要66秒来调度完成一个调度，这个开销是非常大的。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/7-2.png" alt="7-2" /></p>
+
+<p>文章中经过分析发现，算法的最大瓶颈在于solver花的时间过长。文中经过对于多个求解算法的分析，发现理论上不高效的松弛算法在实际中具有更好的性能。然而松弛算法在一些情况下可能会退化到其他算法的情况，文中（section 5）提出了具体的优化。感兴趣的可以查看原文。</p>
+
+<h4>>>> Morpheus: Towards Automated SLOs for Enterprise Clusters &lt;&lt;&lt;</h4>
+
+<p>这篇论文的一作<a href="http://web.engr.illinois.edu/~abdujyo2/">Sangeetha Abdu Jyothi</a>是来自UIUC的一名Ph.D. candidate妹子，她的导师是<a href="http://pbg.cs.illinois.edu/">Prof. P.Brighten Godfrey</a>，应该是网络方向的一名rising star。不过这篇论文的作者列表里面没有她的导师，所以应该是她在微软研究院实习的时候的工作吧。</p>
+
+<p>这篇论文的主要工作为了解决云计算平台中的一个矛盾：即server端为了达到high utilization所需要的共享的特性，和user对于performance的predictability的需求所造成的矛盾。简单来说，云平台的用户希望其在云上跑的程序是可预测的，即在某个deadline之前能完成某些工作。而对于云平台的server来说，为了达到资源的最大利用率，每台机器的硬件资源都是由多个用户所共享的，而这种共享性势必有很大的可能造成某个用户的deadline需求无法满足。所以这篇论文的主旨就是在不降低server端utilization的情况下，提高对于user的predictability。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/8-1.png" alt="8-1" /></p>
+
+<p>如上图所示，文中将用户的需求称为Service Level Object (SLO）。为了提高user的SLO，首先需要对其进行合适的定义，同时对资源的需求进行一个建模。在这个过程中，Automatic inference模块通过对job之间的数据依赖进行了分析，同时利用一些historical的信息进行资源建模。在此基础上，就需要减少由于资源共享所带来的不确定性因素（unpredictability）了，其实这主要是一个调度（schedulin）的问题，里面用到很多现有的和新提出的算法，主要是一个被称为recurring reservation的概念，由于这篇论文笔者没有听太懂，所以细节就略过了。除此之外，还要解决的就是其它原因造成的不确定性（如failure等），这里作者提出了一种称为dynamic reprovisioning的机制，有兴趣的可以去看论文。
+从结果来看，这项工作在基本不损失utilization的基础上，减少了5~13倍的SLO violation，利用基于静态分析和调度的方法，解决了一个常见的云平台中server和user之间的矛盾。</p>
+
+<hr />
+
+<h3>Session~[Transactions and Storage]</h3>
+
+<h4>>>> The Snow Theorem and Read Latency Optimal read-only transactions &lt;&lt;&lt;</h4>
+
+<p>这篇文章的一作是Haonan Lu，他的导师是Wyatt Lloy，作者来自南加州大学和纽约大学。他们在consistency上的paper非常多，代表的有COPS，非常厉害。</p>
+
+<p>这篇文章是这个session里笔者最喜欢的一篇论文。 他提出了SNOW理论，说的是在一个分布式的存储系统中，S(Strict serializability),N(Non blocking read),O(One round-trip read),W(Write transactions) 这四种性质没有办法同时被满足。N和O指出了Readonly（只读）事务的最优执行方式，而S和W是对一个存储系统的功能性需求。同时文章说明了SNOW的任意三个性质的组合都可以被满足，这样给一些没有同时满足这三个性能的系统提供了优化read-only事务的方向。</p>
+
+<p>SNOW所针对的系统如下图所示。数据被划分为多个shard，假设一个用户的只读请求需要访问多个shard的数据，那么他会向这些shard的server发请求。在这样的架构下，假设没有阻塞（blocking），以及只向每个server发一个请求的话，那这个只读请求能达到的latency就是最低的（optimal）</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/9-1.png" alt="9-1" /></p>
+
+<p>除了SNOW的不可满足性以外，这篇论文还说明了SNOW能达到何种最优情况。通过举例可以说明除了4个特性以外，其他任意三个特性，比如S+N+O都是可以被满足的。
+SNOW的证明笔者觉得也是比较简洁易懂的。其中的核心证明的点在于存在一个时间，一个write transaction对两个shard的数据修改的结果不同时出现，因为分布式系统的异步通信机制。这样，假设一个read操作在这个时候到达这两个server，如果不被block或者不重试，那么有可能会读到这个事务一部分的修改，违反了Strict serializability。</p>
+
+<p>SNOW可以作为一个现有系统优化的guideline，也就是说假设一个系统没有达到所有的SNOW中的任意三者，那么他的Read-only事务仍然有优化空间。对于这篇文章来说，他选择了ROCOCO和COPS来优化，使得他们的Read-only事务达到了NO的特性。SNOW也指出了trade-off，也就是说一般你需要使得read-only事务optimal，那么你需要把overhead转移到write事务这里。对于目前的许多网络应用，由于Read-only事务可能会占到90%以上，所以对于总体性能来说优化Read-only事务还是可以获得提升的。</p>
+
+<h4>>>> Correlated Crash Vulnerabilities &lt;&lt;&lt;</h4>
+
+<p>这篇文章的一作是Ramnatthan Alagappan，作者都来自威斯康星大学麦迪逊分校。
+文中提出了一个自动化框架PACE来判断，分布式系统的协议是否在corrlated failure的情况下仍然能正确的工作。正确指的是数据的一致性或者系统的状态是否正确。Corrlated failure指的是分布式系统中一组机器同时crash，甚至可能存储一个数据所有replica的机器都crash了的情况。这种情况下协议能否正常工作就非常依赖于每台机器的文件系统所存储的抽象，因为这时候数据不可避免的要从磁盘恢复。这篇文章把PACE应用到了许多现有框架包括Zookeeper，找到一些这些框架在系统出现correlated failure时会发生的bug。</p>
+
+<p>Correlated failure在现有的数据中心中还是比较常见的。通常的原因包括停电，有计划的和无计划的重启。文章还引用了Google的报告表明在Google机器的failure通常是correlated的。当一个数据所有的replica都挂了的时候，必须依赖磁盘（文件系统）来恢复正确性。</p>
+
+<p>PACE通过搜索distributed state来判断出现Correlated failure时系统可能存在的on-disk的状态。如何来记录和判断一个协议所产生的可能的distributed state呢？文中给了下图的例子。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/10-1.png" alt="10-1" /></p>
+
+<p>这个例子中假设有两台机器，初始状态为Qf和Pf。所使用的协议非常简单，P向Q发送一个message之后将磁盘的状态更新为P1和P2，之后再向Q发送一个message。当Q收到第二个message的时候，将自身状态更新为Q1。假设文件系统的写时同步的。我们可以看到，在这个协议中，&lt;Pf,Qf>&lt;P1,Qf>是可以达到的distributed state，而&lt;Pf,Q1>则是不可达的state，因为当Q的状态为Q1时，P的状态一定被改成了P2。</p>
+
+<p>PACE通过搜索可能出现的distributed state来判断当存在correlated failure时系统的状态是否正确。我们可以看到，文件系统的特性对状态的变更来说非常重要，如上图的例子，如果文件系统是异步的，那么&lt;Pf,Q1>便是一个可能达到state。PACE使用了一些和协议相关的技巧来减少搜索空间，使得通常搜索可以在相对短的时间完成，具体的可以看文中的说明。</p>
+
+<h4>>>> Incremental Consistency Guarantees for Replicated Objects &lt;&lt;&lt;</h4>
+
+<p>这篇文章的作者是Rachid Guerraoui, Matej Pavlovic和Dragos-Adrian Seredinschi，他们都来自EPFL。
+论文提出了一种新的在replicated data上编程的抽象，使得用户可以更加方便的在一个拥有多个consistency level的data store上编程。这种consistenct level他们称为incremental consistency。通过操作不同consistency level的数据，application可以使用speculation等优化技巧来提升程序的性能。文中展示新抽象的一个实现，名为Correctable。Correctable基于编程语言的promises机制，同时可以非常方便的使用其提供的binding接口和现有的许多数据backend比如memcache或者Cassandra接入。</p>
+
+<p>对于现代的NoSQL存储来说，程序员通常需要决定使用什么consistency level的数据，这是一个很麻烦的事。在一个replicated的系统来说，一直获取最强（最新）数据的代价太高了，通常程序员只需要有数据就行了。只有很少的情况下用户需要一个强consistency的数据。比如说，对于一个社交网络来说，获取用户的timeline可以获得一个不是最新的timeline（不是最强的consistency），但是用户登录验证密码这件事一定是需要强一致性的。通常获取一个弱consistent的数据更加高效(比如可以从一个stale的replica中获得备份的数据)，这样可以提升整体application的性能。</p>
+
+<p>下图的表格展示了文中列举的不同application对consistency level的需求。可以看出很多application可以从incremental consistency中获取性能提升。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/11-1.png" alt="11-1" /></p>
+
+<p>提供Incremental consistency的Correctable基于编程语言中的promises（B. Liskov and L. Shrira. Promises: Linguistic support for efficient asynchronous procedure calls in distributed systems. In PLDI, 1988.）机制。简单来说他提供了一个回调机制，用户希望访问一个数据的时候，他可以为不同consistency level提供回调函数。当特定consisteny level的数据到达时候，提供的回调函数会被调用，具体的api如下图所示。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/11-2.png" alt="11-2" /></p>
+
+<p>Backend能提供的consistency level和具体的实现有关，所以Correctable提供了binding机制，使其api可以和具体的backend实现绑定。这一部分需要程序员自己实现。</p>
+
+<p>文章最后说明了一些如何用Correctable来做speculation的例子，笔者觉得比较trivial就不多说了。比较有趣的是，在去年sigmod上有一篇文章研究了如何使用类似的speculation来加速事务的执行。比这篇有意思的是，这篇sigmod文章提出的方法可以通过用户给的事务程序来自动地分析哪些操作可以使用一个弱consistency level的数据来做speculation。</p>
+
+<h4>>>> FaSST: Fast, Scalable and Simple Distributed Transactions with Two-sided (RDMA) Datagram RPCs &lt;&lt;&lt;</h4>
+
+<p>这篇文章的一作是Anuj Kalia，作者都来自于卡内基梅隆大学，他们在RDMA上的工作非常厉害。
+正如作者在talk中所述的，这篇严格来说不算事务处理的文章而是RDMA实现相关的文章。这篇文章指出了现在RDMA one-sided的一个严重的scalability问题，也就是网卡缓存过多的queue pair会带来性能下降的问题。 这篇文章通过使用RDMA的unreliable two-sided datagram来解决当集群较大时需要过多queue pair的问题，同时基于two-sided的RPC在使用一系列的优化之后可以达到比较好的性能。</p>
+
+<p>RDMA one-sided操作通常提供了最好的性能，但是需要sender和receiver预先建立好连接(queue pair),通常为了避免工作线程之间的共享，一台机器上每个thread都会使用不同的queue pair。这样，当一个集群有m台机器和t个thread时，一台机器需要建立m*q个queue pair。</p>
+
+<p>Queue pair的信息会缓存在网卡上，当网卡没有缓存对应的queue pair时网卡会用dma去内存里读取对应的信息，然而这显然会带来比较大的性能开销。网卡缓存的数量会有限制，通常在CX3上为250个，而CIB上为400个。这样当一个rdma的cluster比较大的时候则会出现网卡没有办法缓存所有的queue pair的情况，这样会带来性能下降，如下图文中的测试所示。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/12-1.png" alt="12-1" /></p>
+
+<p>当使用unreliable datagram（UD）时，由于sender和receiver不需要预先建立连接，这样UD的queue pair可以on demand的连接，所以一台机器只需要t个queue pair就行了。这大大减少了queue pair的数量。</p>
+
+<p>一种简单的解决queue pair数量的方法是让线程之间共享queue pair。但是由于rdma driver的实现问题（使用pthread_mutex）,简单的使用sharing带来的synchronization的开销就很大，如下图所示。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/12-2.png" alt="12-2" /></p>
+
+<p>所以，文中表示需要使用UD来解决这个scalability问题。同时，基于UD的rpc可以带来比较好的性能（使用他们之前ATC文中的优化），同时基于rpc的编程可以更加简单。</p>
+
+<p>UD最大的一个问题是传输的包可能会被reorder或者发生丢包。这使得目前Fasst rpc的最大传输数据是4096个byte（网卡的MTU）。然而文中指出，由于infiniband实现的是无损（不会因为网络阻塞丢包）的传输层，所以丢包的概率非常低，几乎可以忽略不计。</p>
+
+<hr />
+
+<h3>Session~[Networking]</h3>
+
+<h4>>> NetBricks: Taking the V out of NFV &lt;&lt;&lt;</h4>
+
+<p>这篇论文来自 UCB 的 NetSys 实验室。同一个 session 他们实验室还有另一篇论文。NetSys 实验室在 NFV 领域有着多年的深入研究，在 SIGCOMM、NSDI、SOSP 等网络和系统的顶级会议上都发表了非常多的论文。这篇的第一作者 Aurojit Panda 同样是他们组在之前许多工作中的幕后贡献者，包括去年 SOSP 发表的 E2，以及SIGCOMM 的 Rollback Middlebox 等。</p>
+
+<p>NetBricks 是一种用于更便捷地创建和部署 middlebox 的框架，利用 Rust 语言特性加上以 LLVM 作为运行时，保证了数据在 middlebox 之间传递的时候的安全性，不使用硬件提供的虚拟化机制来实现 middlebox 之间的隔离。之前的类似的 middlebox 框架要追溯到 Eddie Kohler（当时在 MIT PDOS 读博）在 1999 年提出的经典的 Click 系统。随着近年虚拟化技术的成熟应用，将网络中的 middlebox 利用已有的虚拟化技术抽象出来，用通用硬件和软件来实现的技术（NFV）也越炒越热。但是面向网络应用的 middlebox 对网络数据处理的吞吐率和延迟有着很高的要求，而现有的基于硬件的虚拟化技术已经被证实会带来很大的性能开销。NetBricks 是在这种场景下作出的一种新的尝试，完全使用编程语言特性和语言运行时来提供以往虚拟化技术提供的隔离性保证，而纯软件实现的 NFV 系统因为减少了硬件和软件之间的抽象，能够提供更高性能。</p>
+
+<p>NetBricks 强调的一项隔离性是内存隔离性（memory isolation），即一个包或者一段数据在被一个 middlebox 处理之后，穿过 middlebox 边界来到另一个 middlebox，此时前一个 middlebox 应该不能再修改这个包或者数据。在以往的系统中，因为这一个包在内存中是被多个 middlebox 共享的，要做到这样的隔离性，最简单和常用的方法是把包复制一份，下游 middlebox 处理复制出来的副本。但是在高吞吐率的 middlebox 中，内存拷贝操作会立刻成为性能瓶颈。因此 NetBricks 借用了 Singularity 的思想，提出了 ZCSI（Zero-Copy Software Isolation）的概念。ZCSI 利用高级编程语言提供的语义，一方面用 zero-copy 的方法在 middlebox 之间共享包数据，另一方面在语言运行时层面插入权限检查的代码。只要程序员使用 NetBricks 基于的 Rust 编程以及使用 Rust 的运行时，middlebox 就无法绕开这样的权限检查。而这样的权限检查更可以利用 Intel 刚加入 Skylake 的 MPX 技术来减少开销。</p>
+
+<p>这篇论文将编程语言、网络、系统结合起来设计，是比较有意思的一个项目，在 GitHub 上开源 <a href="https://github.com/netsys/NetBricks">https://github.com/netsys/NetBricks</a>，有兴趣的朋友可以去看一下，可以看到已经有不少工业界的人在尝试了。</p>
+
+<h4>>> Efficient Network Reachability Analysis Using a Succinct Control Plane Representation &lt;&lt;&lt;</h4>
+
+<p>一作是来自 CMU 的 Seyed K. Fayaz，曾在 NSDI&#8217;14 上发表 FlowTags，也是在 SDN 领域比较应影响力的一篇论文。署名最后两位是 CMU 的 Vyas Sekar 和 UCLA 的 Goerge Varghese，又是网络领域的两位大拿。</p>
+
+<p>这篇论文是设计了一个用于分析网络可达性的工具。因为笔者严格来说并不是网络领域的，所以对这篇论文并没有太深见解，也有可能有所误解。这篇文章应该说的是通过对数据中心的网络在 control plane 层面建模，并分析出任意两点之间的可达性。从实现上来说，这个工具抓取了整个网络中的路由协议消息，并建立了一个网络通信模型。然后该工具探索这个模型，并找出网络中 bug 可能发生的情形。这篇论文中有许多公式和推导，并不像典型的系统领域论文，更像网络领域的论文。应当说今年 OSDI 接受了许多这样跨领域的论文。</p>
+
+<h4>>> Simplifying Datacenter Network Debugging with PathDump &lt;&lt;&lt;</h4>
+
+<p>这篇文章的第一作者来自爱丁堡大学，导师 Myungjin Lee 在网络测量方面发表过许多 SIGCOMM 论文，因此这篇论文也是在这个方向上一脉相承。合作作者 Rachit Agarwal 是 Cornell 的 AP，网络 debug 也是他的领域之一。</p>
+
+<p>这篇文章同样是关于数据中心网络找 bug 的。PathDump 的方法很简单，利用基于 openflow 的 SDN 交换机功能，对每一个流经的包做检查，并对可疑的包在包头中插入一个 ID。最终的服务器能够收到这些打了 tag 的包，并更新所记录的 flow-level 统计数据。利用这样的简单的记录方法，PathDump 可以检测网络中的环、最长路径、协议 bug 、网络中的黑洞等等 bug。</p>
+
+<h4>>> Network Requirement for Resource Disaggregation &lt;&lt;&lt;</h4>
+
+<p>这就是来自 NetSys 组的另一篇论文，一作 Peter Gao 同样也是 SIGCOMM 2015 上 NetSys 发表的 Rollback Middlebox 的二作（当年的一作 Justine Sherry 也是带着大把顶会论文毕业并加入了 CMU）。</p>
+
+<p>近年来资源解耦（Resource Disaggregation）被作为一种新的数据中心设计方案提出来，即将相同的资源放在一起作为资源池并连接起来。这与传统的数据中心有很大区别。传统数据中心使用的是通用服务器硬件，利用网络构建复杂的拓扑结构将所有服务器连接起来。Disaggregation 的思想是，将处理器、内存、外部存储等各类资源分类聚合，而不是以服务器为个体。这种思想的着眼点是更高的可伸缩性。</p>
+
+<p>但是目前世界上还没有商用的这样架构的数据中心，因此这篇论文的贡献主要是通过测量现有的大数据应用，了解大规模计算应用的网络需求，估算未来的解耦设计的数据中心的网络需要达到怎样的性能才够。他们测试了 Hadoop、GraphLab、Memcahced、Spark Streaming、Spark SQL 等大数据应用，使用不同性能的网络（延迟和贷款）硬件进行测试，比较性能的提升和下降，给出了大量的数据，有兴趣的朋友可以仔细读论文和测试。</p>
+
+<p>他们的结论是：1.现有的 40-100 Gbps 的网络硬件足以满足现在的应用的要求。2.网络的延迟需要在 3-5 微秒才能满足应用需求，这一点在当前是比较困难的。如果使用传统的以太网，可能需要类似 DPDK 这样的绕过内核的网络框架才能提供。最后他们认为，在数据中心层面实现 disaggregation 是可行的。</p>
+
+<hr />
+
+<h3>Session~[Graph Processing and Machine Learning]</h3>
+
+<h4>>>> TensorFlow: A System for Large-Scale Machine Learning &lt;&lt;&lt;</h4>
+
+<p>TensorFlow这个工作有22个作者，其中包括传说中的Jeff Dean。</p>
+
+<p>TensorFlow是一个可以应用在大规模分布式环境和异构环境中的机器学习系统，使用数据流图表示计算，共享状态，以及使该状态发生变化的操作。它可以将数据流图的节点映射到一个集群中的多台机器上，也可以映射到每个机器中的多种计算设备上，包括多核CPU，通用GPU和定制的ASIC张量处理单元（TPU）。通过单一的编程模型来管理全部的计算和状态，程序员可以很方便地实验不同的并行化方案，如把计算offload到拥有共享状态的服务器上等等。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/17-1.png" alt="17-1" /></p>
+
+<p>上图是一个样例数据流图。和以往Batch系统最大的不同是，TensorFlow允许在重叠的子图上并发计算，并发的计算可以共享顶点上的可变的状态。这种设计对于机器学习来说很有用，因为它可以让更新更快地被传播出去。</p>
+
+<h4>>>> Exploring the Hidden Dimension in Graph Processing &lt;&lt;&lt;</h4>
+
+<p>这篇论文的一作Mingxing Zhang来自清华大学madsys组，是第5年的phd学生，导师Yongwei Wu。</p>
+
+<p>图的划分对于分布式图计算系统来说，是至关重要的一步。划分算法最初是一纬的，即按照点为单位划分，每个顶点完成一个Task，后来PowerGraph提出了2维的划分算法，让Task的粒度更细，每个边代表一个Task，解决了自然图的不平衡的问题。于是作者就思考，能不能再进一步，提出3维的划分算法。现有的图计算系统，属性都是不可分割的，包括顶点上的属性，以及边上的属性。作者的观点是，顶点和边的属性也是可以再分割的！这就是第3个纬度。</p>
+
+<p>许多MLDM算法可以用图来对原问题建模，比如推荐算法中，用户和物品被抽象成顶点，用户对物品的评价抽象成边，每个顶点的属性就是一个大的向量，这个向量就是可以被拆分的。于是作者提出了3D划分算法，举个例子，左边是原始图，被划分成上下2层，每一层又包含两台机器。每一层包含了整张原图以及一半的属性值，同层内部用2维的划分算法进行划分。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/18-1.png" alt="18-1" /></p>
+
+<p>于是3D划分算法多了一个可以调整的参数，层数L。L=1时等同于2D划分算法，L=机器数N时，相当于每台机器存储了原始的图拓扑结构以及1/N的属性。作者提出新的编程模型，Update是汇总顶点或边的属性，Push,Pull,Sink则是根据src,dst,edge三者中的两者更新另一者的值。这几种操作带来的通信开销可以被划分为两类：一类是同层间不同机器的通信开销，L越大，每一层机器越少，2D划分算法造成的平均副本数越少，通信开销越小；另一类是跨层的通信开销，即把同一个顶点或边的属性从不同层中汇总起来的开销，L=1时，这种开销不存在，L越大开销越大。</p>
+
+<p>不同算法需要的操作不一样，通信开销也不一样，因此可以根据算法本身的特性，调整L的值，使得性能最好。</p>
+
+<h4>>>> Gemini: A Computation-Centric Distributed Graph Processing System &lt;&lt;&lt;</h4>
+
+<p>这篇论文的一作Xiaowei Zhu来自清华大学PACMAN组，是第4年的phd学生，导师Wenguang Chen。
+Xiaowei Zhu在图计算领域做了很多工作，比如ATC&#8217;15的GridGraph。</p>
+
+<p>分析了现有的单机和分布式图计算系统后，作者认为，分布式图计算系统主要慢在计算效率不高。
+因此作者利用各种优化方法提升计算效率，实现了一个高效的分布式图计算系统。</p>
+
+<p>图计算有两种不同的模式，pull(dense)模式和push(sparse)模式。pull模式下所有顶点拉取它们的入边邻居信息，然后更新自己，push模式下所有激活的顶点更新出边邻居的值。当激活的顶点很多时，pull模式性能比较好，因为每个顶点之间的更新不会相互冲突。当激活的顶点很少时，push模式性能比较好，因为可以跳过很多不必要的计算。单机系统Ligra动态切换pull-push模式，来获得性能提升，Gemini将这个技术用在分布式系统上。pull时，所有Mirror顶点读取邻居的值，然后汇总给master顶点。push时，Master顶点激活所有Mirror顶点，然后Mirror再更新它的邻居的值。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/19-1.png" alt="19-1" /></p>
+
+<p>Gemini的图划分算法是Chunk-Based的划分算法，就是连续id的顶点被划分到同一台机器上。这是基于一个观察：实际的图通常是通过爬虫采集的，因此相邻id很有可能是同一时刻被采集到的数据，它们之间存在边的可能性比较大，所以Chunk-Based划分有更好的locality。此外Chunk-Based划分还有别的好处，如全局的id和每台机器的local id之间转化开销很小。但Chunk-Based划分会带来负载均衡问题，因此Gemini调整每个机器的顶点个数，使得每台机器⍺·|V|+|E|的值大致相等。</p>
+
+<h4>>>> Fast and Concurrent RDF Queries with RDMA-based Distributed Graph Exploration &lt;&lt;&lt;</h4>
+
+<p>这是我们实验室自己的论文，一作Jiaxin Shi是第3年的硕士，由Haibo Chen和Rong Chen共同指导。
+Jiaxin Shi之前也参与过其他的图计算工作，比如EuroSys&#8217;15的PowerLyra。</p>
+
+<p>前面两个工作是图计算工作，而这篇是关于RDF图查询的。RDF常被语义网用来描述网络资源。简单地可以认为，RDF是一张大图，图的顶点是各种人或物，边是顶点之间存在的关系，例如老师、学生、课程之间存在着老师教课程、学生选课程等关系。这个工作主要是实现了一个用RDMA优化分布式图查询系统Wukong。</p>
+
+<p>以一个查询为例，如果要找所有XYZ三元组，满足XY，YZ，ZX之间都有边，现有系统使用单步剪枝法，每一轮从现有顶点出发找下一轮激活的顶点，然后同步被激活的顶点，然后再从新的顶点继续。X找到邻居Y，Y再找到邻居Z，Z再找到邻居X，每完成一步都需要不同机器间同步，而且最后通过Z找到的X和最开始的X不一定相同，因此需要再做一个最终的连接。</p>
+
+<p>作者提出全历史剪枝法，即Y被激活时，它知道整个历史信息XY，Z被激活时，知道所有历史信息XYZ，因此Z找邻居X时，根据历史信息，可以知道哪些X是可以直接排除的。RDMA有个特性，就是传输开销在一定范围内变化不大，传输8byte和传输2K的开销差别不大，因此作者使用RDMA WRITE来传输全历史信息，通信开销不一定会增大，但是最终连接确实一定可以避免的。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/20-1.png" alt="20-1" /></p>
+
+<p>此外，现有分布式系统的问题在于利用所有资源去处理分布式请求，无论是选择性弱的涉及大多数顶点的请求，还是选择性强的只涉及若干个顶点的请求。而Wukong则支持两种执行模式，Fork-Join模式和In-Place模式，如图所示。</p>
+
+<p>Fork-Join模式是当需要处理的数据量比较大时，把请求拆分成子请求，连同相关的全历史信息发送给其他机器或者其他线程执行，可以并行地处理同一个请求。In-Place模式是当需要处理选择性强的简单请求时，单个线程执行完，需要用到远端数据时，直接使用RDMA READ把对应的数据读取过来。使用In-Place模式，整个系统有100个核的话，就可以并发处理100个分布式简单请求，系统吞吐量很高。</p>
+
+<hr />
+
+<h3>Session~[Languages and Software Engineering]</h3>
+
+<h4>>>> REX: A Development Platform and Online Learning Approach for Runtime Emergent Software Systems &lt;&lt;&lt;</h4>
+
+<p>这篇论文是由Lancaster大学的研究者完成的，一作<a href="http://www.lancaster.ac.uk/scc/about-us/people/barry-porter">Barry Porter</a>是该校的lecturer，其主要研究方向就是论文题目中的emergent software systems。这种类型的系统是由很多模块组成的 (component-based)，并可以在运行时根据外部条件和自身状态进行动态地重新组装。作者认为，目前这类系统的主要问题是人工干预太多，管理复杂，因此他们提出了REX，旨在节省人力的同时达到好的运行效果。</p>
+
+<p>REX的基础是component，所以作者首先提出了用于开发和申明component的语言Dana。在Dana中，每个component的申明可以提供(provide)一些接口，也可以需求(require)一些接口。一个典型的component定义如下：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/21-1.jpg" alt="21-1" /></p>
+
+<p>component的定义为组装提供了可能。在组装时，REX会将需求接口A的component与提供接口A的component连接在一起，构建出更大规模的软件。例子中需求File接口的component，就会被连接到一个提供File接口的component。如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/21-2.png" alt="21-2" /></p>
+
+<p>在component的基础之上，论文又提出了他们的PAL(perception, assembly, learning)平台，用于在运行时进行动态地组装。其中，每个component都有一些用于“感知”的方法，会对整个系统及自身运行状态进行监测；而PAL平台则会从这些监测信息里学习，并决定是否要进行重组。当重组发生时，新的component会取代旧的，并继承一些旧component的状态，整个过程有点像live update。</p>
+
+<p>在实际情况下，一个系统往往拥有很多个可替换的component，因此暴力枚举所有的组装方案恐怕是不实际的。论文还提出了他们自己的statistical linear bandits算法用来解决这一问题。笔者对机器学习算法了解有限，这里就不再赘述了，有兴趣的读者可以参阅他们的论文。</p>
+
+<h4>>>>Yak: A High-Performance Big-Data-Friendly Garbage Collector &lt;&lt;&lt;</h4>
+
+<p>这篇论文是由多家机构一起完成的，作者大多来自加州大学尔湾分校(UCI)。第一作者<a href="http://www.ics.uci.edu/~khanhtn1/">Khanh Nguyen</a>是UCI的五年级Ph.D.学生，第二作者<a href="http://www.ics.uci.edu/~lfang3/">Lu Fang</a>也是Ph.D.五年级，<a href="http://www.ics.uci.edu/~guoqingx/">Guoqing Xu</a>是他俩的老师。他们组研究的核心是Java，既研究用Java实现的应用(比如GraphChi, Hyracks, Hadoop)的行为，也研究Java虚拟机的问题，在最近几年发表了不少相关的论文，比如去年SOSP上的Interruptible Task (Lu Fang为一作)，以及今年的这篇Yak。</p>
+
+<p>与C/C++不同，Java虚拟机提供的是自动的内存管理机制——垃圾收集器(Garbage Collector, GC)。目前应用比较广泛的是分代式收集器(Generation GC)，它的假设是大多数对象的生命周期都很短，因此垃圾收集器将内存分为young区和old区，对象一开始都会分配到young区，只有经历了较长时间还活着的对象才会被拷贝到old区。在上述关于生命周期的假设成立的情况下，大多数的对象都会在young区死亡，因此被拷贝的对象很少。</p>
+
+<p>然而，上述假设在大数据环境下并不成立。作者对一些大数据框架进行了分析，发现很多对象都并不会在young区死亡；相对的，它们的生命周期和程序的执行流紧密相关。比如在迭代式算法中，很多对象将在迭代开始时被分配出来，在迭代结束时将不再被访问。由于当前的垃圾收集器没有考虑到这一特征，在迭代执行期间也会进行垃圾收集，其结果就是大量对象存活并拷贝，造成了不必要的开销。</p>
+
+<p>基于这些观察，论文提出了一种新的垃圾收集器：Yak。Yak将程序的执行分解为一个个<strong>epoch</strong>，要求程序员用<code>epoch_start()</code>和<code>epoch_end()</code>将epoch标记出来。当见到<code>epoch_start()</code>时，Yak会产生一个新的内存区域与该epoch对应，此后产生的新对象将被放入到该区域；当见到<code>epoch_end()</code>时，Yak会回收该epoch对应的内存区域。由于GC只有在epoch结束时才会进行，不必要的内存拷贝被大大减少了。</p>
+
+<p>当然，有的时候对象的生命周期并不是和epoch一致的。为了保证正确性，Yak为每个内存区域维护一个remember set，记录是否有区域以外的对象引用了区域内的对象。例如在下图中，对象D被区域<strong>&lt;r21,t1></strong>以外的对象C引用，这将会记录在区域<strong>&lt;r21,t1></strong>的remember set之中。在epoch结束时，所有在remember set之中被引用的对象不能被直接销毁；它们会被拷贝到一个尚未执行结束的epoch，等待下一次GC。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/22-1.png" alt="22-1" /></p>
+
+<p>这篇文章一定程度上可以说是一些工作的集大成者，其中包括了许多前人的想法，比如将大数据框架中存储数据的对象区别对待以及基于区域(region-based)的垃圾收集，而remember set则与OpenJDK新晋的垃圾收集器——G1的设计颇为相似。由于Java在大数据处理方面的应用非常广泛，可以想见这种通过优化Java运行时来提升性能的工作还将继续涌现。</p>
+
+<h4>>>> Shuffler: Fast and Deployable Continuous Code Re-Randomization &lt;&lt;&lt;</h4>
+
+<p>这篇文章同样是多个机构合作的成果，其中包括一作在内的大部分作者都是<a href="http://www.cs.columbia.edu/~junfeng/">Junfeng Yang</a>的学生，他们的工作主要集中于构建可信赖的和安全的系统，涵盖的范围也是较为广泛。</p>
+
+<p>这篇论文要对付的攻击是代码重用攻击(code-reuse attack)，这类攻击一般从一个内存漏洞开始，通过重用源程序中的良性代码片段拼凑出恶意程序并执行。这类攻击十分巧妙且有很多变种，很难防御。</p>
+
+<p>本文主要采用运行时持续的随机化来达到防御的目的。过去的随机化(如地址空间结构随机化ASLR)虽然也能让代码的地址每次执行时都有所不同，但在执行过程中各部分地址却保持不变，因此可以被攻击者破解。而持续的随机化则会在运行过程中不断地重复随机化过程，即使攻击者真的找到了一些可用的代码片段，它们也会因为随机化造成的地址变化而变得不可用。理论上来说，如果持续随机化具有极高的频率，攻击者就没有充分的时间来获取足够多的代码片段，攻击也就没有办法进行。所以这篇文章主要的贡献，就是如题目所说——让持续随机化变得高效且可用。</p>
+
+<p>持续随机化遇到的主要挑战是如何处理好代码指针(code pointer)。为了方便管理，Shuffler把所有的code pointer都放入了一个源程序不可见的code pointer table里，而原来代码中对code pointer的直接访问都变成了从code pointer table里获取对应code pointer的间接访问。这样，Shuffler只需要在随机化时遍历table并修改所有code pointer的地址即可，而访问code pointer的代码则完全不需要修改，随机化的过程得到了很大的简化。对于动态产生的返回地址，Shuffler采取加密的方式来防止攻击者直接读取。下图简单展示了Shuffler的工作原理。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/23-1.jpg" alt="23-1" /></p>
+
+<p>持续随机化的另一难题是语义问题。有的时候，我们很难通过汇编码判断出某个值究竟是一个代码指针还是只是一个普通的数字，而持续随机化要求准确地发现代码指针并予以随机化，这仅仅依靠语义较少的汇编代码是很困难的。因此，Shuffler提出了<strong>扩展的二进制文件分析</strong>(augmented binary analysis, ABA)，要求用户提供诸如symbol table,relocation table等编译器生成的元数据作为分析的辅助材料。通过ABA，Shuffler就能解决包括准确识别代码指针在内的各类琐碎问题，有兴趣的读者可以参阅论文来了解这些细节。</p>
+
+<p>作者使用SPECCPU2006进行了测试，发现在以50ms为随机化间隔的情况下平均开销仅为14.9%，而现实生活中的代码重用攻击所花的时间一般多于50ms，可以说基本达到了题目中fast and deployable的目的。</p>
+
+<p>实际上，通过持续随机化来防御代码重用攻击的工作到最近几年才开始逐渐出现，可以说还处于一个发展状态，或许未来还会有不少工作在Shuffler之上有所突破。</p>
+
+<h4>>>> Don’t Get Caught in the Cold, Warm-up Your JVM: Understand and Eliminate JVM Warm-up Overhead in Data-Parallel Systems &lt;&lt;&lt;</h4>
+
+<p>这篇工作的大部分作者来自于多伦多大学，David Lion, Adrian Chiu以及Xin Zhuang都是<a href="http://www.eecg.toronto.edu/~yuan/Home.html">Ding Yuan</a>的学生，袁老师这次在OSDI斩获两篇论文，而且两份工作的方向大不相同，令人印象深刻。</p>
+
+<p>这篇论文是从回答“在当前data-parallel的系统中，JVM究竟带来了什么开销”这一问题开始的。作者对data-prallel系统的执行行为进行了分析，他们发现，JVM的warm-up时间是非常可观的，而warm-up主要由两部分组成：Java解释器执行，以及大量的Java类载入。这部分warm-up时间常常被人忽略，因为一般人们会假设JVM会运行一段较长的时间，而warm-up时间趋于恒定，因此可以忽略不计。但是，对于一些执行时间较短的Java应用来说(比如仅执行一次query就退出JVM的应用)，warm-up的开销就非常可观了。</p>
+
+<p>论文提出的解决方案非常简单：他们提出了HotTub，一个类似线程池概念的JVM池。一般情况下，当Java的main函数退出时，JVM进程也会退出，但论文选择让该进程休眠。当用户再次尝试用Java运行某个应用时，HotTub会尝试在JVM池里找一个曾经运行过类似应用，已经warm-up完成的JVM直接进行使用，从而避免了解释器执行和大量的Java类载入。性能测试里也说明，他们能为Spark的query带来至多1.8X的性能提升。</p>
+
+<p>相比这个session的其他工作，HotTub给人的感觉是找到了一个好问题，但是解决方案过于简单直接，也缺乏和其他解决方案的比较。笔者在茶歇时间曾找到一作聊天，他自己也认为这篇论文目前的解决方案较为简单，并表示之后还会继续关注JVM的性能问题，也许将来他们还会继续完善这一工作吧。</p>
+
+<hr />
+
+<h3>Session~[Potpourri]</h3>
+
+<h4>>>> EC-Cache: Load-Balanced, Low-Latency Cluster Caching with Online Erasure Coding &lt;&lt;&lt;</h4>
+
+<p>这篇论文来自 UC Berkeley 和 U Michigan 。值得一提的是，这估计是 OSDI 历史上第一次通过视频的方式进行的演讲。由于各种原因第一作者 K.V. Rashmi 没有能够来到会场，而问答环节是由其他作者代为进行的。</p>
+
+<p><strong>问题是什么：</strong>
+这篇文章的主要关注点在于分布式的内存缓存 (Distributed, in-memory caching) 。在传统的分布式内存缓存中，很大的一个问题就是不平衡 (imbalance) 。作者通过分析发现不平衡的来源至少有三个：1. 每个对象的热度不一样；2. 网络环境是不平衡的；3. 集群中的失败 (failure) 和不可用 (unavailability) 。这些不平衡会直接影响到集群的负载均衡以及读延迟（毕竟 caching 主要的目的还是为了读取，而非写入）。此处有个小结论，作者认为在内存里面只放一份数据，是不足以得到很好的性能的 (Single copy in memory not sufficent to get good performance) 。</p>
+
+<p><strong>现有方法：</strong>
+为了解决不平衡的问题，现有的解决方案是选择性备份 (Selective Replication) 。这种方案根据被缓存对象的热度将其分类，对于热数据使用更多的备份 (replica) 进行存储。如下面图中，由于对数据 A 的请求数更多， A 被备份在 Server 3 上，随后对于数据A的请求被分在 Server 1 和 Server 3 两个服务器上。选择性备份通过使用跟多的内存（用于保存备份）来达到更好的负载均衡，进一步提高数据读取性能。</p>
+
+<p>下图为普通的缓存：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/25-0.png" alt="Selective Replication" /></p>
+
+<p>下图为选择性备份的缓存：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/25-1.png" alt="SR2" /></p>
+
+<p><strong>本文的方法：</strong>
+这篇文章的目的就是在使用与选择性备份相同的内存情况下，进一步的提升系统的负载均衡和读取性能。而解决这个问题的关键，是使用了抹除码 (Erasure Coding)。抹除码是一种被广泛用于存储（尤其是磁盘存储）的编码技术。其特点在于，通过根据已有的 k 份数据单元 (data unit) 进行编码，可得到 r 份校验单元 (parity unit)。随后通过这 (k+r) 个单元中的任意 k 个单元，均可恢复出 k 个数据单元。例如下图中， d1~d5 是五个数据单元，根据五个数据单元，产生了四个校验单元 p1~p4。图中的两个例子，即是通过任意的五个单元，解码得到 d1~d5 的内容。其实原理类似于 RAID-5 和 RAID-6 。更多关于抹除码的资料可以看一下 <a href="https://en.wikipedia.org/wiki/Erasure_code">Erasure code - Wikipedia</a> 。</p>
+
+<p>解码方法1:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/25-2.png" alt="EC-Decode1" /></p>
+
+<p>解码方法2:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/25-3.png" alt="EC-Decode2" /></p>
+
+<p><strong>EC-Cache：</strong>
+在了解了抹除码的使用方法之后，我们来看一下这篇文章的 EC-Cache 是如何使用抹除码的。</p>
+
+<p><strong>Writes：</strong>
+如下图，如果要写入一个对象 X ， EC-Cache 先将其分割成 k 个数据单元，随后进行抹除码的编码，产生额外的 r 个校验单元。最后 EC-Cache 将这 (k+r) 个单元随机的保存在不同的服务器上。过程很简单，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/25-4.png" alt="Write" /></p>
+
+<p><strong>Reads：</strong>
+如下图， EC-Cache 读取对象也很简单。在知道一个对象 X 的 (k+r) 个单元保存在哪些服务器上之后， EC-Cache 向这 (k+r) 个服务器发出读取请求。由于网络问题或者服务器负载问题，有些服务器的回复会比较慢。好在 EC-Cache 在收到 k 个回复之后，便可以直接使用这 k 个单元进行抹除码解码操作，得到 k 个数据单元，即全部对象 X 的数据，返回给客户端。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/25-5.png" alt="Read" />*</p>
+
+<p>上述的读写方法，至少在两个方面上有很好的效果：</p>
+
+<ol>
+<li>负载均衡。每一个对象均被分摊到多个服务器之上，可以更加均匀的把工作分摊给更多的服务器。论文中有关于负载均衡上更加“较”严格的证明，有兴趣的读者可以参看论文。</li>
+<li>读延迟。在这个上面的影响是双重的。一来，由于数据被分割成 k 份，虽然总的传输量不变，但现在有更多的服务器同时提供数据，这并行化了读取操作。二来，由于 EC-Cache 只需要等待 (k+r) 个请求中回复最快的 k 个请求，这会大幅度的减小尾延迟 (tail latency)。</li>
+</ol>
+
+
+<p><strong>一些限制和缺点：</strong>
+当然，这部分也可以叫做“适用范围”。┐(ﾟ～ﾟ)┌</p>
+
+<ol>
+<li>不可修改数据 (Immutable data) 。由于 EC-Cache 不支持数据的更新修改……其实如果通过先删除再添加的方法，应该也是可以支持的，但是这样性能并不好。这算是一个限制。</li>
+<li>对象要足够大。由于 EC-Cache 使用了抹除码，而对于较小的数据，使用抹除码的效率并不高。另外对于连接和从多台服务器上读取数据来说，如果数据较小，其性能消耗 (overhead) 相对来说也是很大的。</li>
+<li>网络通信（带宽占用）较多。这个也是由于使用抹除码导致的，论文中说大概有 10% 左右。</li>
+</ol>
+
+
+<p>最终稍微总结一下，这篇文章将 Erasure Coding 应用到了分布式内存缓存系统中，主要解决了 load balance 以及 latency 的问题。</p>
+
+<h4>>>> To Waffinity and Beyond: A Scalable Architecture for Incremental Parallelization of File System Code &lt;&lt;&lt;</h4>
+
+<p>这是一篇来自 NetApp 的历史总结论文 :P 。文章大概总结了 NetApp 将其文件系统一步步并行化的改进过程。笔者认为这种系统软件随着硬件的变化而一步步演变的过程十分有趣。</p>
+
+<p><strong>主要问题：</strong>
+在单核处理器时编写的文件系统 (Write Anywhere File Layout, WAFL) ，如何在尽可能少的修改的前提下（毕竟稳定性很重要），适应和充分利用多核处理器架构。</p>
+
+<p><strong>背景：</strong>
+在 WAFL 的设计之初，多核处理器架构还未被广泛使用。因而最初版本的 WAFL 是串行的处理所有的消息 (message) 的。然而随着核心数目的增多，串行化的消息处理不能利用到多核的的优势。</p>
+
+<p><strong>Classical Waffinity (2006)</strong>
+WAFL 的第一次演变，是将用户文件划分成固定大小的块 (chunk) ，叫做 file stripes 。 File stripes 被轮换着的分配给一组消息队列，即 Stripe affinities 。如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/26-0.png" alt="CW" /></p>
+
+<p>Stripe 1 ~ Stripe 5 是五个 Stripe affinities ， msg 为每个 Stripe 上要做的请求，比如读写这个文件块中的数据。系统中有一个 affinity 的调度器，负责动态的把 affinity 分配给一个线程去执行。调度器调度的对象是 affinity ，因而在同一时刻，不会存在两个线程处理同一个 affinity ，从而避免了数据竞争。除了这些 stripe affinities 之外，还有一个 serial affinity ，用于处理所有 file stripe 之外的工作，比如元数据的读写。</p>
+
+<p><strong>Hierarchical Waffinity (2011)：</strong>
+然而随着多核处理器核心数目的进一步增加， Classical Waffinity 逐渐开始无法充分利用全部的处理器资源。因此 WAFL 进行了第二次演变，这次演变的成果，就是 Hierachical Waffinity 。</p>
+
+<p>与 Classical Waffinity 的不同，Hierarchical Waffinity 中，不仅仅只有用户文件被划分，整个文件系统架构都被进行了划分从而更好的利用计算资源。如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/26-1.png" alt="HW" /></p>
+
+<p>按照文件系统的设计层次，整个文件系统被划分成了有层次化的多个 affinity。如同 hierarchical lock 一样，父 affinity 是不能和子 affinity 同时执行的。例如当某个 Volume 被执行的时候，其下面的 Volume Logical 是不能被调度执行的；但是 Volume 和 Aggregate VBN 是可以同时被调度执行的。</p>
+
+<p>通过这种划分，整个系统可以被更细粒度的被调度执行，在 Classical Waffinity 中 serial affinity 中的任务被进一步的并行化。而 Classical Waffinity 中的 stripe affinity 被保留下来。另外一点很重要的是，由于原本文件系统就存在层次化结构，这种根据已有层次进行 affinity 的划分，就如同庖丁解牛一般，只需要在原有系统上很小的修改，就能够达到好的性能提升。</p>
+
+<p><strong>Hybrid Waffinity (2016)：</strong>
+Hierarchical Waffinity 能够增加并行度，然而其还有继续被优化的空间。在 Hierarchical Waffinity 中，如果要同时修改的内容位于两个不同的 affinities 中，为了保证数据的一致性，需要找到两个 affinities 在树形结构中的最近公共祖先，并在这个公共祖先代表的 affinity 中进行执行。如下图：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/26-3.png" alt="HW-Problem" /></p>
+
+<p>如果要修改用户数据，需要在蓝色 affinity 中执行，如果要修改元数据，需要在黄色 affinity 中进行执行。而如果要同时修改用户数据和元数据，为了保证数据一致性，需要找到蓝色 affinity 和黄色 affnity 的最近公共祖先，即红色的affinity。并在这个红色的 affinity 中进行执行。然而这样会阻塞红色 aggregate affinity 下面的所有的子 affinities。</p>
+
+<p>为了解决这个问题， Hybrid Waffinity 被提出。 Hybrid Waffinity 在 Hierarchical Waffinity 的基础上，引入了细粒度的锁 (fine-grained locking) 。如下图：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/26-4.png" alt="HyW" /></p>
+
+<p>在 Hierarchical Waffinity 的基础上，黄色的 affinities 中的元数据还被锁保护。通过这种方式，之前的例子中，蓝色区域的 Stripe 使用 affinity 保护，而黄色区域中的 AVBN Range 则使用细粒度的锁，从而避免了由于使用 aggregate affinity 导致的对其他子 affinities 的阻塞。</p>
+
+<p>最后给出一张作者的 backup slides 中关于 Schedular 的一张图，希望可以帮助读者更好的进行理解：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/26-5.png" alt="Schedule" /></p>
+
+<p>这篇文章总结了 NetApp 如何一步步的将其串行化的文件系统逐渐并行起来，反映了软件系统随着硬件的提升而不断演变的过程。在这项工作中，稳定性是非常重要的一点，因而在每一步的演化中都在追求性能的同时，尽可能少的减少代码的修改量，从而保证系统的稳定性。</p>
+
+<h4>>>> CLARINET: WAN-Aware Optimization for Analytics Queries &lt;&lt;&lt;</h4>
+
+<p>这是一项来自 UW-Madison 和 MSR 的工作。</p>
+
+<p><strong>背景：</strong>
+为了减少用户使用的延迟，现在的很多应用的服务器分布在世界各地的多个数据中心里。但当我们需要对多个数据中心里的数据进行分析时，中心化的分析是一种很浪费的选择。中心化的分析，需要将多个数据中心里的数据集中到一台机器上，随后使用单数据中心的分析框架 (intra-data center analytics framework) 对数据进行分析。由于广域网 (WAN) 的带宽有限，这种中心化的分析不仅带来很高的延迟，还会耗费大量的资金。</p>
+
+<p><strong>地理分布式分析：</strong>
+另外一种方法是使用地理分布式分析 (Geo-distributed Analytics) 。如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/27-0.png" alt="GeoDA" /></p>
+
+<p>当收到一个分布式查询请求时，查询优化器 (Query Optimizer) 会先根据请求产生查询方案，随后通过分布式执行层 (Distributed Execution Layer) 执行查询，期间会通过分布式存储层 (Distributed Storage Layer) 从各数据中心中读取数据。</p>
+
+<p>然而，现有的查询优化并没有将广域网考虑在内，其产生的查询方案往往不是最优的。例如下图中：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/27-1.png" alt="QueryPlans" /></p>
+
+<p>在左上的网络情况下，对于右边的查询，可以产生 Plan A ~ Plan C 三种查询方案。按照已有的查询优化方法，因为 Plan A 中产生的中间数据量最小，优化器最终会选择 Plan A 进行执行。</p>
+
+<p>然而在实际情况中，因为广域网的网络情况，执行 Plan A 所需要的时间是最长的。相反，虽然 Plan C 需要传输的数据总量最大，但是由于广域网网络环境，其在实际测试中耗时最短。</p>
+
+<p>这说明，在地理分布式分析时，查询优化器应该将广域网网络环境考虑在内。</p>
+
+<p><strong>其他影响因素：</strong>
+除了上述的网络传输速度之外，还有一些其他的因素会影响到查询方案的执行时间。</p>
+
+<ul>
+<li>如下图中的 Map-Reduce 任务，原有的方案是将任务放在一个数据中心中执行，即将 DC1 中的数据传输到 DC2 中后，在 DC2 中进行 Reduce 操作。这个过程需要 200GB / 80Gbps = 20s 。然而如果我们把工作均匀地分配在两个数据中心，由于网络是全双工的，单方向上需要传输的数据是原来的一半，耗时 100GB / 80Gbps = 10s 。因此查询优化器应该考虑到所有可行的任务分配 (Task Placement) 方法。</li>
+</ul>
+
+
+<p>任务在一个数据中心:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/27-2.png" alt="1DC" /></p>
+
+<p>任务在两个数据中心:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/27-3.png" alt="2DCs" /></p>
+
+<ul>
+<li>此外，由于网络中会有其他的应用在执行，虽然 DC1 和 DC3 之间的网络带宽最大（100Gbps），但是若存在一个更高级别的应用（或查询）正在占用这条线路，依赖于 DC1 和 DC3 之间带宽的 Plan C 依然可能不是最优的选择。这说明网络传输的调度也会影响到查询方案执行的时间。</li>
+</ul>
+
+
+<p><strong>Clarinet：</strong>
+本文提出的 Clarinet 系统，综合了以上提到的各种影响因素，提供更快的地理分布式分析执行方案。如下图：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/27-4.png" alt="Clarinet" /></p>
+
+<p>系统首先通过查询语句产生多种查询方案，随后在逻辑上的查询方案中加入任务分配和调度等因素，产生物理查询方案，最终 Clarinet 会选择最快的方案进行执行。</p>
+
+<p><strong>网络可知 (Network aware) 的任务分配与调度：</strong>
+对于任务分配， Clarinet 在查询的每一步（如某个 join ），都使用贪心的策略，以最小化每一步的运行时间。</p>
+
+<p>对于网络传输的调度， Clarinet 首先确定跨数据中心的网络传输的开始时间，和网络传输的依赖关系，使用二元整数线性规划去求得最优解。由于多个查询之间会有相互影响（例如两个查询都要占用同一条线路），在选择执行方案时，多个查询会被综合考虑。</p>
+
+<p><strong>迭代的最快任务优先 (Iterative Shortest Job First)：</strong>
+综合考虑多个查询的目标，是要最小化平均完成时间。 Clarinet 使用一种迭代的策略。在每轮迭代中包括：</p>
+
+<ol>
+<li>计算每个查询下一步要执行的时间；</li>
+<li>在所有要执行的查询方案中，选择需要时间最少的一步查询安排执行（并非真正执行）；</li>
+<li>为被选中的这一步查询留出足够的带宽，更新每个查询下一步需要执行的时间。</li>
+</ol>
+
+
+<p>通过不断执行上述迭代， Clarinet 可以得到一个具体的执行方案。然而在这种方法会产生碎片化。如下图左边：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/27-5.png" alt="SJF" /></p>
+
+<p>由于在上述迭代中 B1 被先于 A 任务选中，会使得 Link 2 中前 12 个单位时间是空闲的。 Clarinet 针对这种情况，将通过迭代产生的执行序列重新排列，从而得到图中右边的执行方案，总执行时间减少了 10 个时间单位。</p>
+
+<p>这种调度方法进一步可以演化成 k-最快任务优先 (k-Shortest Jobs First) 。类似的，首先找到 k 个最快的未完成的任务，只要其所需要的线路空闲，就开始执行这些任务。</p>
+
+<p>实话说，笔者并没有非常认真的读这篇文章，但在写这篇总结的时候着重看了一些段落，发现其实文章中的很多东西非常值得一读，并没有笔者认为的那么晦涩难懂。另外作者在 slides 中举的例子和论文中的例子并非一致，也希望读者在看过论文之后应该能看出两者的异同。</p>
+
+<h4>>>> JetStream: Cluster-Scale Parallelization of Information Flow Queries &lt;&lt;&lt;</h4>
+
+<p>这篇文章来自 U Michigan ，主要目的在于提供一种能够利用集群并行地处理信息流查询 (Information Flow Query) 的方法。</p>
+
+<p><strong>背景：</strong>
+动态信息流跟踪 (Dynamic Information Flow Tracking, DIFT, aka. Taint-Tracking) 在很多领域都是一个重要的工具。然而现有的工具需要很长时间才能完成信息流的查询，这极大的影响了动态信息流跟踪在调试程序、跟踪隐私数据以及性能调优等方面的使用。不幸的是，由于程序中串行的依赖，并行化动态信息流跟踪是一件很困难的事情。</p>
+
+<p><strong>JetStream：</strong>
+本文提出了一种并行化动态信息流跟踪的方法，利用计算机集群的并行化计算能力加速动态信息流跟踪的执行。主要分成两步，本地 DIFT 以及 Aggregation 。这两步中使用不同的方法来提高并行性。本地 DIFT 使用 Epoch Parallelism ， Aggregation 使用 Pipeline Parallelism 。</p>
+
+<p><strong>本地 DIFT：</strong>
+首先将程序切分成好多 Epochs ，然后使用 Record and Replay 在每个 Epoch 内部计算 DIFT 。由于内部的 Epoch 时是不知道全局的 Input 的，所以其要计算的是 local source 和 local sink 之间的关系。其中 local source 包括全局的 Input 与之前所有 Epoch 之间的中间变量。 local sink 同理，包括全局的 Output 以及之后的 Epoch 可能会用到的中间变量。</p>
+
+<p>集群中每台机器负责一个 Epoch ，因此这个过程被自然的并行化了。</p>
+
+<p>此时有一点需要注意，在本地计算 DIFT 的时候，并不急于计算出 Epoch 内部 local source 和 local sink 之间的关系，而是将 local source 和 local sink 之间的中间变量以 log 的方式记录下来，从而形成一种图结构。这个图结构会在 Aggregation 阶段被解析。如下图：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-0.png" alt="l-DIFT" /></p>
+
+<p>中间的小圆圈既不是 local source 也不是 local sink ，而是一些中间变量。通过记录这些中间变量，图中的图状结构记录了 local sources A, B, C 与 local sinks C, D 之间的关系。</p>
+
+<p>由于每台服务器负责一个 Epoch ，其并不需要在最开始就开始记录所有的读写操作。因此此处有一个优化，称为 Fast Forward ，即服务器首先正常地执行到自己所关注的那个 Epoch 开头，然后开始使用 Pin 等工具记录读写，计算 DIFT 。</p>
+
+<p>下图为本地 DIFT 的输出示例：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-1.png" alt="l-DIFT-output" /></p>
+
+<p>可以看出，整个程序被分成三个 Epochs ，分配到三台服务器上。方框为全局的 Inputs 和 Outputs 。中间的大圆圈为 local sources 和 local sinks 。小圆圈为以 log 形式记录的中间变量。整个图结构记录了所有的元素之间的关系。随后我们进入到 Aggregation 阶段。</p>
+
+<p><strong>Aggregation：</strong>
+我们先不考虑如何并行化，而是先来介绍一下这个阶段要做什么以及一些优化。</p>
+
+<p><strong>要做什么：</strong>
+这一部分要做的事情其实就是在全局计算 DIFT ，再说的简单一点，根据本地 DIFT 阶段生成的那个图结构，去遍历一下，如果从 Input A 开始，能够到达 Output B ，则输出一个二元组 &lt;Input A, Output B> ，表示 Input A 会影响到 Output B 。最简单的方法当然就是图上的深度优先搜索。</p>
+
+<p><strong>Forward Pass 和 Backward Pass：</strong>
+由于本地 DIFT 产生的数据量非常非常大。直接做搜索的效率比较低。因而 JetStream 先通过从所有的 Inputs 开始正向做一次活性分析，将从 Inputs 无法到达的节点全都去除，来较少搜索量。这个步骤叫做 Forward Pass 。同样的， JetStream 还会从 Outputs 开始，从后往前的做一次活性分析，去除掉那些无法到达任何 Output 的节点，同样可以减少搜索量。这个步骤叫做 Backward Pass 。对比下面三张图，可以看出做优化之前、做完 Forward Pass 之后、做完 Backward Pass 之后剩余的图结构。</p>
+
+<p>图-优化前:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-2.png" alt="opt-0" /></p>
+
+<p>图-Forward Pass 后:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-3.png" alt="opt-1" /></p>
+
+<p>图-Backward Pass 后:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-4.png" alt="opt-2" /></p>
+
+<p>这两个优化做完之后，所剩的图结构已经被大大的简化了。但，不管是前面的两个优化，还是后面要做的搜索，如果串行的去做，速度非常慢。如何在这里利用上集群的优势呢？</p>
+
+<p><strong>Pipeline：</strong>
+这个时候就要搬出（笔者认为的）整篇论文的精华部分了—— Pipeline 。</p>
+
+<p>虽然 Pipeline 的概念很简单，但是能想出在这里这么用，感觉还是挺不容易的。由于各个 Epoch 的数据是在不同服务器上的，最简单想到的方法，是 Epoch 1 先做，然后把结果发给 Epoch 2 的服务器， Epoch 2 做完之后，把结构发给 Epoch 3 所在的服务器，以此类推。</p>
+
+<p>通过使用 Pipeline 的方式，当在搜索 Epoch 1 的图结构的时候，每当遇到一个 local sink，可以把当前已有的结果直接发给 Epoch 2 。随后 Epoch 1 上的搜索继续进行，同时 Epoch 2 所在的服务器在收到发过来的结果之后，马上可以从这个 local source （ Epoch 1 的 local sink 即是 Epoch 2 中的 local source ）开始搜索。这样 Epoch 1 和 Epoch 2 是同时在进行搜索的。这就是 JetStream 里面的 Pipeline 。下面几张图更加形象的表示了这个过程。</p>
+
+<p>图-Pipeline-0:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-5.png" alt="pipeline-0" /></p>
+
+<p>图-Pipeline-1:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-6.png" alt="pipeline-1" /></p>
+
+<p>图-Pipeline-2:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-7.png" alt="pipeline-2" /></p>
+
+<p>图-Pipeline-3:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-8.png" alt="pipeline-3" /></p>
+
+<p>图-Pipeline-4:</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/28-9.png" alt="pipeline-4" /></p>
+
+<p>Pipeline 不仅仅是用在最后的搜索，在活性分析的优化中，同样需要使用 Pipeline 来进行加速。</p>
+
+<p>总结一下，笔者认为这篇文章重点在于把 DIFT 抽象成了一个图结构，以及在 Aggregation 阶段的 pipeline 并行化。尤其后面的 pipeline ，对 DIFT 的性能提升非常大。在 Poster Session 与作者聊天时，作者提到其实很多时候， JetStream 中的瓶颈反而在于本地 DIFT 做的太慢了。</p>
+
+<h4>&lt;&lt;&lt; Session 小结 >>></h4>
+
+<p>总结一下整个 Session ，虽然名字是大杂烩，但是其实内容也确实是大杂烩。一篇分布式内存缓存，一篇文件系统并行化，一篇地理分布式分析优化，最后一篇并行化动态信息流跟踪。四项工作与其他 Session 的工作确实关联不大，但笔者并不认为这是因为这四项工作所做的事情不够重要或者不够热点，应该只是恰巧这次 OSDI 中类似的，且比较好的工作不够多吧。 :)</p>
+
+<hr />
+
+<h3>Session~[Fault Tolerance and Consensus]</h3>
+
+<h4>>>> Just Say NO to Paxos Overhead: Replacing Consensus with Network Ordering &lt;&lt;&lt;</h4>
+
+<p>这篇论文是华盛顿大学计算机系统实验室(Computer System Lab)的研究人员完成的，第一作者Jialin Li是四年级博士生，之前在NSDI&#8217;15发表Speculative Paxos并拿到Best Paper. 第三作者Naveen Kr. Sharma也是四年级博士生，之前在ASPLOS&#8217;16上发表FlexNIC。这篇文章正是Paxos和网络设计的结合，主要讨论了如何在数据中心保证网络通信顺序，并在此基础上提升Paxos的性能。</p>
+
+<p>Paxos协议用来解决分布式环境下SMR(State Machine Replication)的一致性问题。但是由于其性能瓶颈，目前主要用在分布式配置维护，锁服务器(Chubby, ZooKeeper)等应用中。在Paxos的网络模型中，可能会出现的异常有：丢包，乱序和任意长的网络延时。根据这篇论文，之前的解决方案要么在软件层面解决所有异常，要么在硬件层面解决所有异常。作者提出的NOPaxos(Network-Ordered Paxos)的第一个贡献是<strong>将网络顺序和网络可靠性分离</strong>， 即网络硬件提供顺序保证，软件协议解决丢包和任意延迟的问题。NOPaxos中的网络模型叫做OUM(Ordered Unreliable Multicast)。在OUM网络中，有一个<em>sequencer</em>负责给每个链接(发送者+接收者)维护一个序列号。由于网络是有序的，接收者可以通过序列号来判断具体的丢包情况。</p>
+
+<p>本文作者完成了三种OUM网络中<em>sequencer</em>的具体实现，如下图所示</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/29-1.jpg" alt="29-1" /></p>
+
+<p>第一种实现使用P4语言直接对交换机进行编程，为数据包定义NOPaxos中所用的序列号。这是三种实现中性能最高的一种，但是作者说这样的交换机目前在市面上还买不到。第二种实现通过在网络拓扑的根节点安装一个Cavium Octeon网络处理器(Network Processor)来实现<em>sequencer</em>，该实现大约会造成8us的额外延时。最后一种是完全的软件实现，不过这也是性能最差的实现。</p>
+
+<p>接下来是NOPaxos的软件协议部分。首先Client会将请求发送给所有Replica，由于网络有序，Replica收到请求顺序相同。那么当Client接收到大部分机器回复(包括Paxos leader)之后请求完成。当需要重新选举leader时，NOPaxos沿用了之前的VR(Viewstamped Replication)算法。</p>
+
+<p>根据作者的Evaluation，NOPaxos的吞吐率是原本Paxos的4.7倍，延迟降低40%。同时，在丢包率升高时，NOPaxos的表现也比之前的Speculative Paxos要好。和没有Replica的系统相比，NOPaxos的吞吐率只有2%的降低，延迟提高约16us。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/29-2.jpg" alt="29-2" /></p>
+
+<p>根据Jialin自己讲，他希望可以通过提高Paxos的性能，使得分布式一致性协议可以用在更多的应用中。我们也期待以后有更多的使用新Paxos协议的数据中心应用出现。</p>
+
+<h4>>>> XFT: Practical Fault Tolerance beyond Crashes &lt;&lt;&lt;</h4>
+
+<p>这篇论文的一作Shengyun Liu是国防科技大学的本科，现在在EURECOM攻读博士学位。二作Paolo Viotti也是EURECOM的博士生。EURECOM是法国在信息和通信技术领域领先的工程师学校及研究中心。四作Vivien Quéma来自Grenoble理工学院，也是法国一所历史悠久的科技学院。三作Christian Cachin和五作Marko Vukolić来自IBM苏黎世研究院。这是一项完全来自欧洲的研究工作。</p>
+
+<p>在分布式系统研究中，有两种经典的SMR(State Machine Replica)容错模型，一种是CFT(Crash Fault Tolerance)，另一种是BFT(Byzantine Fault Tolerance)。通俗地讲，CFT认为机器可能宕机，网络可能异常，但是所有信息真实可信。BFT在CFT的基础上，认为出错的机器是可能说谎的。通常认为，为了避免f台机器出错造成整个分布式系统出错，CFT模型容错需要至少2f+1台机器，BFT模型容错需要至少3f+1台机器。具体的证明是比较古老的事情，可以追溯到图灵奖得主Leslie Lamport活跃的时代。</p>
+
+<p>这篇论文基于的观察是：在现实中的分布式系统中，机器因为出错而宕机或者撒谎都是可能的，但是随心所欲地控制网络发包顺序是很困难，几乎不可能的。由于完全操控网络是BFT容错需要大量冗余的关键，作者弱化了BFT，并将新的容错模型称为XFT(Cross Fault Tolerance)。作者进而提出了一种名为XPaxos的算法，使用2f+1台机器实现这种模型下的容错。作者认为通过XFT和XPaxos，可以在让目前使用2f+1容错的分布式系统在不增加机器的情况下提升到更高的容错级别。作者还证明了，当大部分(f+1台)机器是正确的并且可以自由良好通信时，XPaxos可以容忍另外少部分机器之间发生的BFT错误。</p>
+
+<p>作者在Apache ZooKeeper中实现了XPaxos，并与之前基于Paxos的实现进行了性能比较。Evaluation中，作者使用6个跨地域的Amazon EC2来部署XPaxos以及对比系统(Zyzzyva, PBFT和WAN-optimized Paxos)。结果表明，XPaxos在延迟和吞吐率上和基于WAN优化过的Paxos不相上下，但是提供了更高的容错能力(在consistency和availability两个维度)。同时，XPaxos比Zyzzyva, PBFT性能要高很多，因为后二者是使用3f+1的BFT容错算法，网络开销很大。</p>
+
+<h4>>>> Realizing the Fault-Tolerance Promise of Cloud Storage Using Locks with Intent &lt;&lt;&lt;</h4>
+
+<p>这是一篇来自工业界的文章，作者来自微软研究院。本文专注于解决一个很现实的问题：云提供商(Microsoft, Amazon)都提供可靠的数据存储服务，但是计算服务还是可能因为机器宕机重启而导致本地数据和云服务器中数据不一致。本文利用了现有的可靠存储服务，为开发者提供了一种新的编程原语(intent和locks with intent)来简化软件容错的实现，减轻开发者的负担。</p>
+
+<p>教科书里解决宕机的方式是Replica和Paxos协议，但是由于云存储服务已经提供了这样的可靠性，所以本文作者认为应该直接利用云存储服务为开发者提供编程接口。他们开发了Olive系统，为运行在云服务器上并使用云存储的程序提供Exactly-Once执行保证，以及易用的并发控制。基于Olive，本文作者开发了很多真实使用的软件(Snapshot Service, ACID Transactions等)，发现所需的代码量比不使用Olive降低了30%到80%。开发者程序、Olive和云存储服务的关系如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/31-1.jpg" alt="31-1" /></p>
+
+<p>接下来我们介绍Olive中的具体技术。Intent指的是一段需要保护的代码，这段代码包含云端存储操作以及本地计算操作。概括的讲，Olive会通过云存储记录一段intent中每一步是否执行，从而保证Atomic和Exactly-Once。当一条修改记录发送到云存储，云存储系统会原子地进行修改并在同一个Partition上记录日志，作者称这样的日志为DAAL(Distributed Atomic Affinity Logging)。发生宕机时，Olive通过DAAL判断一段intent从哪里开始重新执行，进而保证每段intent执行的完整性。由于一段intent可能并行地由多个线程执行，Olive提供了并发控制机制，即拿锁和放锁通过云存储实现可靠性，当发生宕机重启时，云存储可以保证锁的状态一致性。</p>
+
+<p>作者用约2000行C#代码实现了Olive，并实现了和Azure Table Store和Amazon DynamoDB的对接。作者称Olive还可以很容易的利用Cassandra, MongoDB等作为后端云存储。在Evaluation中，作者证实了Olive可以简化开发者代码，并且拥有较小的额外开销。如图所示，通常情况下Create和Read操作不会造成开销，Update操作开销在原来的两倍左右。由于Copy-On-Write，在snapshot之后第一次操作开销比较大。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/31-2.jpg" alt="31-2" /></p>
+
+<p>总结一下，这篇文章提出了Olive，利用云存储系统的可靠性减小了开发容错云端程序的工作量，是一篇来自工业界的非常扎实实用的文章。</p>
+
+<h4>>>> Consolidating Concurrency Control and Consensus for Commits under Conflicts &lt;&lt;&lt;</h4>
+
+<p>这篇文章的一作Shuai Mu是清华大学的Ph.D.，现在在纽约大学读博士后。二作Lamont Nelson是纽约大学在读博士。这两位都是四作Jinyang Li老师的学生。三作Wyatt Lloyd是南加州大学的助理教授，他同时是本次OSDI另一篇文章SNOW Theorem的作者。几位作者合作的这篇论文实现了一个新的分布式事务系统Janus，Janus和之前系统的主要区别可以用下图直观表示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/32-1.jpg" alt="32-1" /></p>
+
+<p>Janus的目标是在实现Consensus和Concurrency Control的同时，尽量减小多种情况下(顺利提交和发生冲突)的跨地域通信。主要切入点是作者发现Consensus协议和Concurrency Control协议有很多地方类似，所以其实可以合并成为一个协议，从而达到上述目的。</p>
+
+<p>首先，Janus考虑的事务由一系列提前内置的过程(Stored Procedures)表示。为了减少不同事物之间的冲突，在Consens和Concurrency Control协议中都会为这些内置过程制定一致地顺序，导致之前的分布式事务系统都会两次决定内置过程的顺序。Janus由于使用合并的协议，只需要一次决定。合并后的协议如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/32-2.jpg" alt="32-1" /></p>
+
+<p>简单来说，Janus引入了Pre-accept状态。当发生冲突时，Janus会决定事务之间的顺序，发回给Client，由Client将新的请求以及顺序信息重新发送给每个Server进行执行，这样就可以避免Abort，实现事务必然提交。综上所述，Janus在发生冲突时需要2次跨地域通信，在没有冲突时只需要一次。这篇论文还讨论了很多细节情况，包括 Quorum大小，出现宕机时的各种情况等。同时，作者也讨论了如何将Janus扩展到更一般的事务上，即事务的读写集合可能不是事先知道的。Janus的开源代码可以在GitHub上下载。作者在Evaluation中验证，由于没有Abort，Janus在Client数量扩展性和单个事务的延迟上优于Tapir和2PL。</p>
+
+<p>总结一下，Janus合并了Consensus协议和Concurrency Control协议，并且利用顺序决策避免了Abort，使得分布式事务系统的性能得到了提升。</p>
+
+<hr />
+
+<h3>Session~[Security]</h3>
+
+<h4>>>> Ryoan: A Distributed Sandbox for Untrusted Computation on Secret Data &lt;&lt;&lt;</h4>
+
+<p>这篇论文是由UT Austin的<a href="https://www.cs.utexas.edu/~witchel/">Emmett Witchel</a>团队完成的，今年他们在OSDI上还发表了另一篇关于huge page的工作。本文的第一作者<a href="https://www.cs.utexas.edu/~thunt/">Tyler Hunt</a>是一名第四年的博士生。</p>
+
+<p>这篇paper是今年的三篇best paper之一。论文利用了现在正火的SGX，设计实现了一个<code>distributed sandbox</code>，即分布式沙盒。这个场景主要发生在目前的数据处理服务中，例如税费计算、个人健康状况分析等。这种场景下，用户需要将隐私信息交由服务提供商进行处理。与此同时，服务提供商也可能依赖其他机构提供的服务，例如23andMe(个人健康状况分析服务提供商)可能依靠亚马逊提供的机器学习服务。在这种场景下，用户担心某一服务提供商泄露自己的隐私，同时多个服务提供商之间也可能互相勾结，泄露用户的隐私数据。</p>
+
+<p>与之前Haven这种基于SGX的工作不同，作者提出的Ryoan不仅不信任底层的系统软件，同时也不能信任服务提供商提供的服务逻辑代码。具体介绍Ryoan的系统设计之前，我们先来看一下她的威胁模型。首先，数据处理过程中可能存在着<strong>多个互相勾结的不可信机构</strong>。同时，系统中的用户<strong>不信任任何服务提供商</strong>能够对其隐私数据进行保密。值得注意的是，如果一个服务提供商把数据交由另一个机构处理，那么该提供商将变为另一机构的用户，其不能相信自己的隐私会被另一机构保护。也就是说整个系统中的所有服务提供商都可能<strong>互相勾结</strong>，也都可能互相<strong>窃取隐私</strong>。</p>
+
+<p>与此同时，服务提供商可能将自己的代码运行在不可信的平台上。其可能与代码运行的平台进行勾结，将用户隐私泄露出去，例如通过系统调用的顺序或者参数泄露用户隐私。Ryoan同样能够抵御攻击者通过<code>covert channel</code>传递用户隐私。</p>
+
+<p>接下来我们介绍这个工作的具体设计，首先Ryoan作为一个沙盒运行在SGX提供的enclave中。服务提供商则会提供自己的代码，也被称为module。这些module对整个系统而言都是不可信的，将运行在Ryoan之中，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/33-1.png" alt="33-1" /></p>
+
+<p>系统初始化过程中，能够通过SGX提供的remote attestation，验证每个服务提供商所使用的enclave中的确运行了Ryoan。Ryoan将能够加载并验证不同服务商提供的modue。为了限制module泄露用户（也可能是使用该module服务的提供商）的隐私，Ryoan提供了两种运行模式。当一个module未接受来自其他机构（包括用户）的数据时，其是<em>Non-confining</em>的，能够正常使用I/O操作等。但是当一个module接收了其他module的输出或者用户的输入之后，其将会进入confining状态。此时，Ryoan将限制其行为，例如对I/O操作进行加密,提供in-memory virtual filesystem等。Ryoan使用传统的label system来进行数据的追踪，从而识别一个module是否接收到其他module或者用户的隐私数据。同时Ryoan在一个module处理完请求之后，会将其进行销毁，防止其记录用户隐私并泄露给其他用户。</p>
+
+<p>通过对数据进行追踪，并进行权限控制，Ryoan已经能够防止module直接泄露用户隐私。但是不同module之间，或者module与OS之间仍然可能通过covert channel间接地传递用户隐私数据。针对这一问题，Ryoan提出了抵御software covert channel（利用系统调用、运行时间）的方法，而对于hardware covert channel的防御，作者认为是运行平台的责任。Ryoan限制module不能直接调用系统调用，并且标准化了I/O读写操作的长度。同时对于module的运行时间，Ryoan也进行了限制，每次一个module必须运行固定的时间长度。</p>
+
+<p>总的来说，这篇文章通过将SGX与sandbox进行结合，解决了云端数据服务环境下，服务逻辑，运行平台均不可信的问题。同时作者也考虑当下单个云端服务往往需要依赖多个服务提供商这一特点，解决了不同服务提供商之间勾结从而泄露用户隐私的问题。其实作者具体使用的sandbox、label system等技术都是现有的，但是作者将它们与SGX进行结合，应用到了一个新的场景之中，同时整个系统的设计与实现也非常完整，从而成为了一个非常好的工作。</p>
+
+<h4>>>> Unobservable Communication over Fully Untrusted Infrastructure &lt;&lt;&lt;</h4>
+
+<p>这篇工作是由UT Austin，纽约大学以及微软合作的，一作<a href="https://www.cs.utexas.edu/~sebs/">Sebastian Gomez Ange</a>是UT Austin 高级系统研究实验室的一名博士，目前在纽约大学的system group进行学术交流。在今年的USENIX Security上，他还发表了一篇关于利用虚拟化防止恶意外设攻击的工作。</p>
+
+<p>这篇Paper旨在解决在不可信的网络环境下的通信问题，希望能够防止网络中的任意机构对通信的metadata (通信双方的身份，时间等)进行窃取。现有的一些解决方案往往需要相信网络中的一个或者多个对象，例如代理服务器，网络服务提供商等。而本文则提出了一种不信任网络中任一对象的可信通信方案。</p>
+
+<p>在介绍详细的系统实现之前，我们仍然首先介绍该系统的威胁模型。该系统需要能够在公用网络上保护通讯的所有内容以及metadata不被窃取。系统保护的metadata包括：1）通信开始到结束的时间；2）通讯次数；3）通讯双方的身份等等。这些metadata除了通讯双方，不能够被网络中的任一对象获得。系统假设所使用的加密算法足够安全，同时认为通信双方事先已经知道了对方的公钥（但是交换公钥的过程中也会泄露metadata，下一篇paper将会解决这个问题）。</p>
+
+<p>为了解决上述问题，作者提出了一个称为Peng的系统。该系统采用key-value store的工作模型，发送者A首先将一个（label，message）的数据条目存储到Peng cluster中，之后接收者B再从中获取该对应的条目，解密后获得用户A发送的信息，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/34-1.jpg" alt="34-1" /></p>
+
+<p>Peng首先使用一个经过加密的label，在每一个通讯周期r，信息的发送者A和接受者B都能够根据双方事先共享(通过本系统外的方法共享）的secret生成label-s以及label-r。A会将（label-s，message）发送至Peng cluster，B之后会通过label-r获取该加密的message，从而完成通讯。</p>
+
+<p>可以发现，发送消息只需要将key-value对发送给服务器即可，但是接收消息时却不能简单的直接获取label-r对应的条目，否则服务器将能够获得通讯的metadata。最基础的解决方法是B一次性获取服务器所有条目，从中挑选label-r对应的信息。但是这样性能肯定很差，为此作者采用了 <strong>Private information retrieval (PIR)</strong>。通过该方法，用户向服务器发送一个query，服务器将会返回一个answer交给用户，用户通过特殊的decode方法从而获得真实的请求结果。这一方式使得能够在不暴露label-r的情况下，高效的从Peng cluster中获得想要的key-value对。同时为了混淆网络中的通讯，空闲的用户也会在每个周期也会发起信息发送／获取请求。</p>
+
+<p>总的来说，本文通过巧妙的系统设计，实现了一个能够完全不泄露metadata的通讯方法。该方法有效的将加密通讯中除通讯双方之外的任一实体排除在了系统的可信基之外。在64个client的情况下，每分钟大约能够传递数万条消息。但是Peng在通讯之前要求双方必须拥有一个共享的secret或者拥有对方的公钥，然而却没有提供任何有效安全的公钥交换方案。</p>
+
+<h4>>>> Alpenhorn: Bootstrapping Secure Communication without Leaking Metadata &lt;&lt;&lt;</h4>
+
+<p>这篇论文是由MIT的POS实验室完成的，第一作者<a href="https://davidlazar.org">David Lazar</a>是POS的一名博士生，导师是<a href="http://people.csail.mit.edu/nickolai/">Nickolai Zeldovich</a>。一作在去年的SOSP发表了一篇关于安全通讯的系统Vuvuzela，工作与刚刚介绍的Peng类似。</p>
+
+<p>这次作者想要解决的是安全通讯建立时遇到的metadata泄露问题。正如刚刚那篇Peng提到的，它们要求通讯双方事先知道对方的公钥或者共享一个secret，实际上现有的类似系统包括Vuvuzela都有这样的需求。然而在获取一个用户的公钥的过程中，往往会暴露一些metadata。例如公钥管理服务器将能够得知有人需要向公钥的拥有者发送消息。为此这篇文章就提出了一种能够安全交换secret的方法，利用该机制用户之间能够在不泄露metadata的情况下交换一个共享密钥，从而进一步使用现有安全通讯系统。</p>
+
+<p>首先还是介绍该系统的威胁模型。系统中使用了<strong>mixnet服务器</strong>以及<strong>PKG( private key
+generators)服务器</strong>。系统假设至少一个mixnet服务器以及一个PKG服务器是正常工作，没有被攻击者compromise的，其他任何网络中的对象都可能是恶意的。与此同时，本工作还将能够保证<code>forward secrecy</code>,即使某个server或者client被攻破，攻击者也不能获取之前通讯的内容。同样本工作假设系统所使用的加密算法本身都是完备的。</p>
+
+<p>为了能够安全的在通信双方之间共享一个secret，作者提出了一个名为Alpenhorn的系统。该系统为每个用户维护了一个地址本，每个地址本中的条目对应一个朋友，条目中将包含与朋友共享的一个secret。两个用户能够通过一个更新算法，实时地更新各自地址本中记录的共享secret。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/35-1.jpg" alt="35-1" /></p>
+
+<p>Alpenhorn提供用户一个添加好友的接口，从而在自己的地址本中新建条目。上图是Alice向Bob发送添加好友请求的具体流程。首先所有的client在每个周期都将发送给mixnet服务器一个固定长度的请求，即使该client不想做任何操作，其仍将发送一个假的请求。此时，Alice就会发出一个添加Bob为好友的请求。Alice会使用Bob的公钥对请求内容进行加密，这里Alpenhorn采用<strong>identity based encryption （IBE）</strong>，该技术使得能够直接使用对方的账号名作为公钥，而不用向服务器发起公钥请求。Alpenhorn假设用户使用自己的邮箱作为用户名，所以此处Alice直接使用Bob的邮箱加密请求即可（系统假设用户知道好友的邮箱）。</p>
+
+<p>此后mixnet服务器将会打乱所有用户发出的请求，并将请求分不到不同的mailbox中。每个mailbox中会存在大量不同用户的请求。此时只要有一个mixnet服务器正常工作，那么所有用户的请求就能够被安全的混淆。之后所有用户都将从其对应的mailbox中获取请求信息，当然这些信息中很多是空闲用户发送的混淆信息。</p>
+
+<p>当Bob从他的mailbox中得到请求时，其将会使用自己的私钥对请求进行解密。由于系统使用了IBE，Bob并不会储存自己的私钥，其需要从PKG （private key generator）服务器中获得私钥，才能对信息进行解密。解密后Bob将获得来自Alice的好友添加请求。实际上该请求包含两部分，Alice的邮箱以及一个secret。由于Bob实现知道Alice注册了这个邮箱，那么其将能够选择添加Alice为好友，将这个secret添加到自己的地址簿里。并且向Alice发送一个ack，当然这个ack会经过同样的流程发送给Alice。当Alice收到该确认请求后，其将能够确认与Bob建立好友关系，并且两者的地址簿里已经存在了一个共享的secret，该secret将不断的保持同步变化。具体来说，系统采用Diffie-Hellman密钥交换协议，帮助Alice和Bob通过以上通信过程生成共享的secret。一旦共享了该secret，Alice和Bob将能够进行安全通讯，无论是采用与以上协议一样的通讯方法，还是其他的安全通讯系统。</p>
+
+<p>需要额外提到的是PKG的anytrust模型。对于一个IBE系统，将会有一个可信的PKG服务器，管理所有用户的私钥。该服务器拥有一个单独的公钥，用户可以通过该公钥以及目标对象的账号名对内容进行加密。之后，目标对象能够向PKG请求自己的私钥，并且使用该私钥对内容进行解密。为了防止某个恶意PKG服务器窃取用户metadata，Aplenhorn采用多个PKG服务器，加密时利用每个服务器的公钥与目标的邮箱进行加密。解密时目标对象会从所有PKG服务器索取自己的私钥，并依次用所有私钥对内容进行解密。因此只要有一个PKG服务器正常工作，那么通讯的安全性就能得到保障。</p>
+
+<p>这篇文章通过mixnet服务器以及IBE技术，结合提出的anytrust模型，设计并实现了一个能够在不泄露metadata的情况下发起安全通讯的系统，有效解决了现有安全通信系统需要事先共享secret的这一问题。Alpenhorn使得安全通讯系统变得更加实用，使用者仅需知道对方的邮箱地址即可进行通讯，而无需事先知道对方的公钥。</p>
+
+<h4>>>> Big Data Analytics over Encrypted Datasets with Seabed &lt;&lt;&lt;</h4>
+
+<p>这个session的最后一篇文章是由宾夕法尼亚大学，微软研究院以及UCLA共同合作完成的。一作<a href="https://www.cis.upenn.edu/~apap/">Antonis Papadimitriou</a>是个即将毕业的博士，今年已经第五年了，导师是<a href="https://www.cis.upenn.edu/~ahae/">Andreas Haeberlen</a>。</p>
+
+<p>这篇文章针对的是大数据环境下加密计算的性能问题。为了保证存储在云端数据的安全，需要对云端数据进行加密。但与此同时，却又依赖云端对这些数据进行处理。为了能够让云端处理加密后的数据，现有的系统往往采用确定性加密算法与同态加密算法。云端对加密后的数据进行计算并得到一个返回值，客户端能够利用一个密钥解密该返回值并得到真正的运算结果。但是传统的这类系统一方面在大数据环境下性能较差，另一方面容易被进行频率攻击。本文则提出了一种新的加密方法，使得系统拥有更高的性能，同时也能防御频率攻击。</p>
+
+<p>在具体设计之前首先介绍一下频率攻击。由于使用确定性加密技术，同样的明文数据会被加密成同样的密文。这也就意味着攻击者能够通过频率侧面获得加密内容。例如在事先知道男女比例的情况下，攻击者能够通过性别栏目不同密文的出现频率，从而得知密文对应的性别。</p>
+
+<p>与现有的系统采用非对称加密不同，作者认为数据的拥有者和结果的查询者往往是同一机构，因此作者设计的系统Seabed使用了一种新的更为快速的对称加密方法<strong>ASHE(symmetric homomorphic encryption scheme)</strong>。具体来说，对于数据库中条目中的一个值m，会计算出一个附加量d，最终存储的密文将是m+d，如下图所示。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/36-1.png" alt="36-1" /></p>
+
+<p>首先对于每个加密密钥k，都能够有一个哈希函数Fk，其能够将一个非负整数变成一个正整数。之后对于位于第i行的值m，其密文则是{m-Fk(i)+Fk(i-1), i}。假设需要进行求和计算，那么所有密文的和则是m1+  &#8230;+mn - Fk(n)+ Fk(0)，以及{1,&#8230;,n}。那么只要去除最终的-Fk(n)+Fk(0)就能够得到正确的值，这也是ASHE的主要思想。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/36-2.png" alt="36-2" /></p>
+
+<p>而为了防止频率攻击，论文中提出了一种<strong>SPLASHE (Splayed ASHE)</strong>技术，简而言之就是将取值可能性少的列分为多个新的列。如上图，将性别这个取值为男或者女的列划分为两个列 （性别男以及性别女），如果是男性那么性别男那一列的取值将为1。与此同时，ASHE保证每一列的不同行内容看起来是一个随机数，从而使得攻击者完全无法通过频率对密文内容进行猜测。</p>
+
+<p>测试部分作者比较了使用ASHE技术的Seabed与传统采用非对称同态加密技术的Pailier，无论是在资源（硬盘与内存）使用量，还是响应时间上，Seabed都拥有非常大的提升。</p>
+
+<p>总的来说，作者通过一种新的、巧妙的加密方法，有效的提升了在加密数据库上进行大数据分析的性能。但是由于采用对称加密，也就要求数据拥有者与分析结果的需求者必须是同一机构，或者互相信任。并且由于ASHE算法本身设计简单，因此其难以支持更多复杂的操作，例如乘除等。但是作者在提问环节也说到，ASHE支持的简单操作已经能够满足绝大部分数据分析的需求。</p>
+
+<hr />
+
+<h3>Session~[Troubleshooting]</h3>
+
+<h4>>>> Non-Intrusive Performance Profiling for Entire Software Stacks Based on the Flow Reconstruction Principle &lt;&lt;&lt;</h4>
+
+<p>这篇论文的一作<a href="http://www.xuzhao.net/">Xu Zhao</a>和他的导师<a href="http://www.eecg.toronto.edu/~yuan/Home.html">Ding Yuan</a>都是属于憋大招的高手，2014年和2016年都有两篇OSDI的大作，令人膜拜！其中，Ding Yuan是<a href="https://cseweb.ucsd.edu/~yyzhou/">YY Zhou</a>的得意门生之一，现在在多伦多大学当助理教授。</p>
+
+<p>该工作特别有他们工作的印记，就是属于那种一看就能想到Ding Yuan或者YY Zhou的工作。一句话概括就是：利用Log来帮助程序员debug分布式系统。该方法建立在一个原则上：Flow Reconstruction Principle。
+该原则的意思是说：程序员在写代码的过程中，会在一些关键的事件发生时，插入一个log的打印，该log会记录所有相关的objects对应的ID，用于在debug的时候重建执行流。下面是一个满足该原则的log：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/37-1.png" alt="37-1" /></p>
+
+<p>也就是说，每一条log都能清楚地记录关键事件发生时所涉及到的objects的唯一的ID。之后，该方法会通过分析这些log，来生成一张整个执行流过程中所有objects之间的对应关系，并用时间线的方式描述出来，如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/37-2.png" alt="37-2" /></p>
+
+<p>该图中，OBJECT那一列记录了所有涉及到的objects的ID，TIMELINE那一列表示如果在某个时间点发生的事件的log中记录了该object的ID，则在相应的地方标记一个点。因此它表示object在时间线维度的存在性。通过这张图，我们可以比较清楚地看到，<code>container..5..611</code>发生在<code>container..4..071</code>之后，因此在debug的过程中很容易得到它们之间的依赖关系，从而发现其实是在container分配过程中的问题。</p>
+
+<p>当然，其实该方法是存在很大的局限性的，比如它非常依赖程序员记录log的习惯，同时，它只能帮助程序员找到那些特定类型的bug，而不是所有的bug。不过笔者觉得这篇论文给人映象最深的一点是它在一开始描述了一个motivating example和user study，并且在之后将其贯穿全文，让读者看的一目了然，整篇文章写的非常清晰，而且确实是在很大程度上解决了一个分布式系统debug的问题。</p>
+
+<h4>>>> Early Detection of Configuration Errors to Reduce Failure Damage &lt;&lt;&lt;</h4>
+
+<p><a href="https://www.usenix.org/system/files/conference/osdi16/osdi16-xu.pdf">这篇论文</a>出自UCSD Yuanyuan Zhou组的博士生Tianyin Xu，Xinxin Jin，最近入职Johns Hopkins University的Peng Huang，以及合作者University of Chicago的Shan Lu，UCSD的Long Jin和NetApp的Shankar Pasupathy。这篇论文是今年三篇Best Paper之一。</p>
+
+<p>Tianyin在本篇论文中的工作尝试解决了一个简单而重要的问题。许多系统在部署运行一段时间后崩溃，原因可能很简单：配置参数有一些问题，一经使用便会崩溃。但是，一部分配置参数并不会在系统开始运行时就被使用，因此问题会在很晚的时候才会浮现出来。这一类问题被作者称为latent configuration (LC) errors。作者研究发现，像HDFS，YARN，HBase，Apache，MySQL和Squid这些系统，14%到93%的配置参数在系统实现中缺少对应的检查操作，而仅在即将使用之时才做检查。其中12%-38%的配置参数在系统启动阶段完全没有被使用，因此也就躲过了启动阶段崩溃的命运。</p>
+
+<p>本文设计实现了PCHECK这一检查工具。思路很简单：既然许多配置参数很晚才会被用到，那就尽量让他们早点被用到。所谓“使用”，其实是系统的实现中有一些操作指令（configuration-consuming instructions）会读取相应的变量值，然后尝试以文件路径或ip地址等方式进行利用，而在利用这些值的时候得到错误返回值。PCHECK通过静态分析找到这些指令，并将提取这些指令生成(encapsulate)一个独立的函数，用来作为专门检查配置变量的测试函数。而后通过编译阶段的插装，在程序初始化阶段插入该函数，实现了“提早检查”。插入的指令如下图所示：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/38-1.png" alt="38-1" /></p>
+
+<p>提早执行这些指令，有可能会给系统带来不必要的side effect。例如这些指令可能读写文件，或使用系统调用。PCHECK的解决方案是模拟(model)这些指令的执行结果，而不是真正去执行它们。如上图所示，插入的指令并不会实际调用freopen，而是模拟freopen函数的执行效果，并检查freopen的参数。对于全局变量的修改，PCHECK会把对应的全局变量转换成局部变量，以防止误修改。</p>
+
+<p>PCHECK在实现中考虑了源程序的数据流和控制流，以求减少误检率。对于</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>if (p != NULL) { use p; }</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这样的操作，PCHECK也会将条件判断指令加入到生成的检查函数中，以求和源程序执行逻辑保持一致。PCHECK在整个系统实现中实现了跨函数的污点跟踪技术，以完整恢复原系统的数据流。</p>
+
+<p>PCHECK的一个局限性是应对的配置错误情形较为简单。如果触发该配置错误，需要读取系统经长时间运行后才产生的结果，这种情形PCHECK是无能为力的，因为提早执行的函数没有办法得到这种值。</p>
+
+<p>本文在测试阶段对58个包含此类型错误的配置文件进行检测，有七成以上的错误被成功发现，相比于已有的配置检测工具多发现了30%左右的错误。</p>
+
+<h4>>>> Kraken: Leveraging Live Traffic Tests to Identify and Resolve Resource Utilization Bottlenecks in Large Scale Web Services &lt;&lt;&lt;</h4>
+
+<p>本文作者来自Facebook。Fecebook、谷歌和微软这一类的顶级技术公司，经常会在SOSP/OSDI发表论文，与学术界分享公司内部的技术探索和实践，BigTable, MapReduce, GFS就是其中的典范。本文的一作Kaushik Veeraraghavan毕业于密歇根大学，为Peter Chen的学生。</p>
+
+<p>这篇文章针对的问题非常有意思，笔者相信也是许多公司所关注的：如何测试出整个系统中的瓶颈。Facebook的问题会更进一步，如何实时地测出分布在多数据中心中的成百上千的系统中的瓶颈。以往针对这个问题有2种方法，第一种是通过建模的方式，第二种是使用构建的数据进行压力测试。作者认为这两种方式都不适用。首先，因为Facebook内部的workload在实时发生变化，同时，每个系统本身也在不断被更新，所以很难用建模的方式去静态评估。第二，使用构建的数据进行压力测试虽然在某些情况下有些效果，但是这些数据很难反应真实的情况，不能发现所有的系统问题。</p>
+
+<p>Facebook的工程师们发现，实时的用户访问流量是最具代表性的，也是最能帮助发现系统问题的。读者也许会感到疑惑，实时流量确实最具代表性，但是如果在处理实时请求的时候系统发生重大问题，用户将因此产生困扰。为了避免这种情况，作者们设计了安全指标，不断地实时监测系统，一旦发现系统的某些安全指标出现可疑的问题，就立即将用户流量导向至其他数据中心。基于上述思想，作者们设计了Kraken，一个2013年上线、使用实时用户访问流量进行压力测试的系统。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/39-1.png" alt="39-1" /></p>
+
+<p>上图是Kraken的架构图。首先，Faceboook在整个系统中的不同部分（Edge POP、Web LoadBalancer、Service Balancer）进行流量分流，分流基于的权重是可以动态改变的。因此Kraken可以在测试中改变这些权重，从而对流量进行控制。其次，为了保证整个系统不发生宕机的危险情况，Kraken会持续收集安全指标，并将它们保存在数据库中。每60秒运行一次的Traffic Shifter在下次导流之前，会查看这些安全指标，一旦某些指标出现问题，就会停止测试，从而保证系统安全。</p>
+
+<p>最后，笔者想介绍一下Facebook应对紧急情况的策略。</p>
+
+<ol>
+<li>Request spike：在重要的节日，或发生重大事件时，Facebook会在短时间内收到巨大的请求。比如在超级碗时，Facebook在30秒内收到比以往多100%的请求。在这种情况下，Facebook会停掉所有Kraken的测试并把请求导向所有的数据中心，以保证整个系统的正常运行。</li>
+<li>Major faults in system operation：有时候，某数据中心的集群会因为一些问题停止工作。这种情况下，Kraken可以通过安全指标的异常变化发现这些问题，并将流量导向其他正常运行的集群。</li>
+<li>External faults such as a network partition and power loss：这种情况下，整个数据中心的服务都是不可用的，Kraken依然可以通过安全指标的异常变化发现这个问题，并将流量导向其他正常运行的数据中心。</li>
+</ol>
+
+
+<p>在听报告时，笔者想到阿里巴巴在这方面的技术积累一定不输于Facebook。每年双十一零点过后半小时内产生的爆炸性海量流量足以令任何公司胆寒，而阿里的技术团队却一次次成功地守住了每一年的双十一。为了应对双十一，阿里巴巴在2013年推出了全链路压力测试（与Kraken同岁），主动创造海量用户流量对全链路的系统进行测试。笔者十分期待阿里巴巴也能将自己的傲人技术成果与世人共享。</p>
+
+<hr />
+
+<h3>Session~[Operating System II]</h3>
+
+<h4>>>> CertiKOS: An Extensible Architecture for Building Certified Concurrent OS Kernels &lt;&lt;&lt;</h4>
+
+<p><a href="https://www.usenix.org/system/files/conference/osdi16/osdi16-gu.pdf">这篇论文</a>来自Yale University的博士生Ronghui Gu，其导师Zhong Shao，以及Yale的其他合作者Hao Chen，Xiongnan (Newman) Wu，Jieung Kim，Vilhelm Sjoberg和David Costanzo。</p>
+
+<p>本文设计实现了一个简易的支持并发操作的操作系统内核mC2，并验证了其实现的正确性。相比于以前的工作（如seL4 SOSP’09和FSCQ SOSP&#8217;15），本文所介绍的验证方法可以允许被验证的系统实现存在并发操作，mC2读写共享内存的操作的正确性可以被保证。</p>
+
+<p>与验证单一执行流的正确性不同，并发操作中的每一执行流的正确执行受其他执行流的执行情况影响。每一线程都有可能修改全局共享内存的内容，因此线程内部访问共享内存的结果，不能简单通过分析证明本线程的操作得到；而分析众多线程的交互，复杂程度较高。如果对于每次共享内存访问都借助于全局唯一的锁得到保护，势必影响性能，也无助于充分利用多核系统资源。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/40-1.png" alt="40-1" /></p>
+
+<p>上面的图片展示了并发程序执行模型。CPU0和CPU1是两个独立的执行流，各自有原子操作（绿色矩形）、私有内存访问（黄色矩形）和共享内存访问(蓝色矩形）。作者提出了hardware scheduler概念（粉色实线），模拟不同执行流之间不同的调度及交互顺序。一个hardware scheduler代表了调度顺序的一种情况。每一个执行流的每一指令执行结束，都会向hardware scheduler获取调度信息。粉色实线上黑框白字标示最左侧两个依次代表由CPU0切换至CPU0、由CPU0切换至CPU1。</p>
+
+<p>在上图的模型中，各执行流执行的正确性，取决于hardware scheduler的具体操作。完成证明的基本操作就是证明对于任一hardware scheduler，CPU0和CPU1都能正确地完成各自操作。完成两个执行流正确性证明之后，需要对执行流数量进行归纳扩展，归纳至任意执行流数量，从而证明对于任意情况，各执行流能够实现正确执行。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/40-2.png" alt="40-2" /></p>
+
+<p>即使是一个简易的操作系统内核，也需要实现较多数量的功能模块。如上图所示，mC2具备了装载器、虚拟内存管理、线程调度等基本的操作系统功能。这些功能实现中存在许多并发操作。为了简化mC2的验证复杂度，验证过程分为30多个层次完成。最低层是硬件指令集的抽象模型，其上的层次借助于指令集模型完成证明，进而证明排队自旋锁(Ticket Lock)和MCS锁等并发控制操作的正确性。对于使用这些并发控制操作的上层实现，例如页表管理，可以借助底层证明过的锁实现的语义完成正确性证明。因此，为了证明页表管理中的并发操作正确性，不必要从指令集部分开始推理，开发者可以借助大量已证明的基本操作语义来完成。</p>
+
+<h4>>>> EbbRT: A Framework for Building Per-Application Library Operating Systems &lt;&lt;&lt;</h4>
+
+<p>本文作者来自波士顿大学。作者认为，一般操作系统为了保证通用性，不得不牺牲性能。另一方面，系统界有一句名言：没有什么性能问题不是去掉一层抽象不能解决的。2014年OSDI最佳论文之一的Arrakis（Simon Peter的工作）就是将操作系统从data path上抽掉，由应用直接控制硬件，从而提升应用的性能。可是，这种让应用直接控制硬件的系统虽然具备较高的性能，但是会带来很多额外开发成本。</p>
+
+<p>作者提出一种名为EbbRT的系统，既能允许应用直接控制硬件，又能获得通用操作系统所提供的服务，从而减少开发成本。以下为EbbRT的架构图，系统分成两个部分，VM0内运行通用商用操作系统，VM1和VM2内运行native LibOS。VM1和VM2内的LibOS设置了一个唯一的地址空间，提供必需的系统功能（比如内存分配、网络等）允许应用直接与硬件交互，如果需要使用通用操作系统的功能，EbbRT可以通过Offloading的方法将请求交给VM0内的通用操作系统完成。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/41-1.png" alt="41-1" /></p>
+
+<p>当然，需要补充的一点是，虽然架构图中使用了虚拟机的抽象，但是这并不意味着EbbRT的每一个实例都必须跑在虚拟机内。</p>
+
+<h4>>>> SCONE: Secure Linux Containers with Intel SGX &lt;&lt;&lt;</h4>
+
+<p>这篇论文的作者来自德累斯顿工业大学和帝国理工学院，其中Peter Pietzuch是2016年EuroySys的General co-chair。笔者原以为SGX会在今年OSDI上大放异彩，结果会议一共只收录了2篇SGX相关的文章，其中一篇获得了最佳论文奖，另一篇正是本文。</p>
+
+<p>首先介绍本文试图解决的问题。自2013年Docker正式发布以来，容器技术因其封装性强、易于部署程序、开销小的优势，在业界掀起一场技术风暴。因此，许多人认为可以在云服务中抛弃虚拟机抽象，转而使用更为轻便的容器。然而，2015年Red Hat的一篇调查显示，60%的公司担忧容器弱隔离型可能引发的问题。为什么业界会对容器的安全性产生疑虑呢？其中一个原因是过大的攻击面（Attack Surface）。容器技术植根于Linux内核，一个容器进程与内核之间通过系统调用、Proc/Sys虚拟文件系统等方式进行交互。任何一个容器本身或者接口层面的漏洞都可能使得容器内的程序获得Root权限，进而威胁到其他容器内程序的安全。</p>
+
+<p>本文的目标是使用Intel SGX保护容器，加强其隔离性。在展开论文之前，有必要简单介绍一些SGX的背景知识。SGX是Skylake中的新特性，它提供名为Enclave的抽象。一个程序如果运行在Enclave内，它的内存将被硬件自动加密，即使高权限的程序（例如内核），也不能读取其内存数据。</p>
+
+<p>可是，SGX技术本身的技术特点决定了不能直接将容器放入Enclave内，因此，本文需要解决以下2点Challenges。第一，如何减少可信计算基（TCB），也就是如何使得Enclave内的程序代码尽可能得少；第二，如何减少引入Enclave抽象带来的开销。</p>
+
+<p>为了解决上述Challenges，本文实现了SCONE，架构图如下：</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/42-1.png" alt="42-1" /></p>
+
+<p>其中采用了3种技术策略，下面笔者将依次对它们进行介绍。
+第一个策略是将LibC放入Enclave。如果一个系统不信任内核，应该尽可能少地使用内核提供的接口，Haven是很好的一个例子，它只使用了22个系统调用，但因为它将整个Windows LibOS放入Enclave中，从而引起了较大的开销。SCONE的策略是将LibC放入Enclave中，大大减小了TCB，从而减少了开销。可是LibC实现里会调用较多的系统调用，比如read、write、send、recv。为了保护这些系统调用，SCONE会使用Shield技术保护这些调用，也就是下一个策略。</p>
+
+<p>Shields技术透明地加密文件、加密通讯数据（通过TLS）、加密串口数据。当一个文件描述符被打开时，SCONE会为其绑定对应的Shield。当然，Shield只会保护用户数据，而不会考虑Metadata。</p>
+
+<p>第三个策略是异步系统调用。SGX不允许在Enclave中直接发起系统调用，因此必须由Enclave之外的线程提供协助。具体而言，SCONE实现了一个内核模块，其中为若干个内核线程，用来替Enclave内的线程完成系统调用。首先，Enclave内的线程首先需要把参数写入非加密的请求队列（Request Queue）；接着，内核模块内的线程读取参数并完成系统调用，并把结果写入相应队列（Response Queue）；最后，Enclave内线程得到队列中保存好的结果。</p>
+
+<h4>>>> Coordinated and Efficient Huge Page Management with Ingens &lt;&lt;&lt;</h4>
+
+<p>本文的作者来自德州大学奥斯汀分校，其中有3位大神：Simon Peter、Christopher J. Rossbach和Emmett Witchel。Emmett Witchel组今年中了2篇OSDI，笔者做过统计，Witchel大神一共发过10篇SOSP/OSDI。本文一作是来自韩国的Youngjin Kwon，今年发在ASPLOS上的Sego也是他的工作。</p>
+
+<p>64位的虚拟地址需要经过4次页表的翻译，在硬件虚拟化环境下，每次Guest页表翻译需要走4次EPT页表。可以看出，4KB页所带来的虚拟地址翻译开销很大。如果我们使用2MB的大页（Huge Page），将会省掉许多的地址翻译工作。然而，目前内核中对于大页的支持存在着许多问题，以至于很多人宁愿把大页支持关掉，以避免给程序带来意外的性能问题。</p>
+
+<p>本文依次分析了内核中对大页支持的问题，并针对这些问题，设计一个名为Ingens的系统。下面，笔者将重点介绍其中的3个问题与其解决方法。</p>
+
+<p><strong>第一，Page fault latency</strong></p>
+
+<p>作者表示，内核的大页分配策略是greedy且aggresive的，如果在4KB页上发生page fault，内核会立即使用大页支持。然而，分配大页的开销较大，原因有二，其一是必须将整个页面内容全部清零；其二为，当没有足够内存分配大页时，内核会将挪动其他页面，从而拼凑出一个完整的大页。</p>
+
+<p>为了减小page fault的延迟，Ingens只在page fault handler内决定是否使用大页（根据Util bitvector），之后立即返回。如果有必要整合内存，handler会并通知一个后台的Pomote线程，由它负责异步地整合大页。</p>
+
+<p><strong>第二，Increased memory footprint (bloat)</strong></p>
+
+<p>使用大页有一个缺点：即使你只使用其中很小的部分，其他部分也不能给其他程序使用，从而造成了很大的内存泄露。为了证明这点，作者做了一个对比试验，结果如下。可以看出，在Redis里，使用大页将会造成69%的内存泄露。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/43-1.png" alt="43-1" /></p>
+
+<p>解决这个问题的思路其实很简单，只需要维护一个记录页面使用率的数据结构就好。Ingens也的确是这么做的，它用Util bitvector来记录一个大页内存的使用率。当Util bitvector显示此内存的使用率超过一个阈值（作者设为90%），就将其整合成大页。</p>
+
+<p><strong>第三，Huge pages increase fragmentation</strong></p>
+
+<p>前面说到，当没有足够多内存分配大页时，page fault延迟会提高，这种说法实际上是不严谨的，内存中的确存在着足够的内存，它们的数目加起来也许很大，但是彼此不相邻，因而不能整合成一个完成的大页。这种不相邻的内存空间就是fragmentation。作者发现：目前内核在使用大页时会造成很多fragmentation。</p>
+
+<p>为了解决这个问题，Ingens会在Pomote线程中整合大页。因为整合过程需要进行拷贝内存等操作，所以会占用过多CPU，为了尽可能少地影响其他程序，Promote线程每次只整合100MB的内存。</p>
+
+<hr />
+
+<h3>Session~[Cloud Systems II]</h3>
+
+<h4>>> Diamond: Automating Data Management and Storage for Wide-Area, Reactive Applications &lt;&lt;&lt;</h4>
+
+<p>本文的第一作者是<a href="http://irenezhang.net/">Irene Zhang</a>。她出生在北京，在MIT本科毕业后，去了VMware工作了几年，现在正在Washington攻读博士学位。在VMware工作期间，主要工作围绕VM checkpointing，分别在VEE&#8217;11和ATC&#8217;13发表论文。博士期间主要研究方向是cloud system，尤其是cloud application。她在OSDI&#8217;14和SOSP&#8217;15上各发表了一篇文章。她的两位导师分别是Arvind Krishnamurthy和Henry M. Levy。</p>
+
+<p>本文的目标应用叫做reactive applications，这是一种分布式的应用，用户会在多台设备上使用，且不需要显式地对共享数据进行保存和刷新。方便程序员进行开发分布式的reactive applications。类似twitter的社交app，以及类似炉石传说的游戏软件，都属于这一范畴。由于reactive applications会在多用户之间共享数据，因此有必要在用户之间维持一致性(consistency)，否则会容易出bug。但众所周知一致性是一个维护起来很麻烦的性质，它需要考虑到程序执行的各种情况。过去的reactive application要么由开发者手动处理各种可能的问题，要么采用通用但不能满足所有需求的框架(比如Dropbox能解决存储共享数据的问题，却不能处理信息推送的问题)。在这种情况下，作者提出了<strong>Diamond</strong>，这是第一个为分布式reactive application特别设计的服务系统。该系统将程序逻辑与共享数据管理解耦，开发者可以集中精力处理好应用逻辑，同时使用Diamond的接口获取到具有一致性保证的共享数据。</p>
+
+<p>Diamond的大致框架如下图。在Diamond中，所有用户都通过libDiamond与特化的server——Diamond cloud相连，由它统一负责共享数据更新及推送工作。</p>
+
+<p>![44-1] (http://ytliu.info/images/osdi2016/44-1.png)</p>
+
+<p>reactive data map(rmap)是连接client的本地数据与Diamond server上的共享数据之间的桥梁，用户可以通过rmap让本地的变量(如players)与Diamond server上的共享变量建立映射。为了保证每个用户看到的变量都是一致的，Diamond提出了ACID+R的性质，既能保证传统事务系统中的ACID，又具备了reactive application的reactivity(响应性)特征。</p>
+
+<p>论文主要通过两类transaction来实现ACID+R。一类是能够更新共享数据的read-write transaciton，另一类是能对修改作出响应的reactive transaction。开发者使用read-write transaction来执行程序逻辑，保证ACID；同时开发者也可以注册reactive transaction，这是一种特殊的read-only transaction，当它的read set中的变量被人修改时，reactive transaction将会被激活执行，将修改从server端同步到本地。有了reactive transaction的辅助，就能够在保证ACID的同时给予用户“应用在不断进行远程同步”的印象了。</p>
+
+<p>这里有一个小八卦：和华盛顿大学的博士生聊天时得知，去年SOSP上Irene Zhang的工作——TAPIR，最初竟然来自于一个课程项目，这令我很是意外。与TAPIR类似的是，Diamond的灵感似乎也十分贴近生活，笔者手机里的炉石传说就是明证。能在日常中的各处发现灵感并应用到自己的研究之中，想想还是挺酷的呢。</p>
+
+<h4>>> Slicer: Auto-Sharding for Datacenter Applications &lt;&lt;&lt;</h4>
+
+<p>这是一项 Google 和以色列理工学院的工作。 分片 (sharding) 是大规模应用程序中很很重要的一部分。然而现有的系统多使用自定制化的分片系统。这篇论文介绍了在 Google 内使用的通用分片系统，其通过负载热点 (load hotspots) 和服务器状况 (server health) 来动态的对工作进行分片划分。在保证了高可用和负载均衡的情况下，尽可能地减小任务移动带来影响。</p>
+
+<p><strong>总体介绍</strong></p>
+
+<p>Slicer 是一个通用的分片系统。为了方便介绍，作者先做了一些定义。一个应用程序通常会包括很多任务 (tasks) ，这些任务一起组成一个工作 (job) 。在做负载均衡的时候，是以任务为粒度的。</p>
+
+<p>Slicer 在做分片的时候，是以键 (key) 为单位的。
+Slicer 结合了 Google 的 Stubby RPC 系统用于路由其他服务发来的 RPC 请求，并使用了 Google 的前端 HTTP 负载均衡器路由外部浏览器发来的 HTTP 请求，以及 REST 客户端。</p>
+
+<p><strong>系统组成</strong></p>
+
+<p>Slicer 包括一下几个组件：</p>
+
+<ul>
+<li>中心化的 <em>Slicer Service</em> ；</li>
+<li><em>Clerk</em> ，用于链接到客户端应用程序的库；</li>
+<li><em>Slicelet</em> ，用于链接到服务器端任务的的库。</li>
+</ul>
+
+
+<p>下图是 Slicer 的架构图，总的来说， <em>Slicer Service</em> 是 Slicer 的主体部分， <em>Clerk</em> 和 <em>Slicelet</em> 分别在客户端与服务端与 <em>Slicer Service</em> 进行交互。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/45-0.png" alt="arch" /></p>
+
+<p><strong>分片模型</strong></p>
+
+<p>Slicer 将应用程序中的键哈希到 63 比特的 <em>slice key</em> 。每个 <em>slice</em> 被分配到这个映射空间中的一段。这种方式的有两个好处： 1. Slicer 的与应用程序中实际使用的键分开，不受限制于应用程序中键的多少，也不限制应用程序增加和减少键的数量； 2. 这种方法简化了负载均衡算法，因为比较热门的键更可能被均匀的分布到不同的分片中。而这种方式的牺牲了局部性 (locality) ，另外对于区间查询的支持会比较复杂。
+根据应用程序的不同， Slice 提供强一致性和最终一致性。</p>
+
+<p><strong>接口</strong></p>
+
+<p>Slicelet 接口：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>interface Slicelet {
+</span><span class='line'>  boolean isAffinitizedKey(String key);
+</span><span class='line'>  Opaque getSliceKeyHandle(String key);
+</span><span class='line'>  boolean isAssignedContinuously(Opaque handle);
+</span><span class='line'>}
+</span><span class='line'>interface SliceletListener {
+</span><span class='line'>  void onChangedSlices(List&lt;Slice&gt; assigned,
+</span><span class='line'>      List&lt;Slice&gt; unassigned);
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这些接口不是必须被用到的，但是一些应用程序可以使用这些接口来实现一些功能。</p>
+
+<p><code>isAffinitizedkey</code> 用于检测一个键是否被错误的路由过来，可以用于决定是让客户端重发请求还是在这台错误的服务器上继续执行。尽管路由到错误的服务器上，但是一些服务依然是可以被执行的，比如缓存。</p>
+
+<p><code>getSliceKeyHandle</code> 和 <code>isAssignedContinuously</code> 一起用于检测在本地执行请求期间，一个键的分片是否被改变过，从而保证更强的一致性。</p>
+
+<p>Clerk 接口：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>interface Clerk {
+</span><span class='line'>  Set&lt;Addr&gt; getAssignedTasks(String key);
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>论文中似乎并没有提到这个接口在什么情况下会被使用，只提到说大多数应用程序可以忽略这个接口。</p>
+
+<p><strong>应用举例</strong></p>
+
+<ul>
+<li>内存缓存
+
+<ul>
+<li>Flywheel (HTTP proxy for mobile devices)</li>
+<li>&#8230;</li>
+</ul>
+</li>
+<li>内存存储
+
+<ul>
+<li>语音识别</li>
+<li>云 DNS</li>
+</ul>
+</li>
+<li>聚合程序 (Aggregation Applications)
+
+<ul>
+<li>事件分析</li>
+<li>客户端推送 (Pubsub systems for mobile devieces)</li>
+</ul>
+</li>
+</ul>
+
+
+<p><strong>实现细节</strong></p>
+
+<p>下图是 Slicer 更加细节的服务架构。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/45-1.png" alt="arch-detail" /></p>
+
+<p><strong>分片方案：</strong>
+Slicer 将所有的分片方案保存在一个一致性存储之中，<em>Assigner</em> 负责根据现有信息更新分片方案。 <em>Assigner</em> 每次从这个一致性存储中读出分片信息，然后根据工作大小、服务器状态、负载情况产生新的分片方案，虽然事务性的将更新保存回一致性存储之中。事务性可以保证分片方案写回的一致性。</p>
+
+<p><strong>分片方案分发：</strong>
+图中， <em>Distributor</em> 是加在 <em>Assigner</em> 和 <em>Client</em> 之间的一层。论文中说，在大规模服务下，分发成为了计算和网络的瓶颈。因此 Slicer 将分发单独做成了一层。 <em>Client</em> 先从本地的缓存里面查询分片信息，如果没有找到，则去请求 <em>Distributor</em> 。 <em>Distributor</em> 如果也没有这个信息，则去询问 <em>Assigner</em> 。</p>
+
+<p><strong>容错：</strong>
+<em>Backup-Distributor</em> 用于在 <em>Distributor</em> 出现故障的时候使用。为了避免一同出现故障，其使用的是与 <em>Distributor</em> 不同的代码和逻辑。<em>Backup-Distributor</em> 使用静态分片方法，基于稍陈旧的负载和服务器“健康”信息。虽然性能会差一点，但是至少能够保证服务可用。</p>
+
+<p><strong>负载均衡：</strong>
+除了前文提到的哈希映射可以帮助负载均衡之外， Slicer 还有一些其他的方法可以帮助做负载均衡：</p>
+
+<ul>
+<li>增减某个键上的冗余任务。在某些应用程序上，让更多的任务去处理热门数据上的请求。</li>
+<li>键范围切分和合并。如果 [a,c) 上的流量过载，则将其进一步切分成 [a,b) 和 [b,c) 。当然为了防止无限制的切分，也需要把一些冷范围进行合并。</li>
+</ul>
+
+
+<p><strong>强一致性：</strong>
+由于有些应用程序对强一致性有要求， Slicer 可以保证强一致性（可选功能）。
+实现强一致性最简单的方法是使用 lease manager ，如 Chubby 。然而 Chubby 无法扩展到支持上亿级别的 lease 管理，因此为每个键分配一个 lease 是不可行的。</p>
+
+<p>于是 Slicer 巧妙地对于每个工作只使用三个 lease 。分别为：</p>
+
+<ol>
+<li><em>job lease</em> ，用于保证同一时刻只有一个 <em>Assigner</em> 能够管理分片方案；</li>
+<li><em>guard lease</em> ，用于保证 <em>Assigner</em> 在修改分片方案的时候，没有 <em>Slicelet</em> 在读分片方案。</li>
+<li><em>bridge lease</em> ，当分配方案（的一个键范围） A1 要被改变成 A2 的时候， <em>Assigner</em> 首先保存和分发 A2 然后创建一个 <em>bridge lease</em> ，等待 <em>Slicelet</em> 获取这个 <em>bridge lease</em> 后，<em>Assigner</em> 才去修改 <em>guard lease</em> 。当一个 <em>Slicetlet</em> 获得 <em>bridge lease</em> 之后，他可以访问 A1 和 A2 的交集。这可以保证在 A1 更新成 A2 的过程之中， <em>Slicelet</em> 不会被阻塞。</li>
+</ol>
+
+
+<p>总体来说，这是一项很有内容的工作，解决的是很实际问题。 Slicer 已经在 Google 内被超过 20 个客户服务所使用，在 100,000 个客户和服务端之间每秒钟均衡 2-7M 请求。</p>
+
+<h4>>> History-Based Harvesting of Spare Cycles and Storage in Large-Scale Datacenters &lt;&lt;&lt;</h4>
+
+<p>本文的第一作者是来自University of Michigan的Yunqi Zhang，主要研究方向是scalablity。二作是来自EPFL的George Prekas，主要研究方向是high throughput &amp; low latency。</p>
+
+<p>这篇文论针对的是服务器端的资源利用问题。目前服务器端存在很大的资源浪费，特别是部署与用户交互的低延迟要求服务时。因为这类服务往往在用户使用时存在明显的波峰，并且需要预留资源处理一些突发事件。为了解决资源利用率低的问题，往往会将一个批处理服务（如机器学习）以及其所需的数据存储在部署了低延迟要求的服务器中，让它们协同运行。在将一个批处理服务<code>co-locate</code>在部署了低延迟要求服务的机器上时，需要保证其不能对原先服务的响应时间造成太大影响。同时批处理服务本身的性能也不能太差，否则就丧失了协同运行的意义了。</p>
+
+<p>为了防止批处理服务影响原有服务的性能，当原有服务需要批处理服务占用的资源时，批处理服务会被杀死并在之后重新启动。与此同时，原有服务很可能会定期格式化磁盘（例如为了更换服务器上运行的服务），这也就使得批处理服务在本地存储的数据可能会丢失。为了解决这些，本篇论文利用一些<strong>historical</strong>的分析结果，减少批处理服务被终止的次数，增强批处理服务数据的持久性。</p>
+
+<p>首先为了得到原有服务的一些特性，作者利用AutoPilot记录原有服务的某些特定行为。由于本文主要考虑CPU资源的利用率以及数据存储的持久化，所以作者主要分析了原有服务在CPU利用率方面的特性以及磁盘格式化的频率等信息。利用这些<strong>historical</strong>的数据，作者进一步提出了一个调度方法以及一个数据分配方法。</p>
+
+<p>调度方面，通过之前的分析，作者将原有的低延迟服务根据它们的CPU使用率变化分为三类，周期性，非周期性以及恒定性。调度时，所有的低延迟服务都将被划分成这三类中的一种。而同时批处理服务也会被划分成大、中、小三种，每种批处理服务对不同种类的低延迟服务都拥有不同的适应率。例如运行时间较长的批处理服务就更为适合CPU利用率几乎不变的恒定性服务，因为这类服务很少出现CPU利用率的突变，基本不会打断批处理服务的运行。而中等大小的批处理服务更适合与周期性的低延迟服务协同工作，只要其位于原有服务两个CPU利用率的波峰之间即可。小型批处理服务则适合与非周期性的低延迟服务一同部署。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/46-1.jpg" alt="46-1" /></p>
+
+<p>对于批处理服务的数据储存，作者使用一个分布式数据存储系统提供数据存储服务。然而原先服务的格式化操作会破坏数据的持久性，另一方面一旦某服务器的原先服务CPU利用率达到峰值，那么那个节点的数据将暂时无法访问，从而降低数据的可用性。为了兼顾数据的持久性和可用性，备份算法在两个不同的维度对服务器进行划分，磁盘格式化的几率和CPU波峰的利用率，分别对应持久性与可用性。在每个维度上服务器会被分为三种不同的级别。存储数据备份时，会保证一个数据的不同备份在持久性和可用性维度上均不同。</p>
+
+<p><img src="http://ytliu.info/images/osdi2016/46-2.jpg" alt="46-2" /></p>
+
+<p>这篇论文巧妙的通过对服务器中原有服务进行利用率，磁盘格式化等行为的分析，通过分析结果进一步优化协同工作的批处理服务的调度以及数据分布策略。结果显示该工作能够很好的对服务器的冗余资源进行利用，同时不对原有低延迟服务造成明显的性能影响。</p>
+
+<p>为了减少由于原先服务格式化磁盘带来的影响，该系统需要合理的对数据进行备份。</p>
+
+<h4>>> DQBarge: Improving data-quality tradeoffs in large-scale Internet services &lt;&lt;&lt;</h4>
+
+<p>这是一篇来自 UMich 和 Facebook 合作的论文，一作 Michael Chow 曾在 OSDI&#8217;14 上发表一篇，参与两篇，非常厉害。导师是 Jason Flinn，系统界大佬，今年收获两篇。这篇我觉得应该是作者在 Facebook 实习的时侯完成或者是和 Facebook 有合作，因为文章整体上属于对工业界的生产系统进行深入分析，然后提出针对性的实用解决方案的工作，比较接地气。</p>
+
+<p>文章研究的问题是所谓的“数据质量（data-quality）”。在 Facebook 的系统中，通常一个服务是有非常非常多的小的功能组件组合起来的。作者发现，为了达到这个服务整体的性能目标（例如低延迟），编写小的功能组件的程序员通常会在数据的精确性和组件的对一个请求的完成时间上做取舍（tradeoff）。换句话说，当这个组件发现自己可能来不及完成一个请求并传给下一个组件的时候，它可能选择返回一个不那么精确的值或者可能是一个局部值；当它有足够的时间完成时，则能够提供一个完全准确的值。举个栗子：比如键值存储服务中，一个组件负责统计数据集的大小，但是当它的 deadline 快到了可是所需的数据只收到了一部分，那这个时候是应该继续等呢还是放弃？通常程序员为了达到延迟要求，会设置一个 timeout，如果时间到了却无法得出正确结果，那这个组件就选择只返回已经收到的数据集的大小，比如只有 1/2 的数据。那这个结果当然是不准确的，但是满足了延迟要求，而且在一些对数据的准确性要求不是非常严格的情形下，也不会造成严重后果。</p>
+
+<p>![47-1] (http://ytliu.info/images/osdi2016/47-1.png)</p>
+
+<p>作者研究了 Facebook 的一个键值存储系统 Laser，发现这种取舍非常普遍。作者还发现，这样的取舍通常都是被动的，即在发现时间已经用完的时候，才被动地做一个取舍。而且这些组件通常只能根据自己内部记录的状态来做决定，无法得知整个服务全局的状态（比如其他组件的延迟，请求的处理路径）。所以文章提出一个系统 DQBarge，这个系统能够对 Facebook 服务处理请求的过程进行取样，获得输入和输出。然后对某一个服务，不断地用喂输入，比较输出，记录请求处理的关键路径、系统负载等信息，检测组件在数据精确性和请求处理时间之间所做的取舍，并对整个服务的行为建模。有了这样的模型，该服务在生产环境中运行时，每一个组件可以动态地得知一个请求经过的路径和系统状态，从而根据生产环境的全局信息，查询这个模型，积极地而非被动地做出数据精确性取舍。</p>
+
+<p>我觉得这个工作是比较偏工业界，因为整个问题的背景是特定于 Facebook 的内部服务。但是抛开这样的特定性，作者解决问题的方法是典型的系统的方法，对于我们做系统研究依然有借鉴意义。</p>
+
+<hr />
+
+<p>总结一句话，欢迎大家参加明年在上海举办的SOSP-2017！</p>
+
+<hr />
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-12-15T10:04:00+08:00" pubdate data-updated="true">Dec 15<span>th</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/conference/'>Conference</a>, <a class='category' href='/blog/categories/life/'>Life</a>, <a class='category' href='/blog/categories/system/'>System</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/" title="Previous Post: X86指令编码的那些事儿">&laquo; X86指令编码的那些事儿</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/';
+        var disqus_url = 'http://ytliu.github.io/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,984 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Linux内存初始化（汇编部分） - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Linux 内存初始化 内核启动">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Linux内存初始化（汇编部分）</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-03-14T20:47:00+08:00" pubdate data-updated="true">Mar 14<span>th</span>, 2016</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>之前有几篇博客详细介绍了Xen的内存初始化，确实感觉这部分内容蛮复杂的。这两天在看Linux内核启动中内存的初始化，也是看的云里雾里的，想尝试下边看边写，在写博客的过程中慢慢思考，最后也能把自己的思考分享给其它人。</p>
+
+<!-- more -->
+
+
+<p>这个系列主要分为两个部分，汇编部分和<a href="http://ytliu.info/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">C语言部分</a>。</p>
+
+<p>这篇博文主要介绍的是汇编部分。</p>
+
+<p>注：这两篇博文介绍的都是64位系统。</p>
+
+<h3>内核解压缩过程</h3>
+
+<p>这个过程就不详述了，整个Linux内核是作为一个压缩过的镜像提供的，在执行内核代码之前，首先需要bootloader对其进行一个解压缩，对这部分有兴趣可以参看<a href="http://blog.sina.com.cn/s/blog_b02f77c80101db1t.html">这篇博客</a>。</p>
+
+<h3>最初的页表什么样？</h3>
+
+<p>解压结束后，会进行一个对elf格式的parse，然后对内核进行加载，最后进入<code>arch/x86/kernel/head_64.S</code>中的<code>startup_64</code>。</p>
+
+<p><code>startup_64</code>主要完成分页功能启用，最后跳入C代码x86_64_start_kernel。在开始分析代码之前，我们要先来看看在内核的数据段中，初始化页表是长怎么样的？</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">__INITDATA</span>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">early_level4_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">511</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span> <span class="n">level3_kernel_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_PAGE_TABLE</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">early_dynamic_pgts</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">512</span><span class="o">*</span><span class="n">EARLY_DYNAMIC_PAGE_TABLES</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="n">data</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">init_level4_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">512</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">level3_kernel_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="n">L3_START_KERNEL</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span><span class='line'>  <span class="cm">/* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span> <span class="n">level2_kernel_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_KERNPG_TABLE</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span> <span class="n">level2_fixmap_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_PAGE_TABLE</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">level2_kernel_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">PMDS</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">__PAGE_KERNEL_LARGE_EXEC</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">KERNEL_IMAGE_SIZE</span><span class="o">/</span><span class="n">PMD_SIZE</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">level2_fixmap_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">506</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span> <span class="n">level1_fixmap_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_PAGE_TABLE</span>
+</span><span class='line'>  <span class="cm">/* 8MB reserved for vsyscalls + a 2MB hole = 4 + 1 entries */</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">5</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">level1_fixmap_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">512</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这段数据结构还是比较清楚的，你把下面这两个宏<code>NEXT_PAGE</code>和<code>PMDS</code>代入上面的数据结构：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#define NEXT_PAGE(name) \</span>
+</span><span class='line'><span class="cp">  .balign PAGE_SIZE; \</span>
+</span><span class='line'><span class="cp">GLOBAL(name)</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/* Automate the creation of 1 to 1 mapping pmd entries */</span>
+</span><span class='line'><span class="cp">#define PMDS(START, PERM, COUNT)      \</span>
+</span><span class='line'><span class="cp">  i = 0 ;           \</span>
+</span><span class='line'><span class="cp">  .rept (COUNT) ;         \</span>
+</span><span class='line'><span class="cp">  .quad (START) + (i &lt;&lt; PMD_SHIFT) + (PERM) ; \</span>
+</span><span class='line'><span class="cp">  i = i + 1 ;         \</span>
+</span><span class='line'><span class="cp">  .endr</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们就可以很轻易地画出下面这张图：</p>
+
+<p><img src="http://ytliu.info/images/2016-03-14-1.png" title="Linux early page table in boot" alt="early page table" /></p>
+
+<p>后面的初始化过程，就是建立在这个早期的页表结构中的。</p>
+
+<h3>正式进入startup_64</h3>
+
+<p>我们一段段来分析：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="nl">startup_64:</span>
+</span><span class='line'>  <span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * Compute the delta between the address I am compiled to run at and the</span>
+</span><span class='line'><span class="cm">   * address I am actually running at.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="n">_text</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rbp</span>
+</span><span class='line'>  <span class="n">subq</span>  <span class="err">$</span><span class="n">_text</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span><span class="p">,</span> <span class="o">%</span><span class="n">rbp</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Is the address not 2M aligned? */</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rbp</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">andl</span>  <span class="err">$</span><span class="o">~</span><span class="n">PMD_PAGE_MASK</span><span class="p">,</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">testl</span> <span class="o">%</span><span class="n">eax</span><span class="p">,</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">jnz</span> <span class="n">bad_address</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * Is the address too large?</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="n">_text</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">shrq</span>  <span class="err">$</span><span class="n">MAX_PHYSMEM_BITS</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">jnz</span> <span class="n">bad_address</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里的这段代码非常奇怪：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">leaq</span>  <span class="n">_text</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rbp</span>
+</span><span class='line'>  <span class="n">subq</span>  <span class="err">$</span><span class="n">_text</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span><span class="p">,</span> <span class="o">%</span><span class="n">rbp</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我想了好久，现在终于在Liangpig的指导下有了点眉目。（不确定的）解释如下：</p>
+
+<p>首先<code>leaq  _text(%rip), %rbp</code>是一个相对寻址的指令，其并不是直接将<code>_text</code>的地址和当前<code>%rip</code>的值相加，而是<code>%rip</code>加上一个<code>_text</code>和它的相对地址，其实就是<code>$-7</code>（因为该地址的长度为7，而当前的<code>%rip</code>就是<code>_text</code>地址加上<code>7</code>），这个相对值是在link的时候计算出来的，可以参看<a href="http://stackoverflow.com/questions/9354941/retrieving-data-in-x86-64">这个问题</a>和<a href="http://stackoverflow.com/questions/3250277/how-to-use-rip-relative-addressing-in-a-64-bit-assembly-program">这个问题</a>。</p>
+
+<p>这里另外需要注意的一点是，在当前这个时候，计算机还是通过实模式进行寻址的，所以内核的代码应该是被load到了一个低地址（而不是大于<code>0xffffffff8000000</code>的地址），因此，<code>%rbp</code>存储的也是一个低地址，表示的是内核的代码段被实际装载到内存到的地址，让我们假设是<code>0x3000000</code>。</p>
+
+<p>那么<code>$_text - __START_KERNEL_map</code>是什么呢？我们来看下面的定义：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cp">#define __START_KERNEL_map _AC(0xffffffff80000000, UL)</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define __PHYSICAL_START  ALIGN(CONFIG_PHYSICAL_START, \</span>
+</span><span class='line'><span class="cp">                        CONFIG_PHYSICAL_ALIGN)</span>
+</span><span class='line'>
+</span><span class='line'><span class="cp">#define __START_KERNEL  (__START_KERNEL_map + __PHYSICAL_START)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">SECTIONS</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="p">.</span> <span class="o">=</span> <span class="n">__START_KERNEL</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">.</span><span class="n">text</span> <span class="o">:</span> <span class="n">AT</span><span class="p">(</span><span class="n">ADDR</span><span class="p">(.</span><span class="n">text</span><span class="p">)</span> <span class="o">-</span> <span class="n">LOAD_OFFSET</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">_text</span> <span class="o">=</span> <span class="p">.;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="cp">#define </span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>首先，<code>__START_KERNEL_map</code>是<code>0xffffffff80000000</code>，即内核代码和数据段在64位的虚拟地址空间中的最低地址段（<code>0xffffffff80000000</code>到<code>0xffffffffa0000000</code>这512MB的虚拟机之空间映射了内核段）。而<code>_text</code>表示的是<code>__START_KERNEL_map</code>加上了一段编译过程中指定的地址，在我机器内核的<code>.config</code>文件中为<code>0x1000000</code>。也就是说，如果<code>__START_KERNEL_map</code>映射的是物理地址为<code>0</code>的内存的话，那么在编译中我们期望的真正的物理地址就为<code>0x1000000</code>，也就是说，<code>$_text - __START_KERNEL_map</code>表示的是我们在编译过程中期望的内核段被装载到内存的起始地址，因此<code>subq  $_text - __START_KERNEL_map, %rbp</code>表示将当前内核段真实被装载到内存中的地址和编译过程中期望被装载到内存中的地址的差值赋值给<code>%rbx</code>，在我们的例子中即为<code>0x2000000</code>（<code>0x3000000</code> - <code>0x1000000</code>）。</p>
+
+<p>之后我们就对这个真实被装载到内存中的地址做一些检查，包括是否2M对齐，以及有没有超过最大大小等等，这里就不详述了。</p>
+
+<p>然后做的一件事就是调整初始化页表中的物理地址映射：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * Fixup the physical addresses in the page table</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">addq</span>  <span class="o">%</span><span class="n">rbp</span><span class="p">,</span> <span class="n">early_level4_pgt</span> <span class="o">+</span> <span class="p">(</span><span class="n">L4_START_KERNEL</span><span class="o">*</span><span class="mi">8</span><span class="p">)(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">addq</span>  <span class="o">%</span><span class="n">rbp</span><span class="p">,</span> <span class="n">level3_kernel_pgt</span> <span class="o">+</span> <span class="p">(</span><span class="mi">510</span><span class="o">*</span><span class="mi">8</span><span class="p">)(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">addq</span>  <span class="o">%</span><span class="n">rbp</span><span class="p">,</span> <span class="n">level3_kernel_pgt</span> <span class="o">+</span> <span class="p">(</span><span class="mi">511</span><span class="o">*</span><span class="mi">8</span><span class="p">)(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">addq</span>  <span class="o">%</span><span class="n">rbp</span><span class="p">,</span> <span class="n">level2_fixmap_pgt</span> <span class="o">+</span> <span class="p">(</span><span class="mi">506</span><span class="o">*</span><span class="mi">8</span><span class="p">)(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这又是一段相对寻址，由于页表处于数据段，所以需要根据其和<code>%rip</code>中的相对地址来定位到页表，然后将页表中的表项加上之前计算的相对偏移量。当然这里只处理了<code>early_level4_pgt</code>、<code>level3_kernel_pgt</code>和<code>level2_fixmap_pgt</code>，而真正映射内核段的<code>level2_kernel_pgt</code>会在之后进行fixup。</p>
+
+<p>之后又进入了一段诡异的代码，来建立<code>identity mapping for the switchover</code>，我也不懂这里的<code>switchover</code>是什么，我们先来看下这段代码做了什么吧：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * Set up the identity mapping for the switchover.  These</span>
+</span><span class='line'><span class="cm">   * entries should *NOT* have the global bit set!  This also</span>
+</span><span class='line'><span class="cm">   * creates a bunch of nonsense entries but that is fine --</span>
+</span><span class='line'><span class="cm">   * it avoids problems around wraparound.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="n">_text</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rdi</span>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="n">early_level4_pgt</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rbx</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rdi</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">shrq</span>  <span class="err">$</span><span class="n">PGDIR_SHIFT</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="p">(</span><span class="mi">4096</span> <span class="o">+</span> <span class="n">_KERNPG_TABLE</span><span class="p">)(</span><span class="o">%</span><span class="n">rbx</span><span class="p">),</span> <span class="o">%</span><span class="n">rdx</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rdx</span><span class="p">,</span> <span class="mi">0</span><span class="p">(</span><span class="o">%</span><span class="n">rbx</span><span class="p">,</span><span class="o">%</span><span class="n">rax</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rdx</span><span class="p">,</span> <span class="mi">8</span><span class="p">(</span><span class="o">%</span><span class="n">rbx</span><span class="p">,</span><span class="o">%</span><span class="n">rax</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">addq</span>  <span class="err">$</span><span class="mi">4096</span><span class="p">,</span> <span class="o">%</span><span class="n">rdx</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rdi</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">shrq</span>  <span class="err">$</span><span class="n">PUD_SHIFT</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">andl</span>  <span class="err">$</span><span class="p">(</span><span class="n">PTRS_PER_PUD</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rdx</span><span class="p">,</span> <span class="mi">4096</span><span class="p">(</span><span class="o">%</span><span class="n">rbx</span><span class="p">,</span><span class="o">%</span><span class="n">rax</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">incl</span>  <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">andl</span>  <span class="err">$</span><span class="p">(</span><span class="n">PTRS_PER_PUD</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rdx</span><span class="p">,</span> <span class="mi">4096</span><span class="p">(</span><span class="o">%</span><span class="n">rbx</span><span class="p">,</span><span class="o">%</span><span class="n">rax</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">addq</span>  <span class="err">$</span><span class="mi">8192</span><span class="p">,</span> <span class="o">%</span><span class="n">rbx</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rdi</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">shrq</span>  <span class="err">$</span><span class="n">PMD_SHIFT</span><span class="p">,</span> <span class="o">%</span><span class="n">rdi</span>
+</span><span class='line'>  <span class="n">addq</span>  <span class="err">$</span><span class="p">(</span><span class="n">__PAGE_KERNEL_LARGE_EXEC</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">_PAGE_GLOBAL</span><span class="p">),</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="p">(</span><span class="n">_end</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rcx</span>
+</span><span class='line'>  <span class="n">shrq</span>  <span class="err">$</span><span class="n">PMD_SHIFT</span><span class="p">,</span> <span class="o">%</span><span class="n">rcx</span>
+</span><span class='line'>  <span class="n">subq</span>  <span class="o">%</span><span class="n">rdi</span><span class="p">,</span> <span class="o">%</span><span class="n">rcx</span>
+</span><span class='line'>  <span class="n">incl</span>  <span class="o">%</span><span class="n">ecx</span>
+</span><span class='line'>
+</span><span class='line'><span class="mi">1</span><span class="o">:</span>
+</span><span class='line'>  <span class="n">andq</span>  <span class="err">$</span><span class="p">(</span><span class="n">PTRS_PER_PMD</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="o">%</span><span class="n">rdi</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rax</span><span class="p">,</span> <span class="p">(</span><span class="o">%</span><span class="n">rbx</span><span class="p">,</span><span class="o">%</span><span class="n">rdi</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">incq</span>  <span class="o">%</span><span class="n">rdi</span>
+</span><span class='line'>  <span class="n">addq</span>  <span class="err">$</span><span class="n">PMD_SIZE</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">decl</span>  <span class="o">%</span><span class="n">ecx</span>
+</span><span class='line'>  <span class="n">jnz</span> <span class="mi">1</span><span class="n">b</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们可以稍微进行一个计算，首先<code>%rdi</code>保存了当前内核代码段的首地址，<code>%rbx</code>保存了<code>early_level4_pgt</code>的地址，<code>%rax</code>是内核代码首地址对于level4页表的index，在当前即为0。所以<code>leaq  (4096 + _KERNPG_TABLE)(%rbx), %rdx</code>表示的是将<code>early_level4_pgt</code>所在的地址加上一个页的地址，作为第3级页表页，再加上相应的权限位，保存在<code>%rdx</code>中，然后通过<code>movq  %rdx, 0(%rbx,%rax,8)</code>和<code>movq  %rdx, 8(%rbx,%rax,8)</code>指令把<code>%rdx</code>作为一个表项，存在<code>early_level4_pgt</code>的第0和第1项中。</p>
+
+<p>然后将<code>%rdx</code>再加上一个页的大小，作为第2级页表页，找到内核代码段对于level3页表的index，然后将第2级页表页加上对应的权限作为一个页表项存在刚刚建立的level3页表的第0项和第1项。</p>
+
+<p>然后将<code>%rbx</code>加上两个页的大小，即第2级页表的位置，找到从<code>_text</code>到<code>_end</code>所有内核代码段对于level2页表的索引，然后将对应的地址+权限作为页表项逐个填到这个第2级页表中。</p>
+
+<p>我们可以在<code>arch/x86/kernel/head_64.S</code>文件中找到这几个新添加的页表页的定义：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">__INITDATA</span>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">early_level4_pgt</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">511</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span> <span class="n">level3_kernel_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span> <span class="o">+</span> <span class="n">_PAGE_TABLE</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NEXT_PAGE</span><span class="p">(</span><span class="n">early_dynamic_pgts</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">fill</span> <span class="mi">512</span><span class="o">*</span><span class="n">EARLY_DYNAMIC_PAGE_TABLES</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>即紧接着<code>early_level4_pgt</code>，被称为<code>early_dynamic_pgts</code>。这个就是所谓的<code>identity mapping for the switchover</code>，表示在之后的一小段页表转换过程中会被用到的identity mapping。因为在页表中虚拟地址从低地址到高地址转换的过程中不可避免的会通过低位的虚拟地址进行索引，所以需要预先做个identity mapping的准备。</p>
+
+<p>至此，页表变成了这个样子。</p>
+
+<p><img src="http://ytliu.info/images/2016-03-14-2.png" title="Linux early page table 2 in boot" alt="early page table 2" /></p>
+
+<p><code>startup_64</code>最后一步就是fixup内核段真正的物理页对应的页表项了，代码如下所示：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * Fixup the kernel text+data virtual addresses. Note that</span>
+</span><span class='line'><span class="cm">   * we might write invalid pmds, when the kernel is relocated</span>
+</span><span class='line'><span class="cm">   * cleanup_highmap() fixes this up along with the mappings</span>
+</span><span class='line'><span class="cm">   * beyond _end.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="n">level2_kernel_pgt</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rdi</span>
+</span><span class='line'>  <span class="n">leaq</span>  <span class="mi">4096</span><span class="p">(</span><span class="o">%</span><span class="n">rdi</span><span class="p">),</span> <span class="o">%</span><span class="n">r8</span>
+</span><span class='line'>  <span class="cm">/* See if it is a valid page table entry */</span>
+</span><span class='line'><span class="mi">1</span><span class="o">:</span>  <span class="n">testq</span> <span class="err">$</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">(</span><span class="o">%</span><span class="n">rdi</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">jz</span>  <span class="mf">2f</span>
+</span><span class='line'>  <span class="n">addq</span>  <span class="o">%</span><span class="n">rbp</span><span class="p">,</span> <span class="mi">0</span><span class="p">(</span><span class="o">%</span><span class="n">rdi</span><span class="p">)</span>
+</span><span class='line'>  <span class="cm">/* Go to the next page */</span>
+</span><span class='line'><span class="mi">2</span><span class="o">:</span>  <span class="n">addq</span>  <span class="err">$</span><span class="mi">8</span><span class="p">,</span> <span class="o">%</span><span class="n">rdi</span>
+</span><span class='line'>  <span class="n">cmp</span> <span class="o">%</span><span class="n">r8</span><span class="p">,</span> <span class="o">%</span><span class="n">rdi</span>
+</span><span class='line'>  <span class="n">jne</span> <span class="mi">1</span><span class="n">b</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Fixup phys_base */</span>
+</span><span class='line'>  <span class="n">addq</span>  <span class="o">%</span><span class="n">rbp</span><span class="p">,</span> <span class="n">phys_base</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">movq</span>  <span class="err">$</span><span class="p">(</span><span class="n">early_level4_pgt</span> <span class="o">-</span> <span class="n">__START_KERNEL_map</span><span class="p">),</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">jmp</span> <span class="mf">1f</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个过程的前半部分就是将<code>level2_kernel_pgt</code>中的表项进行一个个的检查，如果不是0（即为一个可能存在的页表项），则将其加上之前计算的真实地址和被期待地址的偏移量（<code>%rbp</code>）。</p>
+
+<p>当这个fixup结束之后，将<code>%rbp</code>保存在<code>phys_base</code>这个地址中，然后再将<code>early_level4_pgt - __START_KERNEL_map</code>保存在<code>%rax</code>中。</p>
+
+<p>接下来就进入<code>secondary_startup_64</code>。</p>
+
+<h3>secondary_startup_64</h3>
+
+<p>这部分代码的主要功能是一些模式的开启，以及相关数据结构的加载，我们同样逐段进行分析：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">ENTRY</span><span class="p">(</span><span class="n">secondary_startup_64</span><span class="p">)</span>
+</span><span class='line'>  <span class="cm">/* Enable PAE mode and PGE */</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="err">$</span><span class="p">(</span><span class="n">X86_CR4_PAE</span> <span class="o">|</span> <span class="n">X86_CR4_PGE</span><span class="p">),</span> <span class="o">%</span><span class="n">ecx</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rcx</span><span class="p">,</span> <span class="o">%</span><span class="n">cr4</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Setup early boot stage 4 level pagetables. */</span>
+</span><span class='line'>  <span class="n">addq</span>  <span class="n">phys_base</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rax</span><span class="p">,</span> <span class="o">%</span><span class="n">cr3</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里开启了PAE和PGE模式，并将其写到<code>%cr4</code>中，同时将初始页表的第四级页表地址写入了<code>%cr3</code>。至此，分页模式开启！</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/* Ensure I am executing from virtual addresses */</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="err">$</span><span class="mf">1f</span><span class="p">,</span> <span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">jmp</span> <span class="o">*%</span><span class="n">rax</span>
+</span><span class='line'><span class="mi">1</span><span class="o">:</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Check if nx is implemented */</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="err">$</span><span class="mh">0x80000001</span><span class="p">,</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">cpuid</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="o">%</span><span class="n">edx</span><span class="p">,</span><span class="o">%</span><span class="n">edi</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Setup EFER (Extended Feature Enable Register) */</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="err">$</span><span class="n">MSR_EFER</span><span class="p">,</span> <span class="o">%</span><span class="n">ecx</span>
+</span><span class='line'>  <span class="n">rdmsr</span>
+</span><span class='line'>  <span class="n">btsl</span>  <span class="err">$</span><span class="n">_EFER_SCE</span><span class="p">,</span> <span class="o">%</span><span class="n">eax</span>  <span class="cm">/* Enable System Call */</span>
+</span><span class='line'>  <span class="n">btl</span> <span class="err">$</span><span class="mi">20</span><span class="p">,</span><span class="o">%</span><span class="n">edi</span>    <span class="cm">/* No Execute supported? */</span>
+</span><span class='line'>  <span class="n">jnc</span>     <span class="mf">1f</span>
+</span><span class='line'>  <span class="n">btsl</span>  <span class="err">$</span><span class="n">_EFER_NX</span><span class="p">,</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">btsq</span>  <span class="err">$</span><span class="n">_PAGE_BIT_NX</span><span class="p">,</span><span class="n">early_pmd_flags</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>
+</span><span class='line'><span class="mi">1</span><span class="o">:</span>  <span class="n">wrmsr</span>       <span class="cm">/* Make changes effective */</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Setup cr0 */</span>
+</span><span class='line'><span class="cp">#define CR0_STATE (X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \</span>
+</span><span class='line'><span class="cp">       X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \</span>
+</span><span class='line'><span class="cp">       X86_CR0_PG)</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="err">$</span><span class="n">CR0_STATE</span><span class="p">,</span> <span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="cm">/* Make changes effective */</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rax</span><span class="p">,</span> <span class="o">%</span><span class="n">cr0</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Setup a boot time stack */</span>
+</span><span class='line'>  <span class="n">movq</span> <span class="n">stack_start</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span> <span class="o">%</span><span class="n">rsp</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* zero EFLAGS after setting rsp */</span>
+</span><span class='line'>  <span class="n">pushq</span> <span class="err">$</span><span class="mi">0</span>
+</span><span class='line'>  <span class="n">popfq</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面的代码进行了一系列的初始化，包括检查<code>nx</code>（non-execution）是否开启，创建EFER，创建cr0，以及设置一个启动时会用到的栈，并且将所有eflags清零。这里就不细讲了。</p>
+
+<p>然后是加载早期的GDT：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm">   * We must switch to a new descriptor in kernel space for the GDT</span>
+</span><span class='line'><span class="cm">   * because soon the kernel won&#39;t have access anymore to the userspace</span>
+</span><span class='line'><span class="cm">   * addresses where we&#39;re currently running on. We have to do that here</span>
+</span><span class='line'><span class="cm">   * because in 32bit we couldn&#39;t load a 64bit linear address.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">lgdt</span>  <span class="n">early_gdt_descr</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>初始化段寄存器：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/* set up data segments */</span>
+</span><span class='line'>  <span class="n">xorl</span> <span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">movl</span> <span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">ds</span>
+</span><span class='line'>  <span class="n">movl</span> <span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">ss</span>
+</span><span class='line'>  <span class="n">movl</span> <span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">es</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">movl</span> <span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">fs</span>
+</span><span class='line'>  <span class="n">movl</span> <span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">gs</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="cm">/* Set up %gs.</span>
+</span><span class='line'><span class="cm">   *</span>
+</span><span class='line'><span class="cm">   * The base of %gs always points to the bottom of the irqstack</span>
+</span><span class='line'><span class="cm">   * union.  If the stack protector canary is enabled, it is</span>
+</span><span class='line'><span class="cm">   * located at %gs:40.  Note that, on SMP, the boot cpu uses</span>
+</span><span class='line'><span class="cm">   * init data section till per cpu areas are set up.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="err">$</span><span class="n">MSR_GS_BASE</span><span class="p">,</span><span class="o">%</span><span class="n">ecx</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="n">initial_gs</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span><span class="o">%</span><span class="n">eax</span>
+</span><span class='line'>  <span class="n">movl</span>  <span class="n">initial_gs</span><span class="o">+</span><span class="mi">4</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span><span class="o">%</span><span class="n">edx</span>
+</span><span class='line'>  <span class="n">wrmsr</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里需要注意的是<code>%gs</code>的建立，它和per cpu变量相关，是一个比较关键的段寄存器。不过由于这个系列主要是和内存相关，所以这里就不详述了。</p>
+
+<p>然后将参数传给<code>%rdi</code>：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/* rsi is pointer to real mode structure with interesting info.</span>
+</span><span class='line'><span class="cm">     pass it to C */</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="o">%</span><span class="n">rsi</span><span class="p">,</span> <span class="o">%</span><span class="n">rdi</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后就是一个通过far return的跳转：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="cm">/* Finally jump to run C code and to be on real kernel address</span>
+</span><span class='line'><span class="cm">   * Since we are running on identity-mapped space we have to jump</span>
+</span><span class='line'><span class="cm">   * to the full 64bit address, this is only possible as indirect</span>
+</span><span class='line'><span class="cm">   * jump.  In addition we need to ensure %cs is set so we make this</span>
+</span><span class='line'><span class="cm">   * a far return.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="n">movq</span>  <span class="n">initial_code</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">),</span><span class="o">%</span><span class="n">rax</span>
+</span><span class='line'>  <span class="n">pushq</span> <span class="err">$</span><span class="mi">0</span>    <span class="err">#</span> <span class="n">fake</span> <span class="k">return</span> <span class="n">address</span> <span class="n">to</span> <span class="n">stop</span> <span class="n">unwinder</span>
+</span><span class='line'>  <span class="n">pushq</span> <span class="err">$</span><span class="n">__KERNEL_CS</span>  <span class="err">#</span> <span class="n">set</span> <span class="n">correct</span> <span class="n">cs</span>
+</span><span class='line'>  <span class="n">pushq</span> <span class="o">%</span><span class="n">rax</span>    <span class="err">#</span> <span class="n">target</span> <span class="n">address</span> <span class="n">in</span> <span class="n">negative</span> <span class="n">space</span>
+</span><span class='line'>  <span class="n">lretq</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中<code>initial_code</code>定义为：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">GLOBAL</span><span class="p">(</span><span class="n">initial_code</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">.</span><span class="n">quad</span> <span class="n">x86_64_start_kernel</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里要注意的是，在<code>pushq $__KERNEL_CS</code>这条指令之前的寻址还是通过identity-map的页表进行寻址的，而在该指令之后，cs被赋值成<code>__KERNEL_CS</code>，就变成采用正常的页表进行寻址了，到这个时候，虚拟地址就变成高位的地址了（<code>0xffffffff80000000</code>~<code>0xffffffffa0000000</code>）。</p>
+
+<p>最后我们提一下这个<code>lretq</code>，所谓的long return。可以参照<a href="http://docs.oracle.com/cd/E19620-01/805-4693/instructionset-68/index.html">这里</a>：</p>
+
+<blockquote><p>For an intersegment (far) return, the address on the stack is a long pointer. The offset is popped first, followed by the selector.</p></blockquote>
+
+<p>所以在rax之前，需要把<code>__KERNEL_CS</code>的selector也放在栈上。</p>
+
+<p>最后一个问题：gdt是在什么时候初始化的？这个我一直都没有找到，这里就先不管了。</p>
+
+<p>因此，最后进入了<code>x86_64_start_kernel</code>函数，这是一个C语言写的函数，所以，会在下一篇博客中进行介绍。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-03-14T20:47:00+08:00" pubdate data-updated="true">Mar 14<span>th</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/linux/'>Linux</a>, <a class='category' href='/blog/categories/system/'>System</a>, <a class='category' href='/blog/categories/tutorial/'>Tutorial</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/01/01/wo-de-2015/" title="Previous Post: 我的2015">&laquo; 我的2015</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/" title="Next Post: Linux内存初始化（C语言部分）">Linux内存初始化（C语言部分） &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/';
+        var disqus_url = 'http://ytliu.github.io/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

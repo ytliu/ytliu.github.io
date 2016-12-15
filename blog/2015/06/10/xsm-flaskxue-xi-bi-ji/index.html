@@ -1,0 +1,573 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>XSM-FLASK学习笔记 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Xen XSM Flask">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2015/06/10/xsm-flaskxue-xi-bi-ji">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">XSM-FLASK学习笔记</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-06-10T10:40:00+08:00" pubdate data-updated="true">Jun 10<span>th</span>, 2015</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>XSM-FLASK全称为：<strong>X</strong>en <strong>S</strong>ecurity <strong>M</strong>odules - <strong>FL</strong>ux <strong>A</strong>dvanced <strong>S</strong>ecurity <strong>K</strong>ernel。这篇博文对其进行一个简单的介绍，资料主要翻译自<a href="http://wiki.xen.org/wiki/Xen_Security_Modules_:_XSM-FLASK">这里</a>。</p>
+
+<p>XSM是Xen提供的一个安全框架，允许管理者对整个系统进行细粒度的控制，换句话说，即运行管理者定义一套规则来管理虚拟机之间，虚拟机与Xen之间的交互，以及对系统资源（memory，device）的访问。</p>
+
+<p>FLASK是XSM中的一个模块实现，当然，之后可能还有其他的模块，那就是后话了。下面是一些例子，列举了XSM-FLASK可以做的几件事：</p>
+
+<ul>
+<li>禁止两台虚拟机之间通过event channel和grant table进行通信；</li>
+<li>将一些需要特权级别的操作安全地grant给某些非特权级虚拟机；</li>
+<li>控制哪些虚拟机能使用device passthrough；</li>
+<li>限制或者审计特权虚拟机中进行的某些特定操作；</li>
+<li>限制特权虚拟机对其他虚拟机的任意内存映射；</li>
+<li>将hypervisor中的不同模块（比如qemu和xenstore）进行隔离，防止它们之间互相影响。</li>
+</ul>
+
+
+<p>以上是一些基本说明，下面会具体介绍如何使用FLASK，以及FLASK中规则的一些语法定义。</p>
+
+<!-- more -->
+
+
+<hr />
+
+<h3>FLASK及其policy的编译流程</h3>
+
+<p>在Xen 4.3之后的版本都对FLASK进行了比较全面的支持，如果要开启FLASK，需要在编译Xen之前修改<code>Config.mk</code>文件，将<code>XSM_ENABLE</code>和<code>FLASK_ENABLE</code>设成<code>y</code>，然后再开始编译。</p>
+
+<p>编译完Xen之后，需要编译FLASK的policy，在这之前需要先安装checkpolicy：</p>
+
+<pre><code>$ aptitude install checkpolicy
+</code></pre>
+
+<p>然后编译：</p>
+
+<pre><code>$ cd $XEN
+$ make -C tools/flask/policy
+</code></pre>
+
+<p>之后会在<code>$XEN/tools/flask/policy</code>目录下生成一个叫做<code>xenpolicy-$XEN_FULLVESION</code>的文件，这个就是生成的flask policy。</p>
+
+<hr />
+
+<h3>启动Xen（with FLASK）</h3>
+
+<p>在重启机器之前，我们需要在grub的配置中加上flask的选项，修改<code>/etc/default/grub</code>文件：</p>
+
+<pre><code>GRUB_CMDLINE_XEN_DEFAULT="flask=&lt;OPTION&gt;"
+</code></pre>
+
+<p>其中，OPTIONs包括：</p>
+
+<ul>
+<li><code>permissive</code>表示：如果在bootloader阶段找到了一个policy，则会被加载；如果没有，或者发生错误，错误报告会被写到一个buffer，但是不会阻止系统启动。该模式可以通过<code>xl setenforce</code>改为<code>enforcing</code>模式；</li>
+<li><code>enforcing</code>表示：在创建domain0之前会强制要求提供一个policy，否则无法启动系统；</li>
+<li><code>late</code>表示：在bootloader阶段不会load相关的policy，可以在系统启动之后通过<code>xl loadpolicy</code>加载相应的policy，一旦policy被加载则进入enforcing模式；</li>
+<li><code>disabled</code>表示：XSM会被设成dummy module，该模块和没有编译XSM所产生的效果是一样的，另外，一旦采用这个模式之后，FLASK是无法被重新加载的。</li>
+</ul>
+
+
+<p>需要注意的一点是，FLASK的policy需要被放在一个grub可以访问的目录下，如<code>/boot/flask/</code>，否则FLASK不会开启。另外，该policy选项需要写入grub的配置中，放在multiboot下面，如下所示：</p>
+
+<pre><code>multiboot /boot/xen-VERSION.gz dom0_mem=1024M,max:1024M flask=enforcing
+module /boot/vmlinuz-X.Y-amd64 root=/dev/mapper/vg_system-root ro quiet
+module /boot/initrd.img-X.Y
+module /boot/flask/xenpolicy-VERSION
+</code></pre>
+
+<hr />
+
+<h3>利用XSM security label创建虚拟机</h3>
+
+<p>当通过上面所提到的方式启动Xen之后，FLASK也就开启了，那么我们在创建虚拟机的时候就需要在其配置中增加一个security label（安全标签），否则，该虚拟机会被标记为“unlabeled”，例子如下所示：</p>
+
+<pre><code>seclabel='system_u:system_r:domU_t'
+</code></pre>
+
+<p>安全标签有<code>user</code>,<code>role</code>和<code>type</code>表示，这些会在之后进行介绍。另外我们需要在policy中对相应的主体进行正确的权限设置。对于“unlabeled”的虚拟机，如果FLASK并没进入enforcing模式，或者进入了enforcing模式但定义了相关标签的权限，则不会有问题，否则，在其调用某些操作的时候会被禁止。</p>
+
+<p>通过<code>xl list -Z</code>命令可以查看当前虚拟机所具有的安全标签。</p>
+
+<p>通过<code>xl dmesg | grep avc</code>命令可以查看FLASK相关的log记录。</p>
+
+<hr />
+
+<h3>FLASK policies</h3>
+
+<h4>增加一个security module</h4>
+
+<p>我们可以把<strong>security module（安全模块）</strong>当做将一系列规则进行封装所产生的集合，如果要增加一个自定义的安全模块，我们需要在<code>$XEN/tools/flask/policy/policy/modules.conf</code>文件中加一行：</p>
+
+<pre><code>&lt;module_name&gt; = on
+</code></pre>
+
+<p>同时在<code>$XEN/tools/flask/policy/policy/modules/&lt;module_name&gt;</code>目录下增加两个文件：</p>
+
+<pre><code>&lt;module_name&gt;.te
+&lt;module_name&gt;.if
+</code></pre>
+
+<p>其中<code>.te</code>文件定义了相应规则的的描述，而<code>.if</code>文件定义了一系列在<code>.te</code>文件中会被用到的宏（macros）。</p>
+
+<p>在XSM-FLASK中有一个默认的模块：xen。如果存在多个模块（比如用户自己定义了多个模块），那么这些模块中不能有重复的<code>type</code>和<code>role</code>的定义。当模块定义好之后，可以参照&#8217;FLASK policy的编译流程&#8217;进行编译，并将其放在目标目录中（如<code>/boot/flask</code>)，这样在xen启动的时候就会加载，或者通过<code>xl loadpolicy</code>进行手动加载。</p>
+
+<h4>定义Types, roles, users和attributes</h4>
+
+<p>在安全模块中会定义许多规则，对于一个特定的规则，说白了就是规定了某个主体（source subject）对另一个主体（target subject）进行的一系列访问和操作（如hypercall）的权限（deny or allow），比如规定：</p>
+
+<pre><code>某个集合中的虚拟机（source）不能向（deny）虚拟机监控器Xen（target）调用某个hypercall（operation）
+</code></pre>
+
+<p>那么这些集合就需要通过一系列的层级进行定义，也就引入了接下来需要讨论的<code>type</code>, <code>role</code>, <code>users</code>和<code>attributes</code>。可以结合<code>$XEN/tools/flask/policy/policy/modules/xen.te</code>文件中的例子进行更具体的了解。</p>
+
+<p><strong>Policy Attribute</strong></p>
+
+<p><code>attribute</code>定义了一个抽象的属性，它可以被附属在接下来要介绍的<code>type</code>主体上，即表示某个<code>type</code>具备哪些<code>attributes</code>。</p>
+
+<p><strong>Policy Type</strong></p>
+
+<p><code>type</code>是整个policy定义规范中最低的一个主体级别，它可以被用来在某个规则中指定source和target的类型。定义<code>type</code>的方式是：</p>
+
+<pre><code>type new_type_t &lt;attributes&gt;;
+</code></pre>
+
+<p>比如在示例文件中，定义了一个<code>type</code>：</p>
+
+<pre><code>type xen_t, xen_type, mls_priv;
+</code></pre>
+
+<p>其中<code>xen_t</code>即为<code>type</code>的标示符，而后面的<code>xen_type</code>和<code>mls_priv</code>则是相应的<code>attribute</code>，也就是说每个<code>type</code>可能会带有多个不同的<code>attributes</code>。</p>
+
+<p>当我们需要定义一个规则的时候，可以通过<code>type</code>来指定对应的源和目标主体。比如需要定义某个hypercall的调用是被允许的，可以这么写：</p>
+
+<pre><code>allow &lt;source type&gt; &lt;target type&gt;:&lt;security class&gt; &lt;hypercall&gt;;
+</code></pre>
+
+<p>其中，<code>security class</code>会在之后介绍，简单来说，它定义了一系列具有相关性的hypercall的集合。一个具体的例子：</p>
+
+<pre><code>allow dom0_t security_t:security check_context;
+</code></pre>
+
+<p>定义了<code>dom0_t</code> type的主体可以向<code>security_t</code> type主体调用<code>security class</code>中的<code>check_context</code> hypercall。</p>
+
+<p>另外，如果同时定义多个同一个class中的hypercall，可以用<code>{}</code>将其括起来，例如：</p>
+
+<pre><code>allow dom0_t dom0_t:resource { add remove };
+</code></pre>
+
+<p>除了用<code>type</code>表示的主体，我们也可以直接用<code>attribute</code>来表示主体，如：</p>
+
+<pre><code>allow domain_type xen_t:xen tmem_op;
+</code></pre>
+
+<p>即表示所有具有domain_type属性的type主体都可以向<code>xen_t</code> type主体调用<code>xen class</code>中的<code>tmem_op</code> hypercall。</p>
+
+<p><strong>Policy Role</strong></p>
+
+<p><code>role</code>是处于<code>type</code>上一层级的主体级别，用户可以定义某个<code>role</code>由多个<code>types</code>组成，比如：</p>
+
+<pre><code>role system_r
+role system_r types { xen_type domain_type };
+</code></pre>
+
+<p>可以看到，<code>role</code>的<code>types</code>是采用<code>attribute</code>的方式定义的，即定义具有某个<code>attribute</code>的所有<code>types</code>都属于这个<code>role</code>。如果要定义具有某个<code>attribute</code>的除掉某个<code>type</code>的所有<code>types</code>，则通过在该<code>type</code>之前加上一个<code>-</code>进行标示，如：</p>
+
+<pre><code>role vm_r
+role vm_r types {domain_type -dom0_t };
+</code></pre>
+
+<p><strong>Policy Users</strong></p>
+
+<p><code>user</code>作为policy中的最高层级的主体级别，它并不被定义在<code>.te</code>文件中，它们是被定义在<code>$XEN/tools/flask/policy/policy/users</code>文件中。因此我们可以跨安全模块共用同一个<code>user</code>。在默认情况下，FLASK定义了三个users：system_u, customer_t和customer_2。</p>
+
+<h4>增加Policy constraints</h4>
+
+<p>FLASK可以通过在<code>$XEN/tools/flask/policy/policy/constraints</code>文件中定义规则来限制某些操作。在默认的情况下，FLASK规则定义了两条constraints（限制规则）来防止不同用户之间event channel和grant table的交互。一条限制规则语法如下：</p>
+
+<pre><code>constrain &lt;security class&gt; { &lt;hypercall&gt; } ( expression );
+</code></pre>
+
+<p>比如例子中的：</p>
+
+<pre><code>constrain grant { map_read map_write copy } (
+  u1 == system_u or
+  u2 == system_u or
+  u1 == u2
+);
+</code></pre>
+
+<p>这条限制规则表示如果属于<code>grant class</code>的这些hypercall可以被执行，当且仅当expression中的条件成立。其中，expression可以包含之前定义好的所有<code>user</code>, <code>role</code>和<code>type</code>主体，其语法规则如下：</p>
+
+<pre><code>expression : (expresion)
+      | not expression
+      | expression and expression
+      | expression or expression
+      | u1 op u2
+      | r1 role_op r2
+      | t1 op t2
+      | u1 op names
+      | u2 op names
+      | r1 op names
+      | r2 op names
+      | t1 op names
+      | t2 op names
+
+op : == | !=
+role_op : == | != | eq | dom | domby | incomp
+
+names : name | { name_list }
+name_list : name | name_list name
+</code></pre>
+
+<h3>Security classes</h3>
+
+<p><code>security class</code>被定义在<code>$XEN/xen/xsm/flask/policy/access_vectors</code>文件中，每个hypercall被分配在了其中一个class中，需要注意的是，每一个class最多只能有32个hypercalls。下面简单介绍下默认的几个classes，相关的hypercall的描述可以直接看<a href="http://wiki.xen.org/wiki/Xen_Security_Modules_:_XSM-FLASK#Security_classes">这里</a>。</p>
+
+<ul>
+<li><code>class xen</code>包含了所有在hypervisor中进行的操作，其source为执行hypercall的domain，target为xen (<code>xen_t</code> type);</li>
+<li><code>class domain &amp; class domain2</code>包含了某个domain调用另一个domain或者调用自己的操作，source为执行hypercall的domain，target为被调用的domain（包括<code>_self</code>和<code>_target</code>的type）;</li>
+<li><code>class hvm</code>类似于<code>domain</code>，除了它是针对HVM domain；</li>
+<li><code>class event</code>用于描述event channels；</li>
+<li><code>class grant</code>用于描述grant mapping；</li>
+<li><code>class mmu</code>用于描述不是采用grant机制映射的内存页；</li>
+<li><code>class shadow</code>（这个不清楚是干嘛的）；</li>
+<li><code>class resource</code>用于描述硬件设备passthrough所使用的资源，包括IRQ, MMIO regions, I/O ports, PCI device等；</li>
+<li><code>class security</code>用于描述和FLASK相关的操作。</li>
+</ul>
+
+
+<hr />
+
+<p>以上即为XSM-FLASK最基本的介绍，我也还正处于学习阶段，其它更细节的部分和更直观的实例会在以后的博文中进行说明。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-06-10T10:40:00+08:00" pubdate data-updated="true">Jun 10<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/security/'>Security</a>, <a class='category' href='/blog/categories/study/'>Study</a>, <a class='category' href='/blog/categories/tutorial/'>Tutorial</a>, <a class='category' href='/blog/categories/virtualization/'>Virtualization</a>, <a class='category' href='/blog/categories/xen/'>Xen</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/06/08/chinasysxiao-ji-2015-dot-6/" title="Previous Post: ChinaSys小记（2015.6）">&laquo; ChinaSys小记（2015.6）</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/07/28/xende-nei-cun-bu-ju/" title="Next Post: Xen的内存布局">Xen的内存布局 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2015/06/10/xsm-flaskxue-xi-bi-ji/';
+        var disqus_url = 'http://ytliu.github.io/blog/2015/06/10/xsm-flaskxue-xi-bi-ji/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

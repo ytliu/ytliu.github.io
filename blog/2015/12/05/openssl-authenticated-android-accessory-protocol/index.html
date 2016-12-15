@@ -1,0 +1,968 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>OpenSSL Authenticated Android Accessory Protocol - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android Accessory OpenSSL">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2015/12/05/openssl-authenticated-android-accessory-protocol">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">OpenSSL Authenticated Android Accessory Protocol</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-12-05T11:09:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2015</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>前段时间在研究Android Auto（关于什么是Auto请自行google），里面涉及到两个比较关键的数据传输和加密协议：<code>Android Accessory Protocol</code>和<code>OpenSSL</code>。具体来说，auto和车载系统（之后称为headunit）之间数据的传输以及最初连接的建立是基于<a href="https://source.android.com/devices/accessories/protocol.html">Android Open Accessory （AOA）</a>协议的，而它们两个之间的认证过程以及数据的加密是基于<a href="https://www.openssl.org/">OpenSSL</a>的握手和加密协议。</p>
+
+<p>在研究这两个协议的过程中，“如何将AOA协议和SSL协议结合起来”是一个很关键的问题。我在网上找了很多资料，但是并没有一个比较完整的教程，所以打算在这篇博客中做一个详细的介绍，并且将相关代码开源。</p>
+
+<p><a href="https://github.com/ytliu/aoa-with-ssl">github上的源码</a></p>
+
+<!-- more -->
+
+
+<h3>关于Android Auto</h3>
+
+<p>关于什么是<a href="https://www.android.com/auto/">Android Auto</a>，可以到google的官方网站上去查询。简单来说，就是Google开发的一套机制，可以将手机上的应用（包括地图、音乐、通话等）和车载系统进行交互，使得车载系统的功能更加丰富。如果要描述它的机制的话，可以用下面一张图来表示：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-1.png" title="Androi Auto Mechanism" alt="Androi Auto Mechanism" /></p>
+
+<p>其中，负责和headunit进行交互的是GMS (Google Mobile Service)的Car Service，然后它会和Google开发的Auto应用联系，Auto应用负责和其它第三方应用程序交互，现在支持Android Auto的第三方应用程序有<a href="https://play.google.com/store/apps/collection/promotion_3001303_android_auto_all">这些</a>，可以看到大部分还是一些音乐和社交类的应用。这里有一个特殊的应用，那就是Google Map，它是直接整合在GMS里面的，可以直接和Car service进行交互，应该不需要经过Auto（当然这还仅仅是我的推测）。</p>
+
+<h3>关于两个协议</h3>
+
+<p>由于这篇博文主要介绍的是手机和车载的交互协议，因此我们主要关注的是GMS car service和headunit之间的交互，所以，我们把上面那张图简化一下：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-2.png" title="AA and SSL Protocols" alt="AA and SSL Protocols" /></p>
+
+<p>其中<code>Android Open Accessory（AOA）</code>协议发生在两台设备通过USB进行连接，其中一台作为<code>Accessory</code>，一台作为<code>Device</code>。在Auto的例子中，headunit的角色为<code>Accessory</code>，手机的角色为<code>Device</code>。<code>AOA</code>协议主要作用是关于<code>Accessory</code>和<code>Device</code>在初始化连接时候的互相识别，以及之后数据的传输。</p>
+
+<p>关于<code>Accessory</code>和<code>Device</code>的概念可以看<a href="http://www.crifan.com/android_usb_usbaccessory_vs_usbdevice/">这篇博文</a>，这里就不详述了。</p>
+
+<p>当<code>Accessory</code>和<code>Device</code>建立连接之后，两边就可以进行数据的传输了，但是由于一些隐私问题，传输的数据需要进行加密，因此就引入了<code>OpenSSL</code>协议。在OpenSSL协议中连接两端的实体被分为了<code>Server</code>和<code>Client</code>，这两个角色有什么区别会在之后提到。在这里我们只需要知道在Auto的例子中，headunit的角色为<code>Client</code>，手机的角色为<code>Server</code>。因此我们的图又被抽象为如下：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-3.png" title="AA and SSL Protocols 2" alt="AA and SSL Protocols 2" /></p>
+
+<p>好了，到现在为止，我们就完全和Auto撇清关系了，我们接下来要介绍的，就是两个实体，它们通过USB连接，一个作为AOA协议的<code>Accessory</code>和OpenSSL协议的<code>Client</code>，另一个作为AOA协议的<code>Device</code>和OpenSSL协议的<code>Server</code>。</p>
+
+<h3>Android Open Accessory（AOA）协议</h3>
+
+<p>当两个实体通过USB进行连接之后，最先做出反应的是<code>Accessory</code>，它会做以下几件事情：</p>
+
+<h4>步骤1：获得和它连接的<code>Device</code>的VendorID和ProductID；</h4>
+
+<h4>步骤2：判断它们是否匹配相应的数字；</h4>
+
+<p>比如在Auto的例子中，headunit需要判断VendorID是否匹配<code>0x18D1</code>，ProductID是否匹配<code>0x2D00</code>或者<code>0x2D01</code>？）</p>
+
+<ul>
+<li>如果匹配，则表示该设备支持Android accessory模式，并且当前已经处于该模，所以<code>Accessory</code>可以直接和<code>Device</code>进行通信（直接跳到步骤5）；</li>
+<li>否则，则表示该设备目前不处在Android accessory模式，但是不清楚其是否支持该模式，需要进行确认（继续执行步骤3~4）。</li>
+</ul>
+
+
+<h4>步骤3：Android accessory模式确认和重新连接；</h4>
+
+<ul>
+<li><p>通过USB发送一个请求：</p>
+
+<pre><code>requestType:    USB_DIR_IN | USB_TYPE_VENDOR
+request:        51
+value:          0
+index:          0
+data:           protocol version number (16 bits little endian sent from the device to the accessory)
+</code></pre></li>
+<li><p>如果对方返回一个非零整数，则表示该设备支持Android accessory模式，该返回值表示支持的协议版本号；</p></li>
+<li><p>发送另外的请求，该请求中包含一些字符串，用来表示<code>Device</code>中哪些应用程序可以来和<code>Accessory</code>进行交互：</p>
+
+<pre><code>requestType:    USB_DIR_OUT | USB_TYPE_VENDOR
+request:        52
+value:          0
+index:          string ID
+data            zero terminated UTF8 string sent from accessory to device
+</code></pre></li>
+<li><p>有效的string ID包含以下几类：</p>
+
+<pre><code>manufacturer name:  0
+model name:         1
+description:        2
+version:            3
+URI:                4
+serial number:      5
+</code></pre></li>
+<li><p>在Auto的例子中，headUnit在这个过程中会发送两个string ID：<code>manufacturer name = "Android"</code>，<code>model name = "Android Auto"</code>。该string ID会触发手机设备中<code>com.google.android.gms.car.FirstActivity</code>的<code>onCreate()</code>函数，从而使得GMS car service和headUnit进行accessory的连接；</p></li>
+<li><p><code>Accessory</code>最后发送一个请求，告诉<code>Device</code>开始进入Android accessory模式，并且重新建立连接：</p>
+
+<pre><code>requestType:    USB_DIR_OUT | USB_TYPE_VENDOR
+request:        53
+value:          0
+index:          0
+data:           none
+</code></pre></li>
+</ul>
+
+
+<h4>步骤4：重新检查；</h4>
+
+<p>步骤3结束之后，<code>Device</code>会重新和<code>Accessory</code>进行连接，这时<code>Accessory</code>回到步骤1进行检查，如果检查通过，则进入步骤5，如果<code>Device</code>不支持Android accessory模式，或者没有匹配的应用程序，则<code>Device</code>会返回信息告诉<code>Accessory</code>，这时<code>Accessory</code>就只能等待下一个手机设备的接入。</p>
+
+<h4>步骤5：开始通信.</h4>
+
+<p>从这之后，<code>Accessory</code>和<code>Device</code>将通过Android Accessory协议进行通信，<code>Accessory</code>首先获得该USB连接中的一些配置元数据，包括接口类型（UsbInterface），端点信息（UsbEndpoint）等，从而获得对应的bulk endpoints，进行之后的通信过程。</p>
+
+<p>在数据通信的过程中，<code>Accessory</code>通过<code>libusb</code>库提供的<code>libusb_control_transfer</code>和<code>libusb_bulk_transfer</code>接口进行数据的传输，其中，<code>libusb_control_transfer</code>用于传输一些指令数据，而<code>libusb_bulk_transfer</code>用于传输一些比较大的数据，比如音频数据，图像数据等；
+而<code>Device</code>则通过Android <code>USBManager</code>提供的<code>openAccessory</code>接口获得一个文件描述符，然后通过其对应的<code>FileInputStream</code>和<code>FileOutputStream</code>进行数据的读写：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ParcelFileDescriptor</span> <span class="n">mFD</span> <span class="o">=</span> <span class="n">mUSBManager</span><span class="o">.</span><span class="na">openAccessory</span><span class="o">(</span><span class="n">acc</span><span class="o">);</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">mFD</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">FileDescripter</span> <span class="n">fd</span> <span class="o">=</span> <span class="n">mFD</span><span class="o">.</span><span class="na">getFileDescriptor</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">mIS</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span>  <span class="c1">// use this to receive messages</span>
+</span><span class='line'>    <span class="n">mOS</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span> <span class="c1">// use this to send commands</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<hr />
+
+<h3>OpenSSL协议</h3>
+
+<p>在<code>Accessory</code>和<code>Device</code>建立连接，并且可以传输数据之后，它们就要开始建立OpenSSL的连接，对数据进行加解密了。这里主要分为了两个过程：握手过程和数据加解密过程。这里简单介绍下握手协议：</p>
+
+<h4>OpenSSL握手协议</h4>
+
+<p>握手协议的作用是身份的认证，该过程由<code>Client</code>端发起，这个协议的过程如下：</p>
+
+<p><img src="http://ytliu.info/images/2015-12-05-4.png" title="OpenSSL Handshake Protocol" alt="OpenSSL Handshake Protocol" /></p>
+
+<p>在这个过程中，<code>Client</code>首先会对<code>Server</code>提供的证书（Certificate）进行验证，<code>Server</code>也会对<code>Client</code>提供的证书进行验证。同时它们会用<code>Server</code>的公钥（包含在<code>Server</code>的证书中）和存在<code>Server</code>端的私钥进行秘钥的协商，最后通过这个协商好的秘钥（master key）对数据进行加解密。</p>
+
+<p>这里推荐<a href="http://security.stackexchange.com/questions/20803/how-does-ssl-tls-work">StackOverflow的一个帖子</a>，里面的前两个回答对OpenSSL握手协议进行了一个很棒的解释。</p>
+
+<hr />
+
+<h3>代码分析</h3>
+
+<p>在进行了背景介绍之后，我们开始来分析下如何实现这整个过程。</p>
+
+<p>源码可以在<a href="https://github.com/ytliu/aoa-with-ssl">这里</a>下载。</p>
+
+<p>里面有两个目录：<code>aoa-dev-ssl-server</code>和<code>aoa-acc-ssl-client</code>，分别代表上面描述的两个实体。这两个目录是两个不同的Android应用，编译完之后可以通过<code>adb install</code>安装在Android平台的手机或者平板上。</p>
+
+<h4>AOA协议的实现</h4>
+
+<p>首先由<code>aoa-acc-ssl-client</code>发起，代码在<code>src/cn/sjtu/ipads/uas/UasTransport.java</code>文件中：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">usb_acc_string_send</span><span class="o">(</span><span class="n">UsbDeviceConnection</span> <span class="n">connection</span><span class="o">,</span> <span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">String</span> <span class="n">string</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">byte</span><span class="o">[]</span> <span class="n">buffer</span> <span class="o">=</span> <span class="o">(</span><span class="n">string</span> <span class="o">+</span> <span class="s">&quot;\0&quot;</span><span class="o">).</span><span class="na">getBytes</span><span class="o">();</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">len</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">controlTransfer</span><span class="o">(</span><span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_DIR_OUT</span> <span class="o">|</span> <span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_TYPE_VENDOR</span><span class="o">,</span>
+</span><span class='line'>        <span class="n">OAP_SEND_STRING</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">index</span><span class="o">,</span> <span class="n">buffer</span><span class="o">,</span> <span class="n">buffer</span><span class="o">.</span><span class="na">length</span><span class="o">,</span> <span class="mi">10000</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">usb_acc_strings_send</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">usb_acc_string_send</span><span class="o">(</span><span class="n">m_usb_dev_conn</span><span class="o">,</span> <span class="n">OAP_STR_MANUFACTURE</span><span class="o">,</span> <span class="s">&quot;SJTU&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">usb_acc_string_send</span><span class="o">(</span><span class="n">m_usb_dev_conn</span><span class="o">,</span> <span class="n">OAP_STR_MODEL</span><span class="o">,</span> <span class="s">&quot;SJTU IPADS&quot;</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">acc_mode_switch</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">acc_ver</span> <span class="o">=</span> <span class="n">usb_acc_version_get</span><span class="o">(</span><span class="n">m_usb_dev_conn</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">usb_acc_strings_send</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">m_usb_dev_conn</span><span class="o">.</span><span class="na">controlTransfer</span><span class="o">(</span><span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_DIR_OUT</span> <span class="o">|</span> <span class="n">UsbConstants</span><span class="o">.</span><span class="na">USB_TYPE_VENDOR</span><span class="o">,</span> <span class="n">OAP_START</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">10000</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">usb_connect</span><span class="o">(</span><span class="n">UsbDevice</span> <span class="n">device</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">usb_open</span><span class="o">(</span><span class="n">device</span><span class="o">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">usb_disconnect</span><span class="o">();</span>
+</span><span class='line'>      <span class="k">return</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">dev_vend_id</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="na">getVendorId</span><span class="o">();</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">dev_prod_id</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="na">getProductId</span><span class="o">();</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">dev_vend_id</span> <span class="o">==</span> <span class="n">USB_VID_GOO</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">dev_prod_id</span> <span class="o">==</span> <span class="n">USB_PID_OAP_NUL</span> <span class="o">||</span> <span class="n">dev_prod_id</span> <span class="o">==</span> <span class="n">USB_PID_OAP_ADB</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>      <span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">acc_mode_connect</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">...</span>
+</span><span class='line'>      <span class="k">return</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">acc_mode_switch</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">usb_disconnect</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个可以参照我之前讲的AOA协议来对照，这里当调用<code>usb_acc_strings_send()</code>将两个字符串发送出去之后，在<code>Device</code>端就会有相应的应用被唤醒，因为在该应用中定义了如下内容（在<code>aoa-dev-ssl-server</code>目录的<code>res/xml/usb_accessory_filter</code>文件中）：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+</span><span class='line'><span class="nt">&lt;resources&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;usb-accessory</span> <span class="na">manufacturer=</span><span class="s">&quot;SJTU&quot;</span> <span class="na">model=</span><span class="s">&quot;SJTU IPADS&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'><span class="nt">&lt;/resources&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>而在<code>aoa-dev-ssl-server</code>目录的<code>AndroidManifest.xml</code>文件中定义如下：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+</span><span class='line'><span class="nt">&lt;manifest</span> <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span>
+</span><span class='line'>  <span class="na">package=</span><span class="s">&quot;cn.sjtu.ipads.ual&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&lt;uses-feature</span> <span class="na">android:name=</span><span class="s">&quot;android.hardware.usb.accessory&quot;</span> <span class="na">android:required=</span><span class="s">&quot;true&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&lt;application&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;uses-library</span> <span class="na">android:name=</span><span class="s">&quot;com.android.future.usb.accessory&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>    ...
+</span><span class='line'>    <span class="nt">&lt;activity</span>
+</span><span class='line'>      <span class="na">android:name=</span><span class="s">&quot;UalTraActivity&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;intent-filter&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;action</span> <span class="na">android:name=</span><span class="s">&quot;android.hardware.usb.action.USB_ACCESSORY_ATTACHED&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;/intent-filter&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;meta-data</span>
+</span><span class='line'>        <span class="na">android:name=</span><span class="s">&quot;android.hardware.usb.action.USB_ACCESSORY_ATTACHED&quot;</span>
+</span><span class='line'>        <span class="na">android:resource=</span><span class="s">&quot;@xml/usb_accessory_filter&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/activity&gt;</span>
+</span><span class='line'>    ...
+</span><span class='line'>  <span class="nt">&lt;/application&gt;</span>
+</span><span class='line'><span class="nt">&lt;/manifest&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>所以，<code>aoa-dev-ssl-server</code>这个应用会被唤醒，进入<code>UalTraActivity</code>的<code>onCreate()</code>函数。在该类中，会进行USB accessory的连接：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">Bundle</span> <span class="n">savedInstanceState</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">(</span><span class="n">savedInstanceState</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">mDeviceHandler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Handler</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">mUSBManager</span> <span class="o">=</span> <span class="o">(</span><span class="n">UsbManager</span><span class="o">)</span> <span class="n">getSystemService</span><span class="o">(</span><span class="n">Context</span><span class="o">.</span><span class="na">USB_SERVICE</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">connectToAccessory</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">connectToAccessory</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="c1">// bail out if we&#39;re already connected</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">mConnection</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span>
+</span><span class='line'>      <span class="k">return</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;connectToAccessory&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="c1">// assume only one accessory (currently safe assumption)</span>
+</span><span class='line'>    <span class="n">UsbAccessory</span><span class="o">[]</span> <span class="n">accessories</span> <span class="o">=</span> <span class="n">mUSBManager</span><span class="o">.</span><span class="na">getAccessoryList</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">UsbAccessory</span> <span class="n">accessory</span> <span class="o">=</span> <span class="o">(</span><span class="n">accessories</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="kc">null</span>
+</span><span class='line'>        <span class="o">:</span> <span class="n">accessories</span><span class="o">[</span><span class="mi">0</span><span class="o">]);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">accessory</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">mUSBManager</span><span class="o">.</span><span class="na">hasPermission</span><span class="o">(</span><span class="n">accessory</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">openAccessory</span><span class="o">(</span><span class="n">accessory</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;no permission for accessory&quot;</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;mAccessory is null&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">openAccessory</span><span class="o">(</span><span class="n">UsbAccessory</span> <span class="n">accessory</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;openAccessory&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">mConnection</span> <span class="o">=</span> <span class="k">new</span> <span class="n">UsbConnection</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="n">mUSBManager</span><span class="o">,</span> <span class="n">accessory</span><span class="o">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">mConnection</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;mConnection is null&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">finish</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>    <span class="n">performPostConnectionTasks</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在<code>UsbConnection</code>这个类中会通过<code>UsbManager</code>的<code>openAccessory</code>接口得到一个文件描述符<code>mFileDescriptor</code>，之后的数据传输就是通过对这个<code>mFileDescriptor</code>的读写来进行的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">public</span> <span class="nf">UsbConnection</span><span class="o">(</span><span class="n">Activity</span> <span class="n">activity</span><span class="o">,</span> <span class="n">UsbManager</span> <span class="n">usbManager</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">UsbAccessory</span> <span class="n">accessory</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">mActivity</span> <span class="o">=</span> <span class="n">activity</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">mFileDescriptor</span> <span class="o">=</span> <span class="n">usbManager</span><span class="o">.</span><span class="na">openAccessory</span><span class="o">(</span><span class="n">accessory</span><span class="o">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">mFileDescriptor</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Log</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="s">&quot;UsbConnection&quot;</span><span class="o">,</span> <span class="s">&quot;mFileDescriptor&quot;</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">mAccessory</span> <span class="o">=</span> <span class="n">accessory</span><span class="o">;</span>
+</span><span class='line'>      <span class="n">FileDescriptor</span> <span class="n">fd</span> <span class="o">=</span> <span class="n">mFileDescriptor</span><span class="o">.</span><span class="na">getFileDescriptor</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">mInputStream</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">mOutputStream</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="n">fd</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">IntentFilter</span> <span class="n">filter</span> <span class="o">=</span> <span class="k">new</span> <span class="n">IntentFilter</span><span class="o">(</span><span class="n">ACTION_USB_PERMISSION</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">filter</span><span class="o">.</span><span class="na">addAction</span><span class="o">(</span><span class="n">UsbManager</span><span class="o">.</span><span class="na">ACTION_USB_ACCESSORY_DETACHED</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">mActivity</span><span class="o">.</span><span class="na">registerReceiver</span><span class="o">(</span><span class="n">mUsbReceiver</span><span class="o">,</span> <span class="n">filter</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>到目前为止，<code>Accessory</code>和<code>Device</code>的连接已经建立，之后的数据传输就可以进行了。</p>
+
+<p>在<code>Accessory</code>这端的数据读写是在jni层中，可以参阅<code>aoa-acc-ssl-client/jni/hu_usb.c</code>这个文件。</p>
+
+<p>发数据的流程是这样的：</p>
+
+<pre><code>hu_aap_usb_send() -&gt; hu_usb_send() -&gt; iusb_bulk_transfer(out)
+</code></pre>
+
+<p>接受数据的流程是这样的：</p>
+
+<pre><code>hu_aap_usb_recv() -&gt; hu_usb_recv() -&gt; iusb_bulk_transfer(in)
+</code></pre>
+
+<p>具体代码这里不贴了，有兴趣自己去看。</p>
+
+<p>在<code>Device</code>这端的数据读写是在java层，可以参阅<code>aoa-dev-ssl-server/src/cn/sjtu/ipads/ual/UalTraActivity.java</code>这个文件。</p>
+
+<p>发数据就是调用了之前获得的<code>UsbConnection</code>类的这个接口：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mConnection</span><span class="o">.</span><span class="na">getOutputStream</span><span class="o">().</span><span class="na">write</span><span class="o">(</span><span class="n">buffer</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">bufferLength</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>收数据类似：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mConnection</span><span class="o">.</span><span class="na">getInputStream</span><span class="o">().</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">,</span> <span class="n">bufferUsed</span><span class="o">,</span> <span class="n">buffer</span><span class="o">.</span><span class="na">length</span> <span class="o">-</span> <span class="n">bufferUsed</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>AOA协议基本就实现完成了。</p>
+
+<h4>OpenSSL握手协议</h4>
+
+<p>握手协议由<code>aoa-acc-ssl-client</code>发起，在文件<code>aoa-acc-ssl-client/jni/hu_aap.c</code>中：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">hu_aap_start</span> <span class="p">(</span><span class="n">byte</span> <span class="n">ep_in_addr</span><span class="p">,</span> <span class="n">byte</span> <span class="n">ep_out_addr</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">hu_ssl_handshake</span> <span class="p">();</span> <span class="c1">// Do SSL Client Handshake with AA SSL server</span>
+</span><span class='line'>  <span class="p">...</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后就会经历上面提到的整个握手过程。</p>
+
+<p>这里需要注意的是，这个OpenSSL握手和加解密过程的实现，和我们平时通过socket传输数据时所涉及到的过程有点不一样。</p>
+
+<p>我们在网络编程的时候，一般会调用下面两个API：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">SSL</span> <span class="o">*</span><span class="n">ssl</span> <span class="o">=</span> <span class="n">SSL_new</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>  <span class="cm">/* get new SSL state with context */</span>
+</span><span class='line'><span class="n">SSL_set_fd</span><span class="p">(</span><span class="n">ssl</span><span class="p">,</span> <span class="n">sockfd</span><span class="p">);</span>  <span class="cm">/* set connection to SSL state */</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后的网络数据读写直接通过<code>SSL_write(ssl)</code>和<code>SSL_read(ssl)</code>来做就行了。因为SSL和这个负责读写数据的文件描述符<code>sockfd</code>已经绑定在一起了，在网络库的内部帮我们实现了网络buffer到SSL内部buffer的映射。</p>
+
+<p>然而，当我们需要通过USB进行传输数据的时候就没有那么简单了。我们前面说过，我们同样可以通过对某个文件描述的读写操作来传送和接受USB数据，但是USB的库并没有帮我们实现其buffer到SSL内部buffer的映射。因此这步操作需要我们自己来实现。这里就用到了<code>OpenSSL</code>+<code>Memory BIO</code>的机制。</p>
+
+<p>先提供一个参考资料：<a href="http://www.roxlu.com/2014/042/using-openssl-with-memory-bios">Using OpenSSL with Memory BIO</a></p>
+
+<p>简单来说步骤是这样的：</p>
+
+<ul>
+<li>首先，我们需要配置OpenSSL的数据结构：</li>
+</ul>
+
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'>  <span class="n">ual_ssl_ctx</span> <span class="o">=</span> <span class="n">SSL_CTX_new</span><span class="p">(</span><span class="n">ual_ssl_method</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">SSL_CTX_use_certificate</span><span class="p">(</span><span class="n">ual_ssl_ctx</span><span class="p">,</span> <span class="n">x509_cert</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">SSL_CTX_use_PrivateKey</span><span class="p">(</span><span class="n">ual_ssl_ctx</span><span class="p">,</span> <span class="n">priv_key</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">ual_ssl_ssl</span> <span class="o">=</span> <span class="n">SSL_new</span><span class="p">(</span><span class="n">ual_ssl_ctx</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">ual_ssl_rm_bio</span> <span class="o">=</span> <span class="n">BIO_new</span><span class="p">(</span><span class="n">BIO_s_mem</span><span class="p">());</span>
+</span><span class='line'>  <span class="n">ual_ssl_wm_bio</span> <span class="o">=</span> <span class="n">BIO_new</span><span class="p">(</span><span class="n">BIO_s_mem</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">SSL_set_bio</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="n">ual_ssl_wm_bio</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我中间跳过了很多步，不过那些都不重要（可以去看源码），这里最重要的就是这句话：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="n">SSL_set_bio</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="n">ual_ssl_wm_bio</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里将<code>ual_ssl_ssl</code>这个数据结构和两段内存联系在一起，这两段内存分别是<code>read BIO</code>和<code>write BIO</code>。</p>
+
+<p>这有什么用呢？其实要解释清楚这个就需要先对OpenSSL的机制有一个初步的了解。</p>
+
+<p>在SSL的所有操作中（比如证书验证，加密，解密等），说到底，就是从某段内存中读取数据，对其进行相应的操作，然后将结果写在另外一段内存中。因此这里的两段内存就分别对应了<code>read BIO</code>和<code>write BIO</code>。</p>
+
+<p>似乎还是有点晕，那么我们来举个例子：</p>
+
+<p>如果我们要进行数据加密，分解步骤是这样的：</p>
+
+<ul>
+<li>输入一段长度为<code>len</code>的明文数据<code>plain_buf</code>；</li>
+<li>调用<code>SSL_write(ual_ssl_ssl, plain_buf, len)</code>，这时OpenSSL内部的逻辑就会对这段数据进行加密，并且将结果保存在<code>write BIO</code>中；</li>
+<li>调用<code>BIO_read(ual_ssl_wm_bio, cipher_buf, DEFBUF)</code>，就可以将这段加密好的数据读出来保存在<code>cipher_buf</code>中；</li>
+<li>最后，我们通过写USB对应的文件描述符就可以将这段加密的数据发送出去了。</li>
+</ul>
+
+
+<p>因此，整个加密的逻辑就可以是这样的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">ssl_encrypt_data</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">plain_buf</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">cipher_buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">bytes_written</span> <span class="o">=</span> <span class="n">SSL_write</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">bytes_read</span> <span class="o">=</span> <span class="n">BIO_read</span><span class="p">(</span><span class="n">ual_ssl_wm_bio</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">,</span> <span class="n">DEFBUF</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="p">(</span><span class="n">bytes_read</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">int</span> <span class="n">length</span> <span class="o">=</span> <span class="n">ssl_encrypt_data</span><span class="p">(</span><span class="n">len</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">);</span>
+</span><span class='line'><span class="n">send_to_usb_fd</span><span class="p">(</span><span class="n">cipher_buf</span><span class="p">,</span> <span class="n">length</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>类似的，解密的分解步骤是这样的：</p>
+
+<ul>
+<li>通过读USB对应的文件描述符读取一段长度为<code>len</code>的密文数据<code>cipher_buf</code>；</li>
+<li>调用<code>BIO_write(ual_ssl_ssl, cipher_buf, len)</code>，将这段密文写入和SSL相关联的<code>read BIO</code>的内存中；</li>
+<li>调用<code>SSL_read(ual_ssl_ssl, plain_buf, DEFBUF)</code>，将<code>read BIO</code>的数据进行解密，并将结果保存在<code>plain_buf</code>中；</li>
+<li>最后，我们就可以对这段明文数据进行处理了。</li>
+</ul>
+
+
+<p>其相应的逻辑就变成这样了：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">ssl_decrypt_data</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">cipher_buf</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">plain_buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">bytes_written</span> <span class="o">=</span> <span class="n">BIO_write</span><span class="p">(</span><span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">bytes_read</span> <span class="o">=</span> <span class="n">SSL_read</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">,</span> <span class="n">DEFBUF</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="p">(</span><span class="n">bytes_read</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">len</span> <span class="o">=</span> <span class="n">recv_from_usb_fd</span><span class="p">(</span><span class="n">cipher_buf</span><span class="p">);</span>
+</span><span class='line'><span class="n">ssl_decrypt_data</span><span class="p">(</span><span class="n">len</span><span class="p">,</span> <span class="n">cipher_buf</span><span class="p">,</span> <span class="n">plain_buf</span><span class="p">);</span>
+</span><span class='line'><span class="n">process</span><span class="p">(</span><span class="n">plain_buf</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>和加解密过程相比，握手的过程会比较复杂一些，但是相关原理是一样的。</p>
+
+<p>不管在<code>Server</code>端还是在<code>Client</code>端，都需要调用<code>SSL_do_handshake(ual_ssl_ssl)</code>这个API，OpenSSL内部的逻辑就会根据当前的状态对<code>ual_ssl_rm_bio</code>的数据进行处理，并将结果写到<code>ual_ssl_wm_bio</code>中。在调用<code>SSL_do_handshake</code>这个API前，需要将相关的数据写到<code>read BIO</code>中（比如在<code>Server</code>端，第一次调用<code>SSL_do_handshake</code>前需要将<code>Client Hello</code>的数据通过<code>BIO_write</code>写进<code>ual_ssl_rm_bio</code>中）。所以说，一般情况下需要手动调用大于一次的<code>SSL_do_handshake</code>接口。</p>
+
+<p>整个逻辑大概是这样的：</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">ssl_hs_data_enqueue</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">BIO_write</span><span class="p">(</span><span class="n">ual_ssl_rm_bio</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">buf</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">len</span> <span class="o">-</span> <span class="mi">2</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">int</span> <span class="nf">ssl_hs_data_dequeue</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">BIO_read</span><span class="p">(</span><span class="n">ual_ssl_wm_bio</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">DEFBUF</span> <span class="o">-</span> <span class="mi">6</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="nf">ssl_handshake</span><span class="p">()</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">ret</span> <span class="o">=</span> <span class="n">SSL_do_handshake</span><span class="p">(</span><span class="n">ual_ssl_ssl</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">while</span> <span class="p">(</span><span class="n">handshake</span> <span class="n">not</span> <span class="n">finished</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">len</span> <span class="o">=</span> <span class="n">recv_from_usb_fd</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ssl_hs_data_enqueue</span><span class="p">(</span><span class="n">len</span><span class="p">,</span> <span class="n">data</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">ssl_handshake</span><span class="p">();</span>
+</span><span class='line'>  <span class="n">length</span> <span class="o">=</span> <span class="n">ssl_hs_data_dequeue</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">send_to_usb_fd</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">length</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>讲到这里，OpenSSL的整个流程也基本介绍完了。最后需要说明的一点，在<code>aoa-acc-ssl-client</code>中，数据的传输和加密都是在JNI层完成的，所以代码比较简单。但是在<code>aoa-dev-ssl-server</code>中，数据的传输是在Java层完成的，而加密是在JNI层实现的，所以中间有一个JNI调用的过程，会显得比较复杂。不过整体的原理是一样的。</p>
+
+<p>关于JNI如何调用，网上有很多教程，也可以直接参照源码，这里就不详述了。</p>
+
+<p>最后，关于整个项目的编译和运行，可以参照github中的<code>README.md</code>。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-12-05T11:09:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>Android</a>, <a class='category' href='/blog/categories/security/'>Security</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/12/02/sigreturn-oriented-programming-srop-attack-gong-ji-yuan-li/" title="Previous Post: 【转载】Sigreturn Oriented Programming (SROP) Attack - 攻击原理">&laquo; 【转载】Sigreturn Oriented Programming (SROP) Attack - 攻击原理</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/" title="Next Post: Enable CONFIG_MODULE in Cyanogenmod Kernel">Enable CONFIG_MODULE in Cyanogenmod Kernel &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2015/12/05/openssl-authenticated-android-accessory-protocol/';
+        var disqus_url = 'http://ytliu.github.io/blog/2015/12/05/openssl-authenticated-android-accessory-protocol/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

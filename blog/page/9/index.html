@@ -1,0 +1,882 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/page/9">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/11/03/parcel-object-in-android/">Parcel Object in Android</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-11-03T21:42:00+08:00" pubdate data-updated="true">Nov 3<span>rd</span>, 2012</time>
+        
+         | <a href="/blog/2012/11/03/parcel-object-in-android/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>还记得之前被Android Framework里面的那个Parcel类搞得很摸不清头脑，这次为了完成一个任务把它彻底理了一遍，终于弄清楚了很多。</p>
+
+<p>要做的事是这样子的：我有一个经过Parcel封装过的数据data，我需要通过socket把它发送到远程的一个进程中去进行处理，再返回一个Parcel对象reply。</p>
+
+<p>首先在做这个之前我们先来看下Parcel在android中的用法和实现：</p>
+
+<h5>用法</h5>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="nf">sayHello</span><span class="o">(</span><span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="n">message</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">RemoteException</span>
+</span><span class='line'><span class="o">{</span>
+</span><span class='line'>    <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span> <span class="n">_data</span> <span class="o">=</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span><span class="o">.</span><span class="na">obtain</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span> <span class="n">_reply</span> <span class="o">=</span> <span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Parcel</span><span class="o">.</span><span class="na">obtain</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span> <span class="n">_result</span><span class="o">;</span>
+</span><span class='line'>    <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">_data</span><span class="o">.</span><span class="na">writeInterfaceToken</span><span class="o">(</span><span class="n">DESCRIPTOR</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">_data</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">message</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">mRemote</span><span class="o">.</span><span class="na">transact</span><span class="o">(</span><span class="n">Stub</span><span class="o">.</span><span class="na">TRANSACTION_sayHello</span><span class="o">,</span> <span class="n">_data</span><span class="o">,</span> <span class="n">_reply</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">_reply</span><span class="o">.</span><span class="na">readException</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">_result</span> <span class="o">=</span> <span class="n">_reply</span><span class="o">.</span><span class="na">readString</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/11/03/parcel-object-in-android/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/10/27/goagent-setup-note/">GoAgent Setup Note</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-10-27T12:21:00+08:00" pubdate data-updated="true">Oct 27<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/10/27/goagent-setup-note/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这次去武汉开会的时候听翔哥提到GoAgent很好用，就尝试着去搭了下环境。</p>
+
+<p><a href="http://irising.me/2012/02/13376/%20GoAgent">原文地址</a></p>
+
+<p>说实话这个环境搭起来真的很方便，主要分为四步：</p>
+
+<ul>
+<li><p>申请Google App Engine的请用，这个就不细说了，具体参看原文，唯一一个要注意的是在里面有一个Storage Schema的选项要选择High Replication (我之前注册的应用没有这一项，要转变成这个还挺麻烦的)。</p></li>
+<li><p>安装GoAgent的客户端：代码的地址在<a href="http://code.google.com/p/goagent/">这里</a>，然后要修改local目录下的proxy.ini文件，之后要安装一个证书（不过据说不安装也行）。最后上传到GAE上：</p>
+
+<p>  $ cd goagent/server</p>
+
+<p>  $ python uploader.zip update ./</p></li>
+</ul>
+
+
+<p>会在后面提示输入appid和GAE账户信息。</p>
+
+<ul>
+<li><p>设置代理：新建一个网络位置，例如：命名为代理，并将Web代理、安全Web代理两项勾选上，代理服务器地址均为，127.0.0.1,端口为8087。</p></li>
+<li><p>GoAgent使用：首先先在终端运行如下命令：</p>
+
+<p>  $ cd goagent/local</p>
+
+<p>  $ python proxy.python</p></li>
+</ul>
+
+
+<p>然后再在苹果菜单下切换location成代理。</p>
+
+<p>这样就可以通过GoAgent上网了。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/10/27/goagent-setup-note/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/10/20/regain-my-vms-account/">Regain My VM&#8217;s Account</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-10-20T13:53:00+08:00" pubdate data-updated="true">Oct 20<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/10/20/regain-my-vms-account/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两天在做opennebula项目的时候遇到一个问题，我忘记掉之前那几个虚拟机的用户密码了！试了好多可能的密码都不对，只能想办法把密码改掉了。</p>
+
+<p>虚拟机的好处在于我可以把它直接mount到物理主机上对其进行操作，不过镜像文件不是一个普通的设备块，不能通过一般的方法mount，只能用不一般的方法了：</p>
+
+<p>首先我有两种镜像，一个是普通的qemu镜像，以.img结尾的文件，一种是KVM的qcow2文件。</p>
+
+<h5>.img镜像</h5>
+
+<p>对于第一种，飞机教了我一个办法：</p>
+
+<pre><code>$ fdisk -l vm.img
+Disk datastores/vm.img: 8589 MB, 8589934592 bytes
+255 heads, 63 sectors/track, 1044 cylinders, total 16777216 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x0004bacc
+Device Boot      Start         End      Blocks   Id  System
+datastores/vm3.img1   *        2048    15958015     7977984   83  Linux
+datastores/vm3.img2        15960062    16775167      407553    5  Extended
+datastores/vm3.img5        15960064    16775167      407552   82  Linux swap / Solaris
+</code></pre>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/10/20/regain-my-vms-account/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/10/12/android-messaging-mechanism/">Android Messaging Mechanism</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-10-12T21:43:00+08:00" pubdate data-updated="true">Oct 12<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/10/12/android-messaging-mechanism/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两天做remote binder遇到一个bug，具体是什么就不细说了，总之是和android的message机制相关，在Handler.java里面通过mQueue.enqueueMessage()成功后却没有办法从Looper.java里面的mQueue.next()中读出该条message。搞了半天，打印了一堆log，最后发现竟然是因为Looper的线程被我自己block住了。这个主要是由于自己对其理解的错误造成的，之前我一直以为对于每个Activity（或Service）来说，除了主线程之外，都会有一个专用的Looper线程进行消息队列的轮询，今天和乃正讨论了下，其实不是这样的。对于一个进程来说，如果你没有需求说需要有某个线程做某些特定的事（比如socket监听），那么你的主线程就会进入Looper循环进行消息队列的轮询，否则你就需要自己再新建一个线程，或者重新开一个looper，或者进行socket监听&#8230;</p>
+
+<p>此外还有一点，looper是thread local的，对于这个的理解，应该是这样的：在每个线程新建之后，都会有一个原来线程的mQueue的引用，而如果你要自己做一些特定的事，比如重新开一个新的Looper进行其它消息的轮询，那么没有问题，你新建一个looper，但是要注意，你的mQueue是唯一的，也就是说，你之前的对原来线程的mQueue的引用就没了，也就是说，对于一个线程来说只可能有唯一的mQueue。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/10/12/android-messaging-mechanism/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/10/05/android-service-startup/">Android Service Startup</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-10-05T10:25:00+08:00" pubdate data-updated="true">Oct 5<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/10/05/android-service-startup/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>现在要写一个service，在启动之后开启socket监听，等待用户端发消息给它进行处理。而这个service是不会有Activity的，于是乎就要考虑如何让这个service启动起来。</p>
+
+<h4>System Service Startup</h4>
+
+<p>最早想的是将这个service写成system service，然后通过SystemServer启动，这样是可行的，也蛮方便，具体的做法是这样的：</p>
+
+<p>在framework/base/core/java/android/os/app/目录中写一个NewService类extends Service，之后在SystemServer.java中添加</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">Slog</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;New Service&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">ServiceManager</span><span class="o">.</span><span class="na">addService</span><span class="o">(</span><span class="s">&quot;newservice&quot;</span><span class="o">,</span> <span class="k">new</span> <span class="n">NewService</span><span class="o">(</span><span class="n">context</span><span class="o">));</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Throwable</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">Slog</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Failure starting New Service&quot;</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后NewService就会开机启动，但是这样有一个问题，就是这个NewService的pid也就是SystemServer的pid，它们是处于同一个进程中的。于是由于种种原因我不希望启动一个系统服务，而是一个application level的service，这样就遇到一个问题：如果是一个单纯的没有activity的service应用，在通过<em>adb install</em>进系统后并不会自动启动，而是需要其它进程通过<em>startService()</em>或者<em>bindService()</em>启动，那么有没有什么其它方法让一个service在每次install之后启动呢？</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/10/05/android-service-startup/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/28/opennebula-setup-note/">Opennebula Setup Note</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-28T14:30:00+08:00" pubdate data-updated="true">Sep 28<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/09/28/opennebula-setup-note/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这几天搞opennebula这个项目，一个很大的感受就是对于environement setup一定要有详细的笔记，不然过了一段时间就什么也想不起来了，遇到和以前一样的问题也不懂该如何解决。实在浪费时间，于是就把它记下来。</p>
+
+<h2>基本命令</h2>
+
+<p>首先是opennebula里面的一些基本命令，这里以kvm为例：</p>
+
+<h3>Cloud Infrastructure Setup</h3>
+
+<p>On Cluster:</p>
+
+<pre><code>$ onecluster create cluster01
+</code></pre>
+
+<p>On Host (kvm):</p>
+
+<pre><code>$ onehost create host01 --im im_kvm --vm vmm_kvm --net dummy 
+$ onecluster addhost cluster01 host01
+</code></pre>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/09/28/opennebula-setup-note/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/21/progit-reading-2/">Progit Reading 2</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-21T16:50:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2012</time>
+        
+         | <a href="/blog/2012/09/21/progit-reading-2/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>上章介绍了git internal的内容，接下里会从git更接近用户的角度来说。</p>
+
+<hr />
+
+<h1>git basic</h1>
+
+<p>git中的文件有以下几种状态，而所有的命令也就是对于这几种状态的查看和转换：</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-4.png" title="git file status" alt="git file status" /></p>
+
+<p>一般情况下，在新建一个文件后，需要<em>git add</em>将其变成tracked file，如果修改了一个该文件，则同样需要使用<em>git add</em>将其变成staged file，只有staged的文件才会在<em>git commit</em>的时候commit成功。</p>
+
+<p><strong>git status</strong></p>
+
+<p>这个可以用来查看当前文件的状态。如果我们在commit的参数中加上<em>-a</em>，就可以自动将tracked file变成staged file了。当然也可以忽略一些文件，这些都是写在.gitignore文件下的，那么，如何unstage一个文件呢？其实在你使用<em>git stage</em>命令的时候就会有提示:</p>
+
+<pre><code>$ git reset HEAD &lt;file&gt;
+</code></pre>
+
+<p>同样的，我们也可以把一个modified file变成unmodified file:</p>
+
+<pre><code>$ git checkout -- &lt;file&gt;
+</code></pre>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/09/21/progit-reading-2/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/16/progit-reading-1/">Progit Reading 1</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-16T22:54:00+08:00" pubdate data-updated="true">Sep 16<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/09/16/progit-reading-1/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>花了大概两周的时间吧，把《progit》那本书看完了（我看书实在是比较慢，特别是这种英文书）。发觉git实在是一个太强大的工具了，以至于我看完了一遍又把前面所说的功能忘记了。。。orz。。。于是乎决定花一周时间重新回顾一下，顺便把一些牛逼的地方记下来。</p>
+
+<h2>Plumbing &amp; Porcelain</h2>
+
+<p>因为这是progit的最后一章，也是我刚刚看完的一章，还比较有印象。更重要的是这是git的internal的机制，对于深入理解git有很大的帮助，所以想先把这章啃下来。</p>
+
+<p>porcelain是瓷器的意思，在这里是指git中比较user-friendly的命令，比如文中介绍的将近30条git命令，包括checkout, brance, commit, 以及所有的remote命令等等。而plumbing是水管的意思，和porcelain相对的，指的是一些和unix style类似的low-level的可以直接在脚本中执行的命令（其实我也没搞懂为什么要交porcelain和plumbing两个名字，感觉没什么关系啊？）。事实上，如果我没有理解错的话，porcelain在git中应该就是由一系列plumbing命令组成的。比如git commit命令就是由一个叫做“git commit-tree”的plumbing命令完成的，至于什么是commit-tree，以及这个tree是怎么形成的，这个会再接下来慢慢解释。</p>
+
+<p>首先来看下.git目录下都有些什么。</p>
+
+<pre><code>$ ls .git
+HEAD
+config
+description
+hooks/
+index
+info/
+objects/
+refs/
+</code></pre>
+
+<p>这些是在<em>git init</em>的时候初始化就默认产生的，其中description现在还不需要考虑，config主要用来配置一些program-specific的参数选项，info是一个目录，包含了一些需要被ignore的文件模式，而hooks定义了一些client或server端用于用户进行脚本定制的功能，这会在接下来详细介绍。而在这一节中主要描述了以下四个对象：<strong>HEAD</strong>，<strong>index</strong>，<strong>objects</strong>，<strong>refs</strong>。这是git最internal的部分。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/09/16/progit-reading-1/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/13/guan-yu-shou-ji-he-yun-de-xue-zhu-yan-jiu/">关于手机和云的学术研究</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-13T14:00:00+08:00" pubdate data-updated="true">Sep 13<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/09/13/guan-yu-shou-ji-he-yun-de-xue-zhu-yan-jiu/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这两天看了两篇关于手机和云结合的文章，两篇的motivation不同，所以所用的方法也就自然不一样了。下面对这两篇进行分别的介绍：</p>
+
+<p>第一篇叫《<em>CloneCloud: Elastic Execution between Mobile Device and Cloud</em>》</p>
+
+<p>分开来说就是用了三种技术，application partitioning, thread migration, remote execution，主要是前面两个：</p>
+
+<p><strong>application partitioning</strong>: 主要用了static和dynamic相结合的方式，先用static找出合法的可分割点，再用dynamic计算出cost model，然后得出最合适的分割方案，生成partition configuration，主要是要注意两点：</p>
+
+<p>1.这些都是在offline做的，在程序实际运行的时候直接获得configuration，然后在migrate point的时候进行migrate。</p>
+
+<p>2.按照作者的意思是不需要source code的，是通过分析二进制文件来得到合法的分割点，但需要重写二进制文件，加入一些annotation比如migrate point之类的。另外，合法的分割点作者提出了几个限制：</p>
+
+<pre><code>a.首先，它必须是method entry and exit point，不能是core-system library，当然在method里面调用的core 
+library是允许的;
+b.Methods that access specific features of a machine motivationust be pinned to the machine, 比如说
+location-based的调用或者camera这些没有被virtualized的服务都不能被分到远端，这也是我后面会详细说的；
+c.Methods that share native state must be collocated andt the same machine.也就是说那些调用native 
+code同时share了native state的方法也不能被migrate
+d.Prevent nested migration.
+</code></pre>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/09/13/guan-yu-shou-ji-he-yun-de-xue-zhu-yan-jiu/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/04/quan-xin-de-kai-shi/">全新的开始</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-04T09:35:00+08:00" pubdate data-updated="true">Sep 4<span>th</span>, 2012</time>
+        
+         | <a href="/blog/2012/09/04/quan-xin-de-kai-shi/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>坐在火车上，静静地想着一个新的生活的开始。</p>
+
+<p>一个暑假，2个星期的生活就这样迷迷糊糊的结束了，待在家里确实很舒适，不需要考虑着如何照顾自己，天天享受着父母无微不至的照料，吃着在学校怎么也吃不到的好料，每天有好多人请客，吃大餐、喝酒&#8230;但是每当安静下来突然想到4年的本科生涯已经结束，想到还有未来一个如此未知的五年等待着自己，就会有那么一些的伤感，兴奋，还有迷茫和害怕。</p>
+
+<p>可以说这两周基本没有什么学术，回学校明天的开会都不知道要说些什么，半年前选择了5年直博这条路，现在想起来似乎却有那么些后悔，或许5年真的太长了，5年的时间可能可以做很多事，但对于我来说待在学校真的是最合适的吗？很早之前我就纠结过这个问题，即使快要开始了也还在纠结。开学前两天看了斌哥推荐的那篇《The Ph.D&#8217;s Grind》，突然似乎释然了很多&#8230;</p>
+
+<p>仔细想来，我的纠结，在于不自信自己博士5年能不能毕业，在于5年是否对于现在这个不那么想走faculty道路的我来说太长了，在于纠结这五年是否值得&#8230;可是5年又如何呢，我在这五年的学生生涯里同样可以养活自己，可以大体上经济独立，我在这五年时间里同样可以结婚，可以有自己的情感生活，或许这五年我没有当年选择工作攒钱攒的多，可能这五年我会比当年选择硕士辛苦很多，甚至有可能像Guo前几年一样一直找不到合适自己的方向，paper被拒了又拒，整天担心着毕业。但是我得到的又是什么呢？五年的时间，二十分之一个世纪，我可以非常长远地做一个安排，选择一个适合自己并且不会讨厌的目标，花五年的时间去追寻，而不需要在中途游离和彷徨；五年的青春，我可以相对自由地去做自己想做的事，能更随意地安排时间把有些青春还没有完成的事情去做完；我可以花五年的时间去修炼自己，除了争取毕业，除了提高专业素养，还有更多需要我去进步的地方，比如我的表达能力，比如和人交往的能力，比如更成熟的思想，比如更淡然的心态&#8230;真的很多东西我相信读博可以让我做到，就像Guo说的那样：</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2012/09/04/quan-xin-de-kai-shi/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/10/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/8/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader&#8217;s blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao&#8217; weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>

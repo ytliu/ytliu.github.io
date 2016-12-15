@@ -1,0 +1,708 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>progit reading 2 - Mctrain's Blog</title>
+  <meta name="author" content="Liu Yutao">
+
+  
+  <meta name="description" content="blog to record the technique diary, life feeling and whatever I'v learned that is valuable.">
+  <meta name="keywords" content="Android System Security Linux Ruby Network Conference">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ytliu.github.io/blog/2012/09/21/progit-reading-2">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/stylesheets/data-table.css" media="screen, projection" rel="stylesheet" type="text/css" />
+  <link href="/atom.xml" rel="alternate" title="Mctrain's Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="./javascripts/libs/jquery.min.js"></script>
+  <!--<script src="http://ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <!--  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>-->
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts 
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Delius' rel='stylesheet' type='text/css'>
+-->
+<link href="http://fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+
+  
+
+</head>
+
+<body    style="margin:auto">
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mctrain's Blog</a></h1>
+  
+    <h2>What I learned in IT, as well as thought about life</h2>
+  
+</hgroup>
+
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss email">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+    <li><a href="mctrain016@gmail.com" rel="subscribe-email" title="subscribe via email">Email</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ytliu.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Home</a></li>
+  <li><a href="/blog">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/paper">Papers</a></li>
+  <li><a href="/notes">Notes</a></li>
+  <li><a href="/life">Life</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Progit Reading 2</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-21T16:50:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>上章介绍了git internal的内容，接下里会从git更接近用户的角度来说。</p>
+
+<hr />
+
+<h1>git basic</h1>
+
+<p>git中的文件有以下几种状态，而所有的命令也就是对于这几种状态的查看和转换：</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-4.png" title="git file status" alt="git file status" /></p>
+
+<p>一般情况下，在新建一个文件后，需要<em>git add</em>将其变成tracked file，如果修改了一个该文件，则同样需要使用<em>git add</em>将其变成staged file，只有staged的文件才会在<em>git commit</em>的时候commit成功。</p>
+
+<p><strong>git status</strong></p>
+
+<p>这个可以用来查看当前文件的状态。如果我们在commit的参数中加上<em>-a</em>，就可以自动将tracked file变成staged file了。当然也可以忽略一些文件，这些都是写在.gitignore文件下的，那么，如何unstage一个文件呢？其实在你使用<em>git stage</em>命令的时候就会有提示:</p>
+
+<pre><code>$ git reset HEAD &lt;file&gt;
+</code></pre>
+
+<p>同样的，我们也可以把一个modified file变成unmodified file:</p>
+
+<pre><code>$ git checkout -- &lt;file&gt;
+</code></pre>
+
+<!-- more -->
+
+
+<p><strong>git diff</strong></p>
+
+<p>由于<em>git status</em>只能告诉我们哪些文件被修改了，而不能告诉我们都修改了哪些具体内容，所以有一个<em>git diff</em>命令来补充这个功能。</p>
+
+<p><em>git diff</em>显示的是changed but not staged的文件，而<em>git diff &#8211;cached</em>显示的是staged的文件</p>
+
+<p><strong>git commit</strong></p>
+
+<p>这个就是将stage area里面的东西进行提交，在提交的时候需要指定<em>-m</em>参数。另外还有一个比较有用的命令叫*git commit &#8211;amend**用来返回到最近的一次commit之前，然后加一些其它文件，然后再自动提交一遍，这样就不会有两个相似的commit了。</p>
+
+<p><strong>git rm</strong></p>
+
+<p>如果只是简单地用<em>rm</em>命令，那么它还是处于unstage的状态，用<em>git rm</em>会将其变成untrack状态。另外，如果你加了参数<em>-f</em>则可以将其从index中删除，这样如果之前没有commit这个文件的话之后也就无法恢复了。</p>
+
+<p>还有一个比较有用的命令是:</p>
+
+<pre><code>$ git rm --cached &lt;file&gt;
+</code></pre>
+
+<p>这个命令可以在硬盘上保留file，但是将其从working tree中删除。比如说你忘记把file添加到.gitignore文件中的话就可以用这个命令。</p>
+
+<p>同样，这个命令也支持正则表达式。</p>
+
+<p><strong>git mv</strong></p>
+
+<p>在git中，如果你用<em>git mv</em>命令，在git history中应该是没有renaming这个记录的，那么为什么还有mv这个命令呢？在git中：<em>git mv file_from file_to</em>这一个命令相当于</p>
+
+<pre><code>$ mv file_from file_to
+$ git rm file_from
+$ git add file_to
+</code></pre>
+
+<p>这三条命令。</p>
+
+<p><strong>git log</strong></p>
+
+<p>用来查看git commit history，有许多有用的参数，比如<em>&#8211;stat</em>可以查看一些简略的信息，<em>-p -2</em>可以列出最近的两条entris，<em>&#8211;pretty=oneline</em>可以将history简略成一行，同样可以指定format——<em>&#8211;pretty=format:&#8221;%h - %an, %ar : %s</em>，而这些参数的意义如下:</p>
+
+<pre><code>Option  Description of Output
+%H  Commit hash
+%h  Abbreviated commit hash
+%T  Tree hash
+%t  Abbreviated tree hash
+%P  Parent hashes
+%p  Abbreviated parent hashes
+%an  Author name
+%ae  Author e-mail
+%ad  Author date (format respects the –date= option)
+%ar  Author date, relative
+%cn  Committer name
+%ce  Committer email
+%cd  Committer date
+%cr  Committer date, relative
+%s  Subject
+</code></pre>
+
+<p>另外还有<em>&#8211;graph</em>用来列出一个history graph，还有一些和时间相关的log，比如<em>&#8211;since=2.weeks</em>，列出两周内的commit信息&#8230;</p>
+
+<pre><code>Option  Description
+-(n)  Show only the last n commits
+--since, --after  Limit the commits to those made after the specified date.
+--until, --before  Limit the commits to those made before the specified date.
+--author  Only show commits in which the author entry matches the specified string.
+--committer  Only show commits in which the committer entry matches the specified strin
+</code></pre>
+
+<p><strong>git tag</strong></p>
+
+<p>这个先不说了，感觉用不太到&#8230;</p>
+
+<p><strong>git remote</strong></p>
+
+<p>主要就7个命令：</p>
+
+<pre><code>$ git remote add local_name url
+$ git remote -v
+$ git remote show local_name
+$ git fetch [local_name | url]
+$ git push [local_name | url] [branch_name]
+$ git remote rename old_name new_name
+$ git remote rm local_name
+</code></pre>
+
+<p><strong>tips and tricks</strong></p>
+
+<p><em>git aliases</em>: 可以将很多命令缩写，比如:</p>
+
+<pre><code>$ git config --global alias.co checkout
+......
+$ git config --global alias.unstage 'reset HEAD --'
+$ git config --global alias.last 'log -1 HEAD'
+</code></pre>
+
+<h1>git branch</h1>
+
+<p>git branch的抽象是这样子的，每次commit都会产生一个commit object:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-5.png" title="commit object" alt="commit object" /></p>
+
+<p>而一个branch则有一个个commit object通过pointer串起来的:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-6.png" title="branch" alt="branch" /></p>
+
+<p>在整个git目录中有一个很特别的index叫做HEAD，它指向了当前的branch:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-7.png" title="current branch" alt="current branch" /></p>
+
+<p>之后，就是对branch的一些操作:</p>
+
+<pre><code>$ git checkout -b new_branch
+</code></pre>
+
+<p>这个等价于:</p>
+
+<pre><code>$ git branch new_branch
+$ git checkout new_branch
+</code></pre>
+
+<p><strong>merge</strong></p>
+
+<p>merge需要先指定base的branch，然后再和一个新的branch进行合并：</p>
+
+<pre><code>$ git checkout base_branch
+$ git merge another_branch
+</code></pre>
+
+<p>如果两个branch不在一个history中(如图所示):</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-8.png" title="merge branch 1" alt="merge branch 1" /></p>
+
+<p>则会找到一个common ancestor，之后创建一个新的commit object，它的parents为两个branch，</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-9.png" title="merge branch 2" alt="merge branch 2" /></p>
+
+<p>如果两个branch有conflic，则需要通过diff工具进行merge，merge完之后用<em>git add</em>和<em>git commit</em>进行确认。</p>
+
+<p><strong>delete branch</strong></p>
+
+<p>删除一个branch的命令为:</p>
+
+<pre><code>$ git branch -d branch_name
+</code></pre>
+
+<p><strong>remote branch</strong></p>
+
+<p>主要是个命令的使用:</p>
+
+<pre><code>$ git clone url
+$ git fetch local_name
+$ git push local_name branch_name
+$ git checkout --track local_name/branch_name   # set up a tracking branch
+$ git checkout -b new_branch_name local_name/branch_name
+$ git push local_name :branch_name  # delete a remote branch from the server
+</code></pre>
+
+<p><strong>rebasing</strong></p>
+
+<p>和merge不同，rebase是将一个branch的改动replay到另一个branch上，比如说，一个简单的例子:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-10.png" title="rebase branch 1" alt="rebase branch 1" /></p>
+
+<p>以experiment为current branch，<em>git merge master</em>的结果是这样的:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-11.png" title="rebase branch 2" alt="rebase branch 2" /></p>
+
+<p>而以experiment为current branch，<em>git rebase master</em>的结果是这样的:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-12.png" title="rebase branch 3" alt="rebase branch 3" /></p>
+
+<p>它的过程是这样的：先找到一个common ancestor，将两个branch的diff结果保存到一个文件里面，将当前的branch重新设成新的branch，之后将这些diff都应用到这个branch中。</p>
+
+<p>对于rebase，有一点要注意的:</p>
+
+<blockquote><p>Do not rebase commits that you have pushed to a public repository.</p></blockquote>
+
+
+<p>否则会造成很多你意想不到的结果。</p>
+
+<h1>git distribution</h1>
+
+<p>/<em> fix me </em>/</p>
+
+<h1>git tools</h1>
+
+<p><strong>revision selection</strong></p>
+
+<p>主要是几条命令:</p>
+
+<pre><code>$ git log --abbrev-commit --pretty=oneline
+$ git rev-parse topic1 
+ca82a6dff817ec66f44342007202690a93763949
+$ git reflog
+$ git log -g branch     # see reflog of master
+$ git show HEAD^    # see the parent commit of HEAD
+$ git show HEAD~2   # see the grandparent commit of HEAD...
+</code></pre>
+
+<p>另外也可以看commit range，比如如图所示:</p>
+
+<p><img src="http://ytliu.info/images/2012-09-16-13.png" title="commit range" alt="commit range" /></p>
+
+<p>branch1..branch2的意思是: all commits reachable by branch2 that aren&#8217;t reachable by branch1。</p>
+
+<p>branch1&#8230;branch2的意思是: all commits that are reachable by either of two references but not by both of them。</p>
+
+<p>所以:</p>
+
+<pre><code>$ git log master..experiment
+D 
+C
+
+$ git log experiment..master
+F
+E
+
+$ git log master...experiment
+F
+E
+D
+C
+</code></pre>
+
+<p>另外下面三个命令是等价的:</p>
+
+<pre><code>$ git log refA..refB
+$ git log ^refA refB
+$ git log refB --not refA
+</code></pre>
+
+<p><strong>interactive staging</strong></p>
+
+<p>如果为<em>git add</em>加一个<em>-i</em>选项，则可以进入interactive的模式，之后会有几个命令让你选择:</p>
+
+<pre><code>Commands * 1: status 2: update 3: revert 4: add untracked 5: patch 6: diff 7: quit 8: help 
+</code></pre>
+
+<p>之后就可以交互式地stage每个文件，同时，还可以stage文件的一部分（5：patch），很方便。</p>
+
+<p><strong>stashing</strong></p>
+
+<p>stashing的作用是将当前目录的状态（不管是modified还是staged的文件）都保存起来，然后做其它的工作，在之后可以从中恢复过来。</p>
+
+<p>另外，可以用<em>git stash list</em>列出当前被stash的内容，之后用<em>git stash apply</em>来应用某个，或者<em>git stash drop</em>来丢弃某个，或者直接用<em>git stash pop</em>将最近的一个apply然后drop。</p>
+
+<p>还有一种比较牛逼但比较用不到的场景，你apply了一个stash，do some work，然后想unapply之前的工作（指originally come from the stash），可以用这个命令:</p>
+
+<pre><code>$ git stash show -p stash@{0} | git apply -R
+</code></pre>
+
+<p><strong>rewriting history</strong></p>
+
+<p>之前有说过<em>git commit &#8211;amend</em>，这里要注意的是这个命令就像一个小的rebase，如果你已经push到remote的话最后就不要用这条命令了。</p>
+
+<p>如果你想要改之前的commit，那么就需要用<em>git rebase</em>了，加上<em>-i</em>选项:</p>
+
+<pre><code>$ git rebase -i HEAD~3
+</code></pre>
+
+<p>之后会有几个选项让你选:</p>
+
+<pre><code>p, pick = use commit
+r, reword = use commit, but edit the commit message
+e, edit = use commit, but stop for amending
+s, squash = use commit, but meld into previous commit
+f, fixup = like "squash", but discard this commit's log message
+x, exec = run command (the rest of the line) using shell
+</code></pre>
+
+<p>这里我遇到一个问题: 在退出编辑器的时候报错——could not execute editor，解决的办法是:</p>
+
+<pre><code>$ git config --global core.editor "/usr/bin/vim"
+</code></pre>
+
+<p>总的来说这是一个很强大的功能，可以修改commit message，可以reordering commit，可以squashing commit，也可以splitting commit，还有一个非常牛逼的filter-branch功能，可以用来把一个文件从每次的commit中删除。在这里就不详细介绍了。</p>
+
+<p><strong>debugging with git</strong></p>
+
+<p>/<em> fix me </em>/</p>
+
+<p><strong>submodules</strong></p>
+
+<p>submodule的作用是将某段代码目录作为子目录导入你的主工程中，让别人可以下载，另外，由于这个子工程可能是别人开发的，所以需要分开来commit。</p>
+
+<p>可以通过以下命令来建立submodule:</p>
+
+<pre><code>$ git submodule add url local_module_name
+</code></pre>
+
+<p>但是如果你直接用<em>git clone</em>是不会把这个submodule下下来的，需要运行以下两个命令:</p>
+
+<pre><code>$ git submodule init
+$ git submodule update
+</code></pre>
+
+<p><strong>subtree merging</strong></p>
+
+<p>/<em> fix me </em>/</p>
+
+<h1>git customization</h1>
+
+<p><strong>git configuration</strong></p>
+
+<p>一般，git的配置参数在/etc/gitconfig和~/.gitconfig两个文件里面。</p>
+
+<p>git可以设置默认的commit message:</p>
+
+<pre><code>$ git config --global commit.template &lt;file&gt;
+</code></pre>
+
+<p>还有其它的:</p>
+
+<pre><code>$ git config --global core.pager [more | less | '']
+$ git config --global help.autocorrect [0 | 1]
+$ git config --global color.ui [true | false]
+$ git config --global color.branch [true | false | always]
+$ git config --global color.diff [true | false | always]
+......
+</code></pre>
+
+<p><strong>git attributes</strong></p>
+
+<p>可以在.gitattributes中加入<em><em>.b binary</em>来表示以b结尾的文件都是binary file，这样在</em>git diff<em>的时候就不会diff它了，还可以通过</em>*.doc diff=word*来表示用word来进行diff，而word可以通过:</p>
+
+<pre><code>$ git config diff.word.textconv strings
+</code></pre>
+
+<p>来进行设置。</p>
+
+<p><strong>git hooks</strong></p>
+
+<p>这是一个很强大的工具，你可以将所有可执行脚本通过合法的命名方式放在.git/hooks目录下，主要分为client-side和server-side的hooks，比如在client-side中，可以规定在commit之前运行一个脚本进行检查&#8230;</p>
+
+<p>这是一个蛮有趣的话题，我会单独写一篇文章来说明下~</p>
+
+<hr />
+
+<p>以上基本上就是progit的全部内容，还有一些我觉得暂时还用不到就没有详细写，有一些我可能还会再单独更详细地描述。</p>
+
+<p>总之，git真的是一个很神奇的用于提高开发效率和可靠性的工具，如果能熟练地掌握它的用法将能极大地提高工作效率。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Liu Yutao</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-21T16:50:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/git/'>Git</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    
+  <h2>Share</h2>  
+  <!-- JiaThis Button BEGIN -->  
+<div class="jiathis_style_32x32">  
+  <a class="jiathis_button_tsina"></a>  
+  <a class="jiathis_button_tqq"></a>  
+  <a class="jiathis_button_weixin"></a>  
+  <a class="jiathis_button_renren"></a>  
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>  
+  <a class="jiathis_counter_style"></a>  
+</div>  
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1367457337064293" charset="utf-8"></script>  
+<!-- JiaThis Button END -->  
+  
+    
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/09/16/progit-reading-1/" title="Previous Post: progit reading 1">&laquo; progit reading 1</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/09/28/opennebula-setup-note/" title="Next Post: opennebula setup note">opennebula setup note &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p align="middle"><img src="http://ytliu.info/images/mypic.jpg" alt="Liu Yutao" width="60%" /></p>
+  <p>My name is Liu Yutao and this is my blog. I am a Ph.D candidate in <a href="http://ipads.se.sjtu.edu.cn/" >IPADS</a> of SJTU, and this is my <a href="http://ipads.se.sjtu.edu.cn/doku.php?id=pub:members:yutao_liu">Homepage</a>.</p>
+  <p>E-mail me at mctrain016@gmail.com if you have any questions or comments.</p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/15/sa-fan-na-xiao-zhen-shang-de-osdi2016/">萨凡纳小镇上的OSDI-2016——SJTU-IPADS的集体见闻（转载）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/12/10/x86zhi-ling-bian-ma-de-na-xie-shi-er/">X86指令编码的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/30/segmentation-protection-in-intel-processor/">Segmentation Protection in Intel Processor</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/09/16/tlbde-na-xie-shi-er/">TLB的那些事儿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/15/linuxnei-cun-chu-shi-hua-c/">Linux内存初始化（C语言部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/14/linuxnei-cun-chu-shi-hua-assembly/">Linux内存初始化（汇编部分）</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/01/wo-de-2015/">我的2015</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/14/enable-config-module-in-cyanogenmod-kernel/">Enable CONFIG_MODULE in Cyanogenmod Kernel</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+<h1>Categories</h1>
+<span class='categories_tag'> <a href='/blog/categories/algorithm' style='font-size: 102.22222222222223%'>Algorithm(1)</a>  <a href='/blog/categories/android' style='font-size: 144.44444444444446%'>Android(20)</a>  <a href='/blog/categories/architecture' style='font-size: 104.44444444444444%'>Architecture(2)</a>  <a href='/blog/categories/attack' style='font-size: 115.55555555555556%'>Attack(7)</a>  <a href='/blog/categories/conference' style='font-size: 120.0%'>Conference(9)</a>  <a href='/blog/categories/git' style='font-size: 104.44444444444444%'>Git(2)</a>  <a href='/blog/categories/journey' style='font-size: 104.44444444444444%'>Journey(2)</a>  <a href='/blog/categories/kvm' style='font-size: 102.22222222222223%'>Kvm(1)</a>  <a href='/blog/categories/kvm' style='font-size: 104.44444444444444%'>Kvm(2)</a>  <a href='/blog/categories/life' style='font-size: 151.11111111111111%'>Life(23)</a>  <a href='/blog/categories/linux' style='font-size: 128.88888888888889%'>Linux(13)</a>  <a href='/blog/categories/mac' style='font-size: 102.22222222222223%'>Mac(1)</a>  <a href='/blog/categories/network' style='font-size: 111.11111111111111%'>Network(5)</a>  <a href='/blog/categories/ocaml' style='font-size: 102.22222222222223%'>Ocaml(1)</a>  <a href='/blog/categories/opennebula' style='font-size: 102.22222222222223%'>Opennebula(1)</a>  <a href='/blog/categories/others' style='font-size: 108.88888888888889%'>Others(4)</a>  <a href='/blog/categories/paper' style='font-size: 108.88888888888889%'>Paper(4)</a>  <a href='/blog/categories/qemu' style='font-size: 104.44444444444444%'>Qemu(2)</a>  <a href='/blog/categories/ror' style='font-size: 102.22222222222223%'>Ror(1)</a>  <a href='/blog/categories/ruby' style='font-size: 106.66666666666667%'>Ruby(3)</a>  <a href='/blog/categories/security' style='font-size: 137.77777777777777%'>Security(17)</a>  <a href='/blog/categories/study' style='font-size: 104.44444444444444%'>Study(2)</a>  <a href='/blog/categories/system' style='font-size: 160.0%'>System(27)</a>  <a href='/blog/categories/tool' style='font-size: 113.33333333333333%'>Tool(6)</a>  <a href='/blog/categories/tutorial' style='font-size: 115.55555555555556%'>Tutorial(7)</a>  <a href='/blog/categories/virtualization' style='font-size: 113.33333333333333%'>Virtualization(6)</a>  <a href='/blog/categories/xen' style='font-size: 111.11111111111111%'>Xen(5)</a> </span>
+</section>
+
+<section>
+  <h1>Links</h1>
+  <ul id="recent_posts">
+      <li class="post">
+        <a href="http://beader.me">Beader's blog</a>
+      </li>
+      <li class="post">
+        <a href="http://edgeofmap.com/blog/">Edge of map</a>
+      </li>
+      <li class="post">
+        <a href="http://www.freebuf.com/">Freebuf</a>
+      </li>
+      <li class="post">
+        <a href="http://www.claudxiao.net/">i, Claud</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/">Insight-labs</a>
+      </li>
+      <li class="post">
+        <a href="http://insight-labs.org/wiki/index.php">Insight-labs Wiki</a>
+      </li>
+      <li class="post">
+        <a href="http://hanjc.me">HAN</a>
+      </li>
+      <li class="post">
+        <a href="http://www.liwenhaosuper.com/">Li Wenhao' weblog</a>
+      </li>
+      <li class="post">
+        <a href="http://wiki.secmobi.com/home">SecMobi</a>
+      </li>
+      <li class="post">
+        <a href="http://mytrix.me/">the 3rd. Place</a>
+      </li>
+      <li class="post">
+        <a href="http://theuniverse.byethost32.com/">基巴斯坦</a>
+      </li>
+      <li class="post">
+        <a href="http://ancienttime.blogbus.com/">你好旧时光</a>
+      </li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><!-- GoStats JavaScript Based Code -->
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c4.gostats.cn';_goa=383095;
+  _got=7;_goi=3;_goz=0;_god='hits';_gol='网站计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="网站计数器" 
+    href="http://gostats.cn"><img alt="网站计数器" 
+    src="http://c4.gostats.cn/bin/count/a_383095/t_7/i_3/z_0/show_hits/counter.png" 
+    style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+<p>
+  Copyright &copy; 2016 - Liu Yutao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <span class="credit"> and <a href="http://gitcafe.com/signup?invited_by=mctrain" target="_blank">GitCafe</a></span>
+</p>
+  
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mctrainsblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ytliu.github.io/blog/2012/09/21/progit-reading-2/';
+        var disqus_url = 'http://ytliu.github.io/blog/2012/09/21/progit-reading-2/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+</body>
+</html>
